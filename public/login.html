@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<title>AI Command Center — Login</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0d1117;color:#e6edf3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center}
+  .card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:40px;width:100%;max-width:400px}
+  .logo{text-align:center;margin-bottom:32px}
+  .logo svg{width:48px;height:48px;color:#3b82f6}
+  .logo h1{font-size:22px;font-weight:700;margin-top:12px;color:#e6edf3}
+  .logo p{color:#8b949e;font-size:13px;margin-top:4px}
+  label{display:block;font-size:13px;color:#8b949e;margin-bottom:6px;font-weight:500}
+  input[type=password]{width:100%;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px 14px;color:#e6edf3;font-size:14px;outline:none;transition:border-color .2s}
+  input[type=password]:focus{border-color:#3b82f6}
+  button{width:100%;margin-top:20px;background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s}
+  button:hover{background:#2563eb}
+  button:disabled{background:#1d4ed8;opacity:.6;cursor:not-allowed}
+  .error{background:#1c0a0a;border:1px solid #7f1d1d;border-radius:8px;padding:10px 14px;color:#fca5a5;font-size:13px;margin-top:16px;display:none}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+      <path stroke-linecap="round" stroke-linejoin="round" d="M18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"/>
+    </svg>
+    <h1>AI Command Center</h1>
+    <p>Painel de Administração</p>
+  </div>
+  <form id="form">
+    <label for="pwd">Senha de Acesso</label>
+    <input type="password" id="pwd" placeholder="••••••••••••" autofocus>
+    <button type="submit" id="btn">Entrar</button>
+    <div class="error" id="err">Senha incorreta. Tenta novamente.</div>
+  </form>
+</div>
+<script>
+document.getElementById('form').addEventListener('submit', async e => {
+  e.preventDefault()
+  const btn = document.getElementById('btn')
+  const err = document.getElementById('err')
+  btn.disabled = true; btn.textContent = 'A entrar...'
+  err.style.display = 'none'
+  try {
+    const r = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ password: document.getElementById('pwd').value })
+    })
+    if (r.ok) { window.location.href = '/admin' }
+    else { err.style.display = 'block'; btn.disabled = false; btn.textContent = 'Entrar' }
+  } catch { err.style.display = 'block'; btn.disabled = false; btn.textContent = 'Entrar' }
+})
+</script>
+</body>
+</html>

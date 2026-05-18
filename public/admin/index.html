@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<title>AI Command Center</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;min-height:100vh}
+
+/* Sidebar */
+.sidebar{width:220px;background:#161b22;border-right:1px solid #21262d;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.sidebar-logo{padding:20px 16px;border-bottom:1px solid #21262d}
+.sidebar-logo .name{font-size:14px;font-weight:700;color:#e6edf3}
+.sidebar-logo .sub{font-size:11px;color:#8b949e;margin-top:2px}
+.sidebar-logo svg{width:28px;height:28px;color:#3b82f6;margin-bottom:8px}
+.nav{flex:1;padding:12px 8px;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:#8b949e;transition:all .15s;margin-bottom:2px;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:#1c2333;color:#e6edf3}
+.nav-item.active{background:#1c2333;color:#3b82f6}
+.nav-item svg{width:16px;height:16px;flex-shrink:0}
+.sidebar-footer{padding:12px 8px;border-top:1px solid #21262d}
+.btn-logout{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:#8b949e;width:100%;border:none;background:none;transition:all .15s}
+.btn-logout:hover{background:#1c0a0a;color:#f87171}
+
+/* Main */
+.main{margin-left:220px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{padding:16px 24px;border-bottom:1px solid #21262d;display:flex;align-items:center;justify-content:space-between;background:#0d1117;position:sticky;top:0;z-index:50}
+.topbar h1{font-size:18px;font-weight:600;color:#e6edf3}
+.topbar .badge{background:#1c2333;border:1px solid #30363d;border-radius:6px;padding:4px 10px;font-size:12px;color:#8b949e}
+.content{padding:24px;flex:1}
+
+/* Sections */
+.section{display:none}
+.section.active{display:block}
+
+/* Cards */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:#161b22;border:1px solid #21262d;border-radius:10px;padding:18px}
+.stat-card .label{font-size:12px;color:#8b949e;margin-bottom:8px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.stat-card .value{font-size:28px;font-weight:700;color:#e6edf3}
+.stat-card .sub{font-size:12px;color:#8b949e;margin-top:4px}
+
+/* Tables */
+.table-container{background:#161b22;border:1px solid #21262d;border-radius:10px;overflow:hidden}
+.table-header{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #21262d}
+.table-header h2{font-size:15px;font-weight:600}
+table{width:100%;border-collapse:collapse}
+th{padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #21262d;background:#0d1117}
+td{padding:12px 16px;font-size:13px;border-bottom:1px solid #21262d;color:#c9d1d9}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#1c2333}
+.empty{text-align:center;padding:40px;color:#8b949e;font-size:14px}
+
+/* Badges */
+.badge-status{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;text-transform:uppercase}
+.badge-ACTIVE{background:#0e3a1f;color:#4ade80}
+.badge-COMPLETED{background:#1e3a5f;color:#60a5fa}
+.badge-EVALUATING{background:#3a2e0e;color:#fbbf24}
+.badge-EVALUATION_FAILED{background:#3a0e0e;color:#f87171}
+.badge-SUPPORT{background:#1e3a5f;color:#60a5fa}
+.badge-SALES{background:#2a1e3a;color:#c084fc}
+.badge-GEMINI{background:#0e3a2e;color:#34d399}
+.badge-CLAUDE{background:#2a1a0e;color:#fb923c}
+.badge-OPENAI{background:#0d2a2a;color:#22d3ee}
+.badge-DEEPSEEK{background:#1a0e2a;color:#a78bfa}
+.badge-GROQ{background:#2a0e0a;color:#f97316}
+/* Toggle switch */
+.toggle-wrap{display:flex;align-items:center;gap:8px}
+.toggle{position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;cursor:pointer;background:#30363d;border-radius:22px;transition:.2s}
+.toggle-slider:before{position:absolute;content:"";height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
+input:checked + .toggle-slider{background:#22c55e}
+input:checked + .toggle-slider:before{transform:translateX(18px)}
+.toggle-label{font-size:12px;font-weight:600;color:#8b949e}
+input:checked ~ .toggle-label{color:#22c55e}
+/* Agent type cards in modal */
+.agent-cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.agent-card{border:2px solid #30363d;border-radius:8px;padding:10px 12px;cursor:pointer;transition:.15s;background:#0d1117}
+.agent-card:hover{border-color:#60a5fa}
+.agent-card input[type=radio]{display:none}
+.agent-card.selected{border-color:#3b82f6;background:#1c2333}
+.agent-card .ac-title{font-size:12px;font-weight:700;color:#e6edf3}
+.agent-card .ac-desc{font-size:11px;color:#8b949e;margin-top:3px}
+
+/* Provider cards */
+.provider-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;padding:16px}
+.provider-card{background:#0d1117;border:1px solid #21262d;border-radius:10px;padding:18px;transition:.15s}
+.provider-card.enabled{border-color:#22c55e30;background:#0d2010}
+.provider-card.no-key{border-color:#f59e0b30;background:#1a1400}
+.provider-card .pc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.provider-card .pc-name{font-size:15px;font-weight:700;color:#e6edf3}
+.provider-card .pc-model{font-size:11px;color:#8b949e;margin-top:4px}
+.provider-card .pc-status{font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px}
+.pc-status.on{background:#0e3a1f;color:#4ade80}
+.pc-status.off{background:#1c2333;color:#8b949e}
+.pc-status.nokey{background:#3a2a00;color:#fbbf24}
+.provider-card .pc-key{font-family:monospace;font-size:12px;color:#8b949e;margin:8px 0;letter-spacing:1px}
+.provider-card .pc-actions{display:flex;align-items:center;justify-content:space-between;margin-top:12px;border-top:1px solid #21262d;padding-top:12px}
+
+.kn-tab{border-radius:8px!important}
+.kn-tab.active{background:#3b82f6!important;color:#fff!important;border-color:#3b82f6!important}
+.kn-row-pending{border-left:3px solid #f59e0b}
+.kn-row-approved{border-left:3px solid #22c55e}
+.kn-row-global{border-left:3px solid #a78bfa}
+.kn-trigger{font-size:12px;color:#94a3b8;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kn-response{font-size:12px;color:#e6edf3;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge-PRIVATE{background:#1c2333;color:#8b949e}
+.badge-GLOBAL{background:#2a1a4a;color:#a78bfa}
+.badge-PENDING{background:#3a2a00;color:#fbbf24}
+.badge-APPROVED{background:#0e3a1f;color:#4ade80}
+.badge-REJECTED{background:#3a0e0e;color:#f87171}
+.badge-SUPORTE{background:#1e3a5f;color:#60a5fa}
+.badge-VENDAS{background:#2a1e3a;color:#c084fc}
+
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s}
+.btn-primary{background:#3b82f6;color:#fff}
+.btn-primary:hover{background:#2563eb}
+.btn-danger{background:transparent;border:1px solid #7f1d1d;color:#f87171}
+.btn-danger:hover{background:#1c0a0a}
+.btn-ghost{background:transparent;border:1px solid #30363d;color:#8b949e}
+.btn-ghost:hover{border-color:#58a6ff;color:#58a6ff}
+.btn-sm{padding:4px 10px;font-size:12px}
+
+/* Forms / Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:200;display:none}
+.modal-bg.open{display:flex}
+.modal{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:28px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto}
+.modal h2{font-size:17px;font-weight:600;margin-bottom:20px}
+.form-row{margin-bottom:16px}
+.form-row label{display:block;font-size:12px;color:#8b949e;margin-bottom:6px;font-weight:500}
+.form-row input,.form-row select,.form-row textarea{width:100%;background:#0d1117;border:1px solid #30363d;border-radius:7px;padding:9px 12px;color:#e6edf3;font-size:13px;outline:none;transition:border-color .2s;font-family:inherit}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:#3b82f6}
+.form-row textarea{resize:vertical;min-height:100px}
+.form-row select option{background:#161b22}
+.form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* Chat tester */
+.chat-layout{display:grid;grid-template-columns:280px 1fr;gap:16px;height:calc(100vh - 160px)}
+.chat-config{background:#161b22;border:1px solid #21262d;border-radius:10px;padding:16px}
+.chat-config h3{font-size:14px;font-weight:600;margin-bottom:12px}
+.chat-window{background:#161b22;border:1px solid #21262d;border-radius:10px;display:flex;flex-direction:column}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:75%;padding:10px 14px;border-radius:10px;font-size:13px;line-height:1.5}
+.msg-user{align-self:flex-end;background:#1d4ed8;color:#fff;border-bottom-right-radius:3px}
+.msg-assistant{align-self:flex-start;background:#1c2333;border:1px solid #21262d;border-bottom-left-radius:3px}
+.msg-system{align-self:center;background:transparent;color:#8b949e;font-size:12px;border:1px solid #21262d;border-radius:6px;padding:6px 12px}
+.chat-input-area{padding:12px;border-top:1px solid #21262d;display:flex;gap:8px}
+.chat-input-area input{flex:1;background:#0d1117;border:1px solid #30363d;border-radius:7px;padding:9px 12px;color:#e6edf3;font-size:13px;outline:none}
+.chat-input-area input:focus{border-color:#3b82f6}
+
+/* Pagination */
+.pagination{display:flex;align-items:center;gap:8px;margin-top:16px;justify-content:flex-end}
+.pagination button{padding:5px 12px;border-radius:6px;border:1px solid #30363d;background:transparent;color:#8b949e;font-size:12px;cursor:pointer}
+.pagination button:hover{border-color:#58a6ff;color:#58a6ff}
+.pagination button:disabled{opacity:.4;cursor:not-allowed}
+.pagination .info{font-size:12px;color:#8b949e}
+
+/* Loading */
+.loading{text-align:center;padding:40px;color:#8b949e}
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid #30363d;border-top-color:#3b82f6;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Detail panel */
+.detail-panel{background:#161b22;border:1px solid #21262d;border-radius:10px;padding:20px;margin-top:16px}
+.detail-panel h3{font-size:14px;font-weight:600;margin-bottom:12px;color:#e6edf3}
+.transcript{display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto}
+.t-msg{padding:8px 12px;border-radius:8px;font-size:13px;line-height:1.5}
+.t-HUMAN_AGENT{background:#1d4ed8;color:#fff;align-self:flex-end;max-width:80%}
+.t-CLIENT_AI{background:#1c2333;border:1px solid #21262d;align-self:flex-start;max-width:80%}
+.bar-chart{display:flex;align-items:flex-end;gap:2px;height:140px;padding:0 4px}
+.bar-wrap{display:flex;flex-direction:column;align-items:center;flex:1;min-width:0;cursor:pointer}
+.bar{width:100%;border-radius:3px 3px 0 0;background:#3b82f6;min-height:2px;transition:.2s}
+.bar-label{font-size:9px;color:#8b949e;margin-top:3px;transform:rotate(-45deg);transform-origin:top left;white-space:nowrap}
+.bar-wrap:hover .bar{background:#60a5fa}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+    </svg>
+    <div class="name">AI Command Center</div>
+    <div class="sub">OrbitHub OS</div>
+  </div>
+  <nav class="nav">
+    <button class="nav-item active" onclick="show('overview')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-item" onclick="show('sites')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253"/></svg>
+      Sites
+    </button>
+    <button class="nav-item" onclick="show('scenarios')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"/></svg>
+      Cenários de Treino
+    </button>
+    <button class="nav-item" onclick="show('simulations')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/></svg>
+      Simulações
+    </button>
+    <button class="nav-item" onclick="show('chat')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"/></svg>
+      Testar Chat
+    </button>
+    <button class="nav-item" onclick="show('knowledge')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"/></svg>
+      Conhecimento
+    </button>
+    <button class="nav-item" onclick="show('providers')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z"/></svg>
+      Providers IA
+    </button>
+    <button class="nav-item" onclick="show('logs')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+      Logs LLM
+    </button>
+    <button class="nav-item" onclick="show('conversations')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/></svg>
+      Conversas
+    </button>
+    <button class="nav-item" onclick="show('analytics')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z"/><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z"/></svg>
+      Analytics
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="btn-logout" onclick="logout()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"/></svg>
+      Sair
+    </button>
+  </div>
+</aside>
+
+<!-- Main -->
+<main class="main">
+  <div class="topbar">
+    <h1 id="page-title">Dashboard</h1>
+    <span class="badge">ia.orbithubos.pt</span>
+  </div>
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <div class="section active" id="section-overview">
+      <div class="stats-grid" id="stats-grid">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- SITES -->
+    <div class="section" id="section-sites">
+      <div class="table-container">
+        <div class="table-header">
+          <h2>Sites</h2>
+          <button class="btn btn-primary" onclick="openModal('site')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+            Novo Site
+          </button>
+        </div>
+        <div id="sites-content"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+
+    <!-- SCENARIOS -->
+    <div class="section" id="section-scenarios">
+      <div class="table-container">
+        <div class="table-header">
+          <h2>Cenários de Treino</h2>
+          <button class="btn btn-primary" onclick="openModal('scenario')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+            Novo Cenário
+          </button>
+        </div>
+        <div id="scenarios-content"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+
+    <!-- SIMULATIONS -->
+    <div class="section" id="section-simulations">
+      <div class="table-container">
+        <div class="table-header"><h2>Simulações</h2></div>
+        <div id="simulations-content"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+      <div id="sim-detail"></div>
+    </div>
+
+    <!-- CHAT TESTER -->
+    <div class="section" id="section-chat">
+      <div class="chat-layout">
+        <div class="chat-config">
+          <h3>Configuração</h3>
+          <div class="form-row" style="margin-top:8px">
+            <label>Site</label>
+            <select id="chat-site-select" onchange="startChatSession()"></select>
+          </div>
+          <div class="form-row">
+            <label>User ID (opcional)</label>
+            <input type="text" id="chat-user-id" placeholder="ex: user_123">
+          </div>
+          <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="startChatSession()">Nova Sessão</button>
+          <div style="margin-top:16px;font-size:12px;color:#8b949e">
+            <div id="chat-session-info">Sem sessão activa</div>
+          </div>
+        </div>
+        <div class="chat-window">
+          <div class="chat-messages" id="chat-messages">
+            <div class="msg msg-system">Seleciona um site e inicia uma sessão</div>
+          </div>
+          <div class="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Escreve uma mensagem..." onkeydown="if(event.key==='Enter')sendChatMsg()" disabled>
+            <button class="btn btn-primary" onclick="sendChatMsg()" id="chat-send-btn" disabled>Enviar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOGS -->
+
+
+    <div class="section" id="section-knowledge">
+      <!-- Knowledge stats bar -->
+      <div id="knowledge-stats-bar" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:16px"></div>
+
+      <!-- Tabs -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm kn-tab active" id="tab-pending" onclick="knTab('pending')">Pendentes</button>
+        <button class="btn btn-ghost btn-sm kn-tab" id="tab-approved" onclick="knTab('approved')">Aprovado</button>
+        <button class="btn btn-ghost btn-sm kn-tab" id="tab-global" onclick="knTab('global')">Global</button>
+        <span style="flex:1"></span>
+        <select id="kn-site-filter" style="background:#1c2333;border:1px solid #30363d;color:#e6edf3;border-radius:8px;padding:5px 10px;font-size:12px" onchange="loadKnowledge()">
+          <option value="">Todos os sites</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="openKnowledgeModal()">Adicionar</button>
+      </div>
+
+      <div class="table-container">
+        <div id="knowledge-content"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+
+      <!-- Pagination -->
+      <div id="kn-pagination" style="display:flex;justify-content:center;gap:8px;margin-top:12px"></div>
+    </div>
+    <div class="section" id="section-providers">
+      <div class="table-container">
+        <div class="table-header">
+          <h2>Providers de IA</h2>
+          <span style="font-size:12px;color:#8b949e">Activar/desactivar e configurar chaves API</span>
+        </div>
+        <div id="providers-content" style="padding:16px"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+    <div class="section" id="section-logs">
+      <div class="table-container">
+        <div class="table-header"><h2>LLM Call Logs</h2></div>
+        <div id="logs-content"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+
+    <!-- CONVERSATIONS -->
+    <div class="section" id="section-conversations">
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+        <select id="conv-site-filter" style="background:#1c2333;border:1px solid #30363d;color:#e6edf3;border-radius:8px;padding:5px 10px;font-size:12px" onchange="loadConversations(1)">
+          <option value="">Todos os sites</option>
+        </select>
+        <input type="date" id="conv-date-filter" style="background:#1c2333;border:1px solid #30363d;color:#e6edf3;border-radius:8px;padding:5px 10px;font-size:12px;color-scheme:dark" onchange="loadConversations(1)">
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('conv-date-filter').value='';loadConversations(1)">Limpar data</button>
+      </div>
+      <div class="table-container">
+        <div class="table-header"><h2>Conversas</h2></div>
+        <div id="conversations-content"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+      <div id="conv-detail"></div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div class="section" id="section-analytics">
+      <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center">
+        <select id="analytics-site-filter" style="background:#1c2333;border:1px solid #30363d;color:#e6edf3;border-radius:8px;padding:5px 10px;font-size:12px" onchange="loadAnalytics()">
+          <option value="">Todos os sites</option>
+        </select>
+        <span style="font-size:12px;color:#8b949e">Últimos 30 dias</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="table-container">
+          <div class="table-header"><h2>Mensagens por dia</h2></div>
+          <div id="analytics-chart" style="padding:16px;min-height:180px"></div>
+        </div>
+        <div class="table-container">
+          <div class="table-header"><h2>Perguntas mais frequentes</h2></div>
+          <div id="analytics-questions"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- Modal: Site -->
+
+<!-- Modal: Provider Config -->
+
+<!-- Modal: Knowledge Entry -->
+<div class="modal-bg" id="modal-knowledge">
+  <div class="modal" style="max-width:580px">
+    <h2 id="modal-kn-title">Editar Conhecimento</h2>
+    <input type="hidden" id="kn-id">
+    <div class="form-row" style="margin-bottom:10px">
+      <label>Site</label>
+      <select id="kn-site" style="width:100%;background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:8px;padding:8px 10px;font-size:13px">
+        <option value="">— Global (todos os sites) —</option>
+      </select>
+    </div>
+    <div class="form-grid" style="margin-bottom:10px">
+      <div class="form-row">
+        <label>Categoria</label>
+        <select id="kn-category" style="width:100%;background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:8px;padding:8px 10px;font-size:13px">
+          <option value="general">General</option>
+          <option value="greeting">Saudacao (global ok)</option>
+          <option value="error_recovery">Recuperação de erro (global ok)</option>
+          <option value="apology">Pedido de desculpa (global ok)</option>
+          <option value="objection_handling">Gestão de objeções (global ok)</option>
+          <option value="closing">Encerramento (global ok)</option>
+          <option value="pricing">Preços / Planos</option>
+          <option value="procedure">Procedimento técnico</option>
+          <option value="product">Produto / Funcionalidade</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Âmbito</label>
+        <select id="kn-scope" style="width:100%;background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:8px;padding:8px 10px;font-size:13px" onchange="onKnScopeChange()">
+          <option value="PRIVATE">Privado (apenas este site)</option>
+          <option value="GLOBAL">Global (todas as IAs aprendem)</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row" style="margin-bottom:10px">
+      <label>Gatilho / Contexto <span style="color:#8b949e;font-weight:400">(o que o utilizador perguntou)</span></label>
+      <textarea id="kn-trigger" rows="2" style="width:100%;background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:8px;padding:8px 10px;font-size:13px;resize:vertical" placeholder="ex: Boa tarde, como posso..."></textarea>
+    </div>
+    <div class="form-row" style="margin-bottom:10px">
+      <label>Resposta Aprovada <span style="color:#22c55e;font-weight:400">(editável)</span></label>
+      <textarea id="kn-response" rows="5" style="width:100%;background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:8px;padding:8px 10px;font-size:13px;resize:vertical" placeholder="A resposta ideal que a IA deve usar..."></textarea>
+    </div>
+    <div id="kn-original-wrap" style="display:none;margin-bottom:10px">
+      <label style="font-size:11px;color:#8b949e;display:block;margin-bottom:4px">Resposta original da IA (antes de editar):</label>
+      <div id="kn-original" style="font-size:11px;color:#8b949e;background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:8px 10px;max-height:80px;overflow-y:auto;white-space:pre-wrap;font-family:monospace"></div>
+    </div>
+    <div class="form-actions" style="gap:8px;flex-wrap:wrap">
+      <button class="btn btn-ghost" onclick="closeModal('knowledge')">Cancelar</button>
+      <button class="btn btn-danger btn-sm" id="kn-reject-btn" onclick="rejectKnowledge()" style="display:none">Rejeitar</button>
+      <button class="btn btn-ghost btn-sm" id="kn-save-btn" onclick="saveKnowledge('PENDING')">Guardar rascunho</button>
+      <button class="btn btn-primary" id="kn-approve-btn" onclick="saveKnowledge('APPROVED')">Aprovar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-provider">
+  <div class="modal" style="max-width:420px">
+    <h2 id="modal-provider-title">Configurar Provider</h2>
+    <input type="hidden" id="prov-id">
+    <div class="form-row" style="margin-bottom:12px">
+      <label>Chave API</label>
+      <input type="password" id="prov-key" placeholder="Deixe em branco para manter a actual" autocomplete="new-password">
+    </div>
+    <div class="form-row" style="margin-bottom:12px">
+      <label>Modelo</label>
+      <input type="text" id="prov-model" placeholder="ex: gemini-2.0-flash">
+    </div>
+    <div class="form-row" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <label>Activo</label>
+      <label class="toggle">
+        <input type="checkbox" id="prov-enabled">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('provider')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveProvider()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-site">
+  <div class="modal">
+    <h2 id="modal-site-title">Novo Site</h2>
+    <input type="hidden" id="site-id">
+    <div class="form-grid">
+      <div class="form-row">
+        <label>Domínio</label>
+        <input type="text" id="site-domain" placeholder="ex: app.orbithubos.pt">
+      </div>
+      <div class="form-row">
+        <label>Marca</label>
+        <input type="text" id="site-brand" placeholder="ex: OrbitHub">
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Tipo de Agente</label>
+      <div class="agent-cards">
+        <div class="agent-card selected" id="card-SUPORTE" onclick="selectAgentType('SUPORTE')">
+          <div class="ac-title">Suporte Técnico</div>
+          <div class="ac-desc">Tem acesso a ferramentas (ações nos veículos, consultas, etc.)</div>
+        </div>
+        <div class="agent-card" id="card-VENDAS" onclick="selectAgentType('VENDAS')">
+          <div class="ac-title">Vendas</div>
+          <div class="ac-desc">Focado em conversão — sem acesso a ferramentas técnicas</div>
+        </div>
+      </div>
+      <input type="hidden" id="site-agentType" value="SUPORTE">
+    </div>
+    <div class="form-row" style="display:flex;align-items:center;justify-content:space-between">
+      <label>Assistente activo</label>
+      <label class="toggle">
+        <input type="checkbox" id="site-isActive" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="form-grid">
+      <div class="form-row">
+        <label>Tipo (legacy)</label>
+        <select id="site-type">
+          <option value="SUPPORT">SUPPORT</option>
+          <option value="SALES">SALES</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Provider Activo</label>
+        <select id="site-provider">
+          <option value="GEMINI">Gemini</option>
+          <option value="CLAUDE">Claude</option>
+          <option value="OPENAI">OpenAI</option>
+          <option value="DEEPSEEK">DeepSeek</option>
+          <option value="GROQ">Groq</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Provider Fallback</label>
+      <select id="site-fallback">
+        <option value="">Nenhum</option>
+        <option value="GEMINI">Gemini</option>
+        <option value="CLAUDE">Claude</option>
+        <option value="OPENAI">OpenAI</option>
+        <option value="DEEPSEEK">DeepSeek</option>
+          <option value="GROQ">Groq</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>System Prompt</label>
+      <textarea id="site-prompt" placeholder="Instruções do assistente..."></textarea>
+    </div>
+    <div class="form-row">
+      <label>Ferramentas disponíveis (JSON array)</label>
+      <input type="text" id="site-tools" placeholder='["executeVehicleAction","fetchBillingInvoice"]'>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('site')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveSite()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Scenario -->
+<div class="modal-bg" id="modal-scenario">
+  <div class="modal">
+    <h2 id="modal-scenario-title">Novo Cenário</h2>
+    <input type="hidden" id="scenario-id">
+    <div class="form-grid">
+      <div class="form-row">
+        <label>Título</label>
+        <input type="text" id="scenario-title" placeholder="ex: Cliente frustrado com cobrança">
+      </div>
+      <div class="form-row">
+        <label>Marca</label>
+        <input type="text" id="scenario-brand" placeholder="ex: Autotrack">
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Dificuldade (1-5)</label>
+      <input type="number" id="scenario-difficulty" min="1" max="5" value="3">
+    </div>
+    <div class="form-row">
+      <label>Prompt da Persona do Cliente</label>
+      <textarea id="scenario-persona" style="min-height:140px" placeholder="Descreve como o cliente deve se comportar..."></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('scenario')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveScenario()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const titles = {overview:'Dashboard',sites:'Sites',scenarios:'Cenários de Treino',simulations:'Simulações',chat:'Testar Chat',knowledge:'Conhecimento IA',providers:'Providers IA',logs:'Logs LLM',conversations:'Conversas',analytics:'Analytics'}
+let chatSessionId = null, simPage = 1, logsPage = 1
+
+function show(section) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'))
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'))
+  document.getElementById('section-'+section).classList.add('active')
+  document.querySelectorAll('.nav-item')[['overview','sites','scenarios','simulations','chat','knowledge','providers','logs','conversations','analytics'].indexOf(section)].classList.add('active')
+  document.getElementById('page-title').textContent = titles[section]
+  load[section]?.()
+}
+
+const load = {
+  overview: loadStats,
+  sites: loadSites,
+  scenarios: loadScenarios,
+  simulations: () => loadSimulations(1),
+  chat: loadChatConfig,
+  knowledge: loadKnowledge,
+  providers: loadProviders,
+  logs: () => loadLogs(1),
+  conversations: () => loadConversations(1),
+  analytics: loadAnalytics,
+}
+
+async function api(path, opts={}) {
+  const r = await fetch('/api/admin'+path, {headers:{'Content-Type':'application/json'},...opts})
+  if (r.status===401) { window.location.href='/login'; return null }
+  const txt = await r.text()
+  try { return JSON.parse(txt) } catch { return txt }
+}
+
+// ─── STATS ──────────────────────────────────────────────────────────────────
+async function loadStats() {
+  const d = await api('/stats')
+  if (!d) return
+  const g = document.getElementById('stats-grid')
+  const fmt = n => n?.toLocaleString('pt') ?? '0'
+  const simTotal = d.simulations?.total ?? 0
+  const completed = d.simulations?.COMPLETED ?? 0
+  g.innerHTML = `
+    <div class="stat-card"><div class="label">Sites</div><div class="value">${d.sites}</div><div class="sub">configurados</div></div>
+    <div class="stat-card"><div class="label">Sessões</div><div class="value">${fmt(d.sessions)}</div><div class="sub">${d.sessionsToday} hoje</div></div>
+    <div class="stat-card"><div class="label">Mensagens</div><div class="value">${fmt(d.messages)}</div><div class="sub">${d.messagesToday} hoje</div></div>
+    <div class="stat-card"><div class="label">Simulações</div><div class="value">${fmt(simTotal)}</div><div class="sub">${completed} concluídas</div></div>
+    <div class="stat-card"><div class="label">Tokens Usados</div><div class="value">${fmt(d.totalTokens)}</div><div class="sub">total acumulado</div></div>
+  `
+}
+
+// ─── SITES ───────────────────────────────────────────────────────────────────
+async function loadSites() {
+  const sites = await api('/sites')
+  if (!sites) return
+  const el = document.getElementById('sites-content')
+  if (!sites.length) { el.innerHTML = '<div class="empty">Nenhum site criado ainda</div>'; return }
+  el.innerHTML = `<table><thead><tr><th>Estado</th><th>Domínio</th><th>Marca</th><th>Agente</th><th>Provider</th><th>Tokens</th><th></th></tr></thead><tbody>
+    ${sites.map(s=>`<tr>
+      <td>
+        <label class="toggle" title="${s.isActive ? 'Activo — clique para desactivar' : 'Inactivo — clique para activar'}">
+          <input type="checkbox" ${s.isActive ? 'checked' : ''} onchange="toggleSiteActive('${s.id}',this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </td>
+      <td><strong>${s.domain}</strong></td>
+      <td>${s.brand}</td>
+      <td><span class="badge-status badge-${s.agentType || 'SUPORTE'}">${s.agentType || 'SUPORTE'}</span></td>
+      <td><span class="badge-status badge-${s.activeProvider}">${s.activeProvider}</span></td>
+      <td>${Number(s.totalTokens).toLocaleString('pt')}</td>
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-ghost btn-sm" onclick='editSite(${JSON.stringify(s).replace(/'/g,"&#39;")})'>Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSite('${s.id}')">Apagar</button>
+      </td>
+    </tr>`).join('')}
+  </tbody></table>`
+}
+
+function openModal(type) {
+  if (type==='site') { clearSiteForm(); document.getElementById('modal-site-title').textContent='Novo Site' }
+  if (type==='scenario') { clearScenarioForm(); document.getElementById('modal-scenario-title').textContent='Novo Cenário' }
+  document.getElementById('modal-'+type).classList.add('open')
+}
+function closeModal(type) { document.getElementById('modal-'+type).classList.remove('open') }
+
+function clearSiteForm() {
+  ['site-id','site-domain','site-brand','site-prompt','site-tools'].forEach(id=>document.getElementById(id).value='')
+  document.getElementById('site-type').value='SUPPORT'
+  document.getElementById('site-provider').value='GEMINI'
+  document.getElementById('site-fallback').value=''
+  selectAgentType('SUPORTE')
+  document.getElementById('site-isActive').checked = true
+}
+
+function editSite(s) {
+  document.getElementById('site-id').value = s.id
+  document.getElementById('site-domain').value = s.domain
+  document.getElementById('site-brand').value = s.brand
+  document.getElementById('site-type').value = s.type
+  document.getElementById('site-provider').value = s.activeProvider
+  document.getElementById('site-fallback').value = s.fallbackProvider || ''
+  document.getElementById('site-prompt').value = s.systemPrompt
+  document.getElementById('site-tools').value = s.availableTools ? JSON.stringify(s.availableTools) : ''
+  selectAgentType(s.agentType || 'SUPORTE')
+  document.getElementById('site-isActive').checked = s.isActive !== false
+  document.getElementById('modal-site-title').textContent = 'Editar Site'
+  document.getElementById('modal-site').classList.add('open')
+}
+
+function selectAgentType(type) {
+  document.getElementById('site-agentType').value = type
+  document.getElementById('card-SUPORTE').classList.toggle('selected', type === 'SUPORTE')
+  document.getElementById('card-VENDAS').classList.toggle('selected', type === 'VENDAS')
+}
+
+async function saveSite() {
+  const id = document.getElementById('site-id').value
+  let tools = null
+  const toolsStr = document.getElementById('site-tools').value.trim()
+  if (toolsStr) { try { tools = JSON.parse(toolsStr) } catch { alert('JSON das ferramentas inválido'); return } }
+  const data = {
+    domain: document.getElementById('site-domain').value,
+    brand: document.getElementById('site-brand').value,
+    type: document.getElementById('site-type').value,
+    agentType: document.getElementById('site-agentType').value,
+    isActive: document.getElementById('site-isActive').checked,
+    activeProvider: document.getElementById('site-provider').value,
+    fallbackProvider: document.getElementById('site-fallback').value || null,
+    systemPrompt: document.getElementById('site-prompt').value,
+    availableTools: tools,
+  }
+  const r = id ? await api('/sites/'+id,{method:'PUT',body:JSON.stringify(data)})
+               : await api('/sites',{method:'POST',body:JSON.stringify(data)})
+  if (r?.error) { alert(r.error); return }
+  closeModal('site'); loadSites()
+}
+
+async function deleteSite(id) {
+  if (!confirm('Apagar este site?')) return
+  await api('/sites/'+id, {method:'DELETE'})
+  loadSites()
+}
+
+
+async function toggleSiteActive(id, active) {
+  const r = await api('/config/'+id, {method:'PATCH', body: JSON.stringify({isActive: active})})
+  if (r?.error) { alert('Erro: ' + r.error); loadSites() }
+}
+
+
+
+// ─── KNOWLEDGE BASE ───────────────────────────────────────────────────────────
+let knCurrentTab = 'pending'
+let knCurrentPage = 1
+let knSites = []
+
+async function loadKnowledge(page) {
+  knCurrentPage = page || 1
+  const el = document.getElementById('knowledge-content')
+  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>'
+
+  // Load stats + sites on first call
+  if (!knSites.length) await loadKnowledgeStats()
+
+  const siteId = document.getElementById('kn-site-filter').value
+  const tab = knCurrentTab
+  const params = new URLSearchParams({ page: knCurrentPage })
+  if (tab === 'pending') params.set('status', 'PENDING')
+  else if (tab === 'approved') params.set('status', 'APPROVED')
+  else if (tab === 'global') { params.set('status', 'APPROVED'); params.set('scope', 'GLOBAL') }
+  if (siteId) params.set('siteId', siteId)
+
+  const data = await api('/knowledge?' + params.toString())
+  if (!data) return
+
+  if (!data.items?.length) {
+    el.innerHTML = '<div class="empty" style="padding:24px;text-align:center;color:#8b949e">Nenhuma entrada encontrada</div>'
+    document.getElementById('kn-pagination').innerHTML = ''
+    return
+  }
+
+  const showBulkApprove = tab === 'pending' && data.items.length > 0
+  el.innerHTML = `
+    ${showBulkApprove ? `<div style="padding:10px 16px;border-bottom:1px solid #21262d;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:#8b949e">${data.total} entradas pendentes</span>
+      <button class="btn btn-primary btn-sm" onclick="bulkApprove()">Aprovar todas as pendentes</button>
+    </div>` : ''}
+    <table><thead><tr>
+      <th>Site</th><th>Categoria</th><th>Âmbito</th><th>Gatilho</th><th>Resposta</th><th>Usos</th><th></th>
+    </tr></thead><tbody>
+    ${data.items.map(e => `<tr class="kn-row-${e.status === 'PENDING' ? 'pending' : e.scope === 'GLOBAL' ? 'global' : 'approved'}">
+      <td style="font-size:11px;white-space:nowrap">${e.site?.domain || '<span style="color:#a78bfa">Global</span>'}</td>
+      <td><span class="badge-status" style="background:#1c2333;color:#8b949e;font-size:10px">${e.category}</span></td>
+      <td><span class="badge-status badge-${e.scope}">${e.scope}</span></td>
+      <td class="kn-trigger" title="${escapeHtml(e.trigger)}">${escapeHtml(e.trigger)}</td>
+      <td class="kn-response" title="${escapeHtml(e.response)}">${escapeHtml(e.response)}</td>
+      <td style="font-size:12px;color:#8b949e;text-align:right">${e.useCount}</td>
+      <td style="display:flex;gap:4px;flex-wrap:nowrap">
+        <button class="btn btn-ghost btn-sm" onclick='openKnowledgeModal(${JSON.stringify(e).replace(/'/g,"&#39;")})'>
+          ${e.status === 'PENDING' ? 'Rever' : 'Editar'}
+        </button>
+        <button class="btn btn-danger btn-sm" onclick="deleteKnowledge('${e.id}')">x</button>
+      </td>
+    </tr>`).join('')}
+    </tbody></table>
+  `
+
+  // Pagination
+  const pg = document.getElementById('kn-pagination')
+  pg.innerHTML = Array.from({length: data.pages}, (_, i) => i + 1).map(p =>
+    `<button class="btn ${p === knCurrentPage ? 'btn-primary' : 'btn-ghost'} btn-sm" onclick="loadKnowledge(${p})">${p}</button>`
+  ).join('')
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
+
+async function loadKnowledgeStats() {
+  const stats = await api('/knowledge/stats')
+  if (!stats) return
+
+  knSites = stats.perSite || []
+
+  // Fill site filter dropdowns
+  const filters = [document.getElementById('kn-site-filter'), document.getElementById('kn-site')]
+  filters.forEach(sel => {
+    if (!sel) return
+    const current = sel.value
+    const extras = sel === document.getElementById('kn-site')
+      ? '<option value="">— Global (todas as IAs) —</option>'
+      : '<option value="">Todos os sites</option>'
+    sel.innerHTML = extras + knSites.map(s =>
+      `<option value="${s.siteId}">${s.brand} (${s.domain})</option>`
+    ).join('')
+    sel.value = current
+  })
+
+  // Stats bar
+  const bar = document.getElementById('knowledge-stats-bar')
+  if (bar) {
+    bar.innerHTML = `
+      <div class="stat-card" style="cursor:pointer" onclick="knTab('pending')">
+        <div class="label">Pendentes</div>
+        <div class="value" style="color:#fbbf24">${stats.pending}</div>
+        <div class="sub">aguardam revisao</div>
+      </div>
+      <div class="stat-card" style="cursor:pointer" onclick="knTab('approved')">
+        <div class="label">Aprovados</div>
+        <div class="value" style="color:#4ade80">${stats.approved}</div>
+        <div class="sub">em uso</div>
+      </div>
+      <div class="stat-card" style="cursor:pointer" onclick="knTab('global')">
+        <div class="label">Global</div>
+        <div class="value" style="color:#a78bfa">${stats.global}</div>
+        <div class="sub">partilhado entre IAs</div>
+      </div>
+      ${stats.perSite.map(s => `
+      <div class="stat-card">
+        <div class="label">${s.brand}</div>
+        <div class="value" style="font-size:18px">${s.approved} <span style="font-size:12px;color:#fbbf24">+${s.pending}</span></div>
+        <div class="sub">aprovados + pendentes</div>
+      </div>`).join('')}
+    `
+  }
+}
+
+function knTab(tab) {
+  knCurrentTab = tab
+  document.querySelectorAll('.kn-tab').forEach(b => b.classList.remove('active'))
+  document.getElementById('tab-' + tab)?.classList.add('active')
+  loadKnowledge(1)
+}
+
+function onKnScopeChange() {
+  const scope = document.getElementById('kn-scope').value
+  const siteEl = document.getElementById('kn-site')
+  if (scope === 'GLOBAL') {
+    siteEl.value = ''
+    siteEl.disabled = true
+  } else {
+    siteEl.disabled = false
+  }
+}
+
+function openKnowledgeModal(entry) {
+  const isEdit = !!entry
+  document.getElementById('kn-id').value = entry?.id || ''
+  document.getElementById('kn-trigger').value = entry?.trigger || ''
+  document.getElementById('kn-response').value = entry?.response || ''
+  document.getElementById('kn-category').value = entry?.category || 'general'
+  document.getElementById('kn-scope').value = entry?.scope || 'PRIVATE'
+  document.getElementById('kn-site').value = entry?.siteId || ''
+  document.getElementById('kn-reject-btn').style.display = isEdit ? 'inline-flex' : 'none'
+  const origWrap = document.getElementById('kn-original-wrap')
+  if (entry?.originalResponse) {
+    origWrap.style.display = 'block'
+    document.getElementById('kn-original').textContent = entry.originalResponse
+  } else {
+    origWrap.style.display = 'none'
+  }
+  document.getElementById('modal-kn-title').textContent = isEdit ? 'Rever Resposta da IA' : 'Adicionar Conhecimento'
+  onKnScopeChange()
+  loadKnowledgeStats() // refresh site list
+  document.getElementById('modal-knowledge').classList.add('open')
+}
+
+async function saveKnowledge(status) {
+  const id = document.getElementById('kn-id').value
+  const body = {
+    trigger: document.getElementById('kn-trigger').value.trim(),
+    response: document.getElementById('kn-response').value.trim(),
+    category: document.getElementById('kn-category').value,
+    scope: document.getElementById('kn-scope').value,
+    siteId: document.getElementById('kn-site').value || null,
+    status,
+    editedBy: 'admin',
+  }
+  if (!body.trigger || !body.response) { alert('Preencha gatilho e resposta'); return }
+  const r = id
+    ? await api('/knowledge/'+id, {method:'PUT', body: JSON.stringify(body)})
+    : await api('/knowledge', {method:'POST', body: JSON.stringify(body)})
+  if (r?.error) { alert('Erro: ' + r.error); return }
+  closeModal('knowledge')
+  loadKnowledge(knCurrentPage)
+  loadKnowledgeStats()
+}
+
+async function rejectKnowledge() {
+  const id = document.getElementById('kn-id').value
+  if (!id || !confirm('Rejeitar e remover esta entrada?')) return
+  await api('/knowledge/'+id, {method:'PUT', body: JSON.stringify({status:'REJECTED'})})
+  closeModal('knowledge')
+  loadKnowledge(knCurrentPage)
+}
+
+async function deleteKnowledge(id) {
+  if (!confirm('Apagar permanentemente?')) return
+  await api('/knowledge/'+id, {method:'DELETE'})
+  loadKnowledge(knCurrentPage)
+}
+
+async function bulkApprove() {
+  const siteId = document.getElementById('kn-site-filter').value
+  if (!confirm('Aprovar todas as entradas pendentes' + (siteId ? ' deste site' : '') + '?')) return
+  const body = siteId ? {siteId} : {}
+  const r = await api('/knowledge/bulk-approve', {method:'POST', body: JSON.stringify(body)})
+  if (r?.updated !== undefined) {
+    alert(r.updated + ' entradas aprovadas.')
+    loadKnowledge(1)
+    loadKnowledgeStats()
+  }
+}
+
+// ─── PROVIDERS ───────────────────────────────────────────────────────────────
+const PROVIDER_ICONS = {
+  GEMINI: 'G',
+  CLAUDE: 'C',
+  OPENAI: 'O',
+  DEEPSEEK: 'D',
+  GROQ: 'Q',
+}
+const PROVIDER_COLORS = {
+  GEMINI: '#34d399',
+  CLAUDE: '#fb923c',
+  OPENAI: '#22d3ee',
+  DEEPSEEK: '#a78bfa',
+  GROQ: '#f97316',
+}
+
+async function loadProviders() {
+  const el = document.getElementById('providers-content')
+  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>'
+  const providers = await api('/providers')
+  if (!providers) return
+  const grid = document.createElement('div')
+  grid.className = 'provider-grid'
+  providers.forEach(p => {
+    const statusClass = !p.isEnabled ? (p.hasKey ? 'off' : 'nokey') : 'on'
+    const statusLabel = p.isEnabled ? 'Activo' : (p.hasKey ? 'Inactivo' : 'Sem chave')
+    const card = document.createElement('div')
+    card.className = 'provider-card' + (p.isEnabled ? ' enabled' : p.hasKey ? '' : ' no-key')
+    card.innerHTML = `
+      <div class="pc-head">
+        <div>
+          <div class="pc-name" style="color:${PROVIDER_COLORS[p.provider]}">${PROVIDER_ICONS[p.provider]} ${p.provider}</div>
+          <div class="pc-model">${p.model || 'modelo não configurado'}</div>
+        </div>
+        <span class="pc-status ${statusClass}">${statusLabel}</span>
+      </div>
+      <div class="pc-key">${p.hasKey ? p.apiKey : '— sem chave API —'}</div>
+      <div class="pc-actions">
+        <label class="toggle" title="Activar/desactivar">
+          <input type="checkbox" ${p.isEnabled ? 'checked' : ''} ${!p.hasKey ? 'disabled title="Configure a chave primeiro"' : ''}
+            onchange="toggleProvider('${p.provider}', this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" id="btn-test-${p.provider}" onclick='testProvider("${p.provider}")' ${!p.isEnabled || !p.hasKey ? 'disabled' : ''}>Testar</button>
+          <button class="btn btn-ghost btn-sm" onclick='openProviderModal(${JSON.stringify(p)})'>
+            ${p.hasKey ? 'Editar' : 'Configurar'}
+          </button>
+        </div>
+      </div>
+      <div id="test-result-${p.provider}" style="margin-top:8px;display:none;font-size:11px"></div>
+    `
+    grid.appendChild(card)
+  })
+  el.innerHTML = ''
+  el.appendChild(grid)
+}
+
+function openProviderModal(p) {
+  document.getElementById('prov-id').value = p.provider
+  document.getElementById('prov-key').value = ''
+  document.getElementById('prov-model').value = p.model || ''
+  document.getElementById('prov-enabled').checked = p.isEnabled
+  document.getElementById('modal-provider-title').textContent = 'Configurar ' + p.provider
+  document.getElementById('modal-provider').classList.add('open')
+}
+
+async function toggleProvider(provider, enabled) {
+  const r = await api('/providers/'+provider, {method:'PUT', body: JSON.stringify({isEnabled: enabled})})
+  if (r?.error) { alert('Erro: ' + r.error); loadProviders() }
+  else loadProviders()
+}
+
+async function saveProvider() {
+  const provider = document.getElementById('prov-id').value
+  const key = document.getElementById('prov-key').value.trim()
+  const model = document.getElementById('prov-model').value.trim()
+  const isEnabled = document.getElementById('prov-enabled').checked
+  const body = { isEnabled, model }
+  if (key) body.apiKey = key
+  const r = await api('/providers/'+provider, {method:'PUT', body: JSON.stringify(body)})
+  if (r?.error) { alert('Erro: ' + r.error); return }
+  closeModal('provider')
+  loadProviders()
+}
+
+// ─── SCENARIOS ───────────────────────────────────────────────────────────────
+async function loadScenarios() {
+  const scenarios = await api('/scenarios')
+  if (!scenarios) return
+  const el = document.getElementById('scenarios-content')
+  if (!scenarios.length) { el.innerHTML = '<div class="empty">Nenhum cenário criado ainda</div>'; return }
+  el.innerHTML = `<table><thead><tr><th>Título</th><th>Marca</th><th>Dificuldade</th><th>Criado</th><th></th></tr></thead><tbody>
+    ${scenarios.map(s=>`<tr>
+      <td><strong>${s.title}</strong></td>
+      <td>${s.brand}</td>
+      <td>${''.repeat(s.difficulty||0)}${''.repeat(5-(s.difficulty||0))}</td>
+      <td>${new Date(s.createdAt).toLocaleDateString('pt')}</td>
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-ghost btn-sm" onclick='editScenario(${JSON.stringify(s).replace(/'/g,"&#39;")})'>Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteScenario('${s.id}')">Apagar</button>
+      </td>
+    </tr>`).join('')}
+  </tbody></table>`
+}
+
+function clearScenarioForm() {
+  ['scenario-id','scenario-title','scenario-brand','scenario-persona'].forEach(id=>document.getElementById(id).value='')
+  document.getElementById('scenario-difficulty').value='3'
+}
+
+function editScenario(s) {
+  document.getElementById('scenario-id').value = s.id
+  document.getElementById('scenario-title').value = s.title
+  document.getElementById('scenario-brand').value = s.brand
+  document.getElementById('scenario-difficulty').value = s.difficulty || 3
+  document.getElementById('scenario-persona').value = s.personaPrompt
+  document.getElementById('modal-scenario-title').textContent = 'Editar Cenário'
+  document.getElementById('modal-scenario').classList.add('open')
+}
+
+async function saveScenario() {
+  const id = document.getElementById('scenario-id').value
+  const data = {
+    title: document.getElementById('scenario-title').value,
+    brand: document.getElementById('scenario-brand').value,
+    difficulty: parseInt(document.getElementById('scenario-difficulty').value),
+    personaPrompt: document.getElementById('scenario-persona').value,
+  }
+  const r = id ? await api('/scenarios/'+id,{method:'PUT',body:JSON.stringify(data)})
+               : await api('/scenarios',{method:'POST',body:JSON.stringify(data)})
+  if (r?.error) { alert(r.error); return }
+  closeModal('scenario'); loadScenarios()
+}
+
+async function deleteScenario(id) {
+  if (!confirm('Apagar este cenário?')) return
+  await api('/scenarios/'+id, {method:'DELETE'})
+  loadScenarios()
+}
+
+// ─── SIMULATIONS ─────────────────────────────────────────────────────────────
+async function loadSimulations(page) {
+  simPage = page
+  const d = await api('/simulations?page='+page)
+  if (!d) return
+  const el = document.getElementById('simulations-content')
+  if (!d.items.length) { el.innerHTML = '<div class="empty">Nenhuma simulação ainda</div>'; return }
+  el.innerHTML = `<table><thead><tr><th>Utilizador</th><th>Cenário</th><th>Marca</th><th>Estado</th><th>Score</th><th>Início</th><th></th></tr></thead><tbody>
+    ${d.items.map(s=>`<tr>
+      <td><code style="font-size:11px">${s.traineeUserId.substring(0,12)}…</code></td>
+      <td>${s.scenario?.title||'—'}</td>
+      <td>${s.scenario?.brand||'—'}</td>
+      <td><span class="badge-status badge-${s.status}">${s.status}</span></td>
+      <td>${s.score !== null ? s.score+'/100' : '—'}</td>
+      <td>${new Date(s.startedAt).toLocaleDateString('pt')}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="loadSimDetail('${s.id}')">Ver</button></td>
+    </tr>`).join('')}
+  </tbody></table>
+  <div class="pagination">
+    <button onclick="loadSimulations(${page-1})" ${page<=1?'disabled':''}>‹ Anterior</button>
+    <span class="info">Página ${page} de ${d.pages} (${d.total} total)</span>
+    <button onclick="loadSimulations(${page+1})" ${page>=d.pages?'disabled':''}>Seguinte ›</button>
+  </div>`
+  document.getElementById('sim-detail').innerHTML = ''
+}
+
+async function loadSimDetail(id) {
+  const s = await api('/simulations/'+id)
+  if (!s) return
+  const msgs = (s.messages||[]).map(m=>`<div class="t-msg t-${m.role}"><strong>${m.role==='HUMAN_AGENT'?'Agente':'Cliente IA'}:</strong> ${m.content}</div>`).join('')
+  document.getElementById('sim-detail').innerHTML = `
+    <div class="detail-panel">
+      <h3>Simulação — ${s.scenario?.title||id}</h3>
+      <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+        <span class="badge-status badge-${s.status}">${s.status}</span>
+        ${s.score!==null?`<span style="color:#60a5fa;font-size:13px">Score: <strong>${s.score}/100</strong></span>`:''}
+        <span style="color:#8b949e;font-size:12px">${s.totalTokens} tokens</span>
+      </div>
+      ${s.feedback?`<p style="font-size:13px;color:#c9d1d9;margin-bottom:12px;background:#1c2333;padding:12px;border-radius:8px">${s.feedback}</p>`:''}
+      <div class="transcript">${msgs||'<span style="color:#8b949e">Sem mensagens</span>'}</div>
+    </div>`
+}
+
+// ─── CHAT ────────────────────────────────────────────────────────────────────
+async function loadChatConfig() {
+  const sites = await api('/sites')
+  if (!sites?.length) return
+  const sel = document.getElementById('chat-site-select')
+  sel.innerHTML = sites.map(s=>`<option value="${s.id}">${s.domain} (${s.brand})</option>`).join('')
+}
+
+async function startChatSession() {
+  const siteId = document.getElementById('chat-site-select').value
+  const userId = document.getElementById('chat-user-id').value || undefined
+  const r = await fetch('/api/chat/session', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({siteId,userId})})
+  const d = await r.json()
+  chatSessionId = d.sessionId
+  document.getElementById('chat-session-info').innerHTML = `Sessão: <code style="font-size:11px">${chatSessionId?.substring(0,16)}…</code>`
+  document.getElementById('chat-input').disabled = false
+  document.getElementById('chat-send-btn').disabled = false
+  document.getElementById('chat-messages').innerHTML = '<div class="msg msg-system">Nova sessão iniciada. Escreve uma mensagem.</div>'
+}
+
+async function sendChatMsg() {
+  if (!chatSessionId) return
+  const input = document.getElementById('chat-input')
+  const msg = input.value.trim()
+  if (!msg) return
+  input.value = ''
+  const msgs = document.getElementById('chat-messages')
+  msgs.innerHTML += `<div class="msg msg-user">${msg}</div>`
+  msgs.scrollTop = msgs.scrollHeight
+  const thinking = document.createElement('div')
+  thinking.className = 'msg msg-assistant'; thinking.textContent = '…'; thinking.id = 'thinking'
+  msgs.appendChild(thinking); msgs.scrollTop = msgs.scrollHeight
+  try {
+    const r = await fetch('/api/chat/send', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:chatSessionId,message:msg})})
+    const d = await r.json()
+    document.getElementById('thinking')?.remove()
+    msgs.innerHTML += `<div class="msg msg-assistant">${d.content||d.error||'Sem resposta'}</div>`
+    msgs.scrollTop = msgs.scrollHeight
+  } catch { document.getElementById('thinking')?.remove(); msgs.innerHTML += '<div class="msg msg-system">Erro ao enviar mensagem</div>' }
+}
+
+// ─── LOGS ────────────────────────────────────────────────────────────────────
+async function loadLogs(page) {
+  logsPage = page
+  const d = await api('/logs?page='+page)
+  if (!d) return
+  const el = document.getElementById('logs-content')
+  if (!d.items.length) { el.innerHTML = '<div class="empty">Nenhum log ainda</div>'; return }
+  el.innerHTML = `<table><thead><tr><th>Data</th><th>Provider</th><th>Modelo</th><th>Tokens In</th><th>Tokens Out</th><th>Latência</th><th>Erro</th></tr></thead><tbody>
+    ${d.items.map(l=>`<tr>
+      <td style="white-space:nowrap">${new Date(l.createdAt).toLocaleString('pt')}</td>
+      <td><span class="badge-status badge-${l.provider}">${l.provider}</span></td>
+      <td style="font-size:11px;color:#8b949e">${l.model}</td>
+      <td>${l.promptTokens.toLocaleString('pt')}</td>
+      <td>${l.completionTokens.toLocaleString('pt')}</td>
+      <td>${l.latencyMs}ms</td>
+      <td style="color:#f87171;font-size:12px">${l.error||''}</td>
+    </tr>`).join('')}
+  </tbody></table>
+  <div class="pagination">
+    <button onclick="loadLogs(${page-1})" ${page<=1?'disabled':''}>‹ Anterior</button>
+    <span class="info">Página ${page} de ${d.pages} (${d.total} total)</span>
+    <button onclick="loadLogs(${page+1})" ${page>=d.pages?'disabled':''}>Seguinte ›</button>
+  </div>`
+}
+
+// ─── AUTH ────────────────────────────────────────────────────────────────────
+async function logout() {
+  await fetch('/api/auth/logout', {method:'POST'})
+  window.location.href = '/login'
+}
+
+
+// ─── CONVERSATIONS ───────────────────────────────────────────────────────────
+let convPage = 1, convSitesLoaded = false
+
+async function loadConversations(page) {
+  convPage = page || 1
+  const el = document.getElementById('conversations-content')
+  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>'
+
+  if (!convSitesLoaded) {
+    const sites = await api('/sites')
+    convSitesLoaded = true
+    const sels = [document.getElementById('conv-site-filter'), document.getElementById('analytics-site-filter')]
+    sels.forEach(sel => {
+      if (!sel) return
+      const cur = sel.value
+      sel.innerHTML = '<option value="">Todos os sites</option>' + (sites||[]).map(s =>
+        `<option value="${s.id}">${s.domain} (${s.brand})</option>`
+      ).join('')
+      sel.value = cur
+    })
+  }
+
+  const siteId = document.getElementById('conv-site-filter').value
+  const date = document.getElementById('conv-date-filter').value
+  const params = new URLSearchParams({ page: convPage })
+  if (siteId) params.set('siteId', siteId)
+  if (date) params.set('date', date)
+
+  const d = await api('/sessions?' + params.toString())
+  if (!d) return
+
+  if (!d.items?.length) { el.innerHTML = '<div class="empty">Nenhuma conversa encontrada</div>'; return }
+
+  el.innerHTML = `<table><thead><tr>
+    <th>Data</th><th>Site</th><th>Mensagens</th><th>IP</th><th></th>
+  </tr></thead><tbody>
+    ${d.items.map(s => `<tr>
+      <td style="white-space:nowrap">${new Date(s.createdAt).toLocaleString('pt')}</td>
+      <td style="font-size:12px">${s.site?.domain || '—'}</td>
+      <td style="text-align:center">${s._count?.messages || 0}</td>
+      <td style="font-size:11px;color:#8b949e">${s.visitorIp || '—'}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="loadConvDetail('${s.id}')">Ver</button></td>
+    </tr>`).join('')}
+  </tbody></table>
+  <div class="pagination">
+    <button onclick="loadConversations(${d.page-1})" ${d.page<=1?'disabled':''}>‹ Anterior</button>
+    <span class="info">Página ${d.page} de ${d.pages} (${d.total} total)</span>
+    <button onclick="loadConversations(${d.page+1})" ${d.page>=d.pages?'disabled':''}>Seguinte ›</button>
+  </div>`
+  document.getElementById('conv-detail').innerHTML = ''
+}
+
+async function loadConvDetail(id) {
+  const s = await api('/sessions/' + id)
+  if (!s) return
+  const msgs = (s.messages || []).map(m => `
+    <div class="t-msg" style="${m.role==='USER' ? 'background:#1d4ed8;color:#fff;align-self:flex-end;max-width:80%' : 'background:#1c2333;border:1px solid #21262d;align-self:flex-start;max-width:80%'}">
+      <span style="font-size:10px;opacity:.7;display:block;margin-bottom:3px">${m.role==='USER'?'Utilizador':'Assistente'} · ${new Date(m.createdAt).toLocaleTimeString('pt')}</span>
+      ${escapeHtml(m.content)}
+    </div>`).join('')
+  const detail = document.getElementById('conv-detail')
+  detail.innerHTML = `<div class="detail-panel">
+    <h3>Sessão — ${escapeHtml(s.site?.domain || id)}</h3>
+    <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+      <span style="color:#8b949e;font-size:12px">${new Date(s.createdAt).toLocaleString('pt')}</span>
+      <span style="color:#8b949e;font-size:12px">${(s.messages||[]).length} mensagens</span>
+      ${s.visitorIp ? `<span style="color:#8b949e;font-size:12px">IP: ${escapeHtml(s.visitorIp)}</span>` : ''}
+    </div>
+    <div class="transcript">${msgs || '<span style="color:#8b949e">Sem mensagens</span>'}</div>
+  </div>`
+  detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+}
+
+// ─── ANALYTICS ───────────────────────────────────────────────────────────────
+async function loadAnalytics() {
+  if (!convSitesLoaded) await loadConversations.call({}, 999) // preload sites
+  const siteId = document.getElementById('analytics-site-filter')?.value || ''
+  const params = siteId ? '?siteId=' + siteId : ''
+
+  document.getElementById('analytics-chart').innerHTML = '<div class="loading"><div class="spinner"></div></div>'
+  document.getElementById('analytics-questions').innerHTML = '<div class="loading"><div class="spinner"></div></div>'
+
+  const [days, questions] = await Promise.all([
+    api('/analytics/messages-by-day' + params),
+    api('/analytics/top-questions' + params),
+  ])
+
+  const chartEl = document.getElementById('analytics-chart')
+  if (days?.length) {
+    const max = Math.max(...days.map(d => d.count), 1)
+    chartEl.innerHTML = `<div class="bar-chart">${days.map(d =>
+      `<div class="bar-wrap" title="${escapeHtml(d.day)}: ${d.count} msgs">
+        <div class="bar" style="height:${Math.max(2, Math.round((d.count/max)*120))}px"></div>
+        <div class="bar-label">${d.day.slice(5)}</div>
+      </div>`).join('')}</div>`
+  } else {
+    chartEl.innerHTML = '<div class="empty">Sem dados</div>'
+  }
+
+  const qEl = document.getElementById('analytics-questions')
+  if (questions?.length) {
+    qEl.innerHTML = `<table><thead><tr><th>#</th><th>Pergunta</th><th>Total</th></tr></thead><tbody>
+      ${questions.map((q, i) => `<tr>
+        <td style="color:#8b949e;font-size:12px;width:30px">${i+1}</td>
+        <td style="font-size:12px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(q.question)}">${escapeHtml(q.question)}</td>
+        <td style="text-align:right;font-weight:600;color:#3b82f6;width:50px">${q.count}</td>
+      </tr>`).join('')}
+    </tbody></table>`
+  } else {
+    qEl.innerHTML = '<div class="empty">Sem dados nos últimos 30 dias</div>'
+  }
+}
+
+// ─── PROVIDER TEST ────────────────────────────────────────────────────────────
+async function testProvider(provider) {
+  const resultEl = document.getElementById('test-result-' + provider)
+  if (!resultEl) return
+  resultEl.style.display = 'block'
+  resultEl.innerHTML = '<span style="color:#8b949e">A testar…</span>'
+  try {
+    const r = await fetch('/api/admin/providers/' + provider + '/test', {
+      method: 'POST', headers: {'Content-Type':'application/json'}
+    })
+    const d = await r.json()
+    if (d.ok) {
+      resultEl.innerHTML = `<div style="background:#0e3a1f;border:1px solid #22c55e40;border-radius:6px;padding:6px 8px;color:#4ade80">
+        ✓ OK · ${d.latencyMs}ms · <span style="opacity:.7">${escapeHtml(d.model)}</span><br>
+        <span style="color:#8b949e">${escapeHtml((d.response||'').substring(0,120))}</span>
+      </div>`
+    } else {
+      resultEl.innerHTML = `<div style="background:#3a0e0e;border:1px solid #f8717140;border-radius:6px;padding:6px 8px;color:#f87171">
+        ✗ ${escapeHtml(d.error||'erro desconhecido')}
+      </div>`
+    }
+  } catch(e) {
+    resultEl.innerHTML = `<div style="background:#3a0e0e;border-radius:6px;padding:6px 8px;color:#f87171">✗ Erro de rede</div>`
+  }
+}
+
+// Close modals on bg click
+document.querySelectorAll('.modal-bg').forEach(bg => bg.addEventListener('click', e => { if(e.target===bg) bg.classList.remove('open') }))
+
+// Init
+loadStats()
+</script>
+</body>
+</html>

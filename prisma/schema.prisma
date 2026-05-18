@@ -1,0 +1,190 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Provider {
+  GEMINI
+  OPENAI
+  CLAUDE
+  DEEPSEEK
+  GROQ
+}
+
+enum AgentType {
+  SUPORTE
+  VENDAS
+}
+
+enum SimulationStatus {
+  ACTIVE
+  COMPLETED
+  EVALUATING
+  EVALUATION_FAILED
+}
+
+enum MessageRole {
+  HUMAN_AGENT
+  CLIENT_AI
+  USER
+  ASSISTANT
+  TOOL
+  SYSTEM
+}
+
+enum SiteType {
+  SALES
+  SUPPORT
+}
+
+model AISite {
+  id                  String    @id @default(cuid())
+  domain              String    @unique
+  type                SiteType
+  brand               String
+  systemPrompt        String
+  activeProvider      Provider  @default(GEMINI)
+  fallbackProvider    Provider?
+  availableTools      Json?
+  isActive            Boolean   @default(true)
+  agentType           AgentType @default(SUPORTE)
+  geminiModel         String    @default("gemini-2.0-flash")
+  rollingHourMsgCount Int       @default(0)
+  totalTokens         BigInt    @default(0)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  sessions            ChatSession[]
+  knowledge            KnowledgeEntry[]
+}
+
+model ChatSession {
+  id        String   @id @default(cuid())
+  siteId    String
+  site      AISite   @relation(fields: [siteId], references: [id])
+  userId    String?
+  visitorIp String?
+  country   String?
+  city      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  messages  ChatMessage[]
+}
+
+model ChatMessage {
+  id             String      @id @default(cuid())
+  sessionId      String
+  session        ChatSession @relation(fields: [sessionId], references: [id])
+  role           MessageRole
+  content        String
+  tokenCount     Int         @default(0)
+  isFiltered     Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  toolExecutions ToolExecutionLog[]
+  callLogs       LLMCallLog[]
+}
+
+model ToolExecutionLog {
+  id            String      @id @default(cuid())
+  chatMessageId String
+  chatMessage   ChatMessage @relation(fields: [chatMessageId], references: [id])
+  toolName      String
+  arguments     Json
+  authorized    Boolean
+  result        Json?
+  errorMessage  String?
+  createdAt     DateTime    @default(now())
+}
+
+
+
+model TrainingScenario {
+  id            String   @id @default(cuid())
+  title         String
+  personaPrompt String
+  difficulty    Int?
+  brand         String
+  createdAt     DateTime @default(now())
+  simulations   UserSimulation[]
+}
+
+model UserSimulation {
+  id            String           @id @default(cuid())
+  traineeUserId String
+  scenarioId    String
+  scenario      TrainingScenario @relation(fields: [scenarioId], references: [id])
+  status        SimulationStatus @default(ACTIVE)
+  score         Int?
+  feedback      String?
+  totalTokens   Int              @default(0)
+  version       Int              @default(0)
+  startedAt     DateTime         @default(now())
+  completedAt   DateTime?
+  messages      SimulationMessage[]
+}
+
+model SimulationMessage {
+  id           String         @id @default(cuid())
+  simulationId String
+  simulation   UserSimulation @relation(fields: [simulationId], references: [id])
+  role         MessageRole
+  content      String
+  tokenCount   Int            @default(0)
+  createdAt    DateTime       @default(now())
+}
+
+model LLMCallLog {
+  id                String   @id @default(cuid())
+  messageId         String
+  chatMessage       ChatMessage? @relation(fields: [messageId], references: [id])
+  model             String
+  provider          Provider
+  promptTokens      Int
+  completionTokens  Int
+  latencyMs         Int
+  requestTruncated  String?
+  responseTruncated String?
+  error             String?
+  createdAt         DateTime @default(now())
+}
+
+model ProviderConfig {
+  id        String   @id @default(cuid())
+  provider  Provider @unique
+  apiKey    String   @default("")
+  isEnabled Boolean  @default(false)
+  model     String   @default("")
+  updatedAt DateTime @updatedAt
+}
+
+enum KnowledgeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum KnowledgeScope {
+  PRIVATE
+  GLOBAL
+}
+
+model KnowledgeEntry {
+  id               String          @id @default(cuid())
+  siteId           String?
+  site             AISite?         @relation(fields: [siteId], references: [id])
+  scope            KnowledgeScope  @default(PRIVATE)
+  status           KnowledgeStatus @default(PENDING)
+  category         String          @default("general")
+  trigger          String
+  response         String
+  originalResponse String?
+  sourceMessageId  String?
+  editedBy         String?
+  useCount         Int             @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+}
+
