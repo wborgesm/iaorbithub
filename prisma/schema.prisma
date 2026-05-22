@@ -13,6 +13,9 @@ enum Provider {
   CLAUDE
   DEEPSEEK
   GROQ
+  OPENROUTER
+  COHERE
+  HUGGINGFACE
 }
 
 enum AgentType {
@@ -53,12 +56,19 @@ model AISite {
   isActive            Boolean   @default(true)
   agentType           AgentType @default(SUPORTE)
   geminiModel         String    @default("gemini-2.0-flash")
+  systemPromptB       String?
+  abSplitPct          Int       @default(0)
   rollingHourMsgCount Int       @default(0)
   totalTokens         BigInt    @default(0)
+  factsDocument       String?   // O que o sistema realmente oferece — injectado sempre no prompt
+  restrictedTopics    String?   // O que NUNCA revelar ao utilizador
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
   sessions            ChatSession[]
   knowledge            KnowledgeEntry[]
+  simulations         UserSimulation[]
+  promptHistories     PromptHistory[]
+  autoTrainSessions   AutoTrainSession[]
 }
 
 model ChatSession {
@@ -69,6 +79,8 @@ model ChatSession {
   visitorIp String?
   country   String?
   city      String?
+  pageUrl   String?
+  abVariant String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   messages  ChatMessage[]
@@ -111,11 +123,22 @@ model TrainingScenario {
   simulations   UserSimulation[]
 }
 
+
+enum SimulationType {
+  VENDAS
+  SUPORTE
+  CANCELAMENTO
+}
+
 model UserSimulation {
   id            String           @id @default(cuid())
-  traineeUserId String
-  scenarioId    String
-  scenario      TrainingScenario @relation(fields: [scenarioId], references: [id])
+  traineeUserId  String
+  scenarioId     String?
+  scenario       TrainingScenario? @relation(fields: [scenarioId], references: [id])
+  simulationType SimulationType    @default(SUPORTE)
+  siteId         String?
+  site           AISite?           @relation(fields: [siteId], references: [id])
+  personaPrompt  String?
   status        SimulationStatus @default(ACTIVE)
   score         Int?
   feedback      String?
@@ -155,8 +178,11 @@ model ProviderConfig {
   id        String   @id @default(cuid())
   provider  Provider @unique
   apiKey    String   @default("")
+  apiKey2   String   @default("")
+  apiKey3   String   @default("")
   isEnabled Boolean  @default(false)
   model     String   @default("")
+  priority  Int      @default(99)
   updatedAt DateTime @updatedAt
 }
 
@@ -188,3 +214,65 @@ model KnowledgeEntry {
   updatedAt        DateTime        @updatedAt
 }
 
+model PromptHistory {
+  id        String   @id @default(cuid())
+  siteId    String
+  site      AISite   @relation(fields: [siteId], references: [id])
+  prompt    String
+  label     String   @default("A")
+  createdAt DateTime @default(now())
+}
+
+model SystemConfig {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  OPERATOR
+}
+
+model AdminUser {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String
+  password  String
+  role      AdminRole @default(OPERATOR)
+  isActive  Boolean   @default(true)
+  lastLogin DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model AutoTrainSession {
+  id         String         @id @default(cuid())
+  batchId    String?
+  siteId     String
+  site       AISite         @relation(fields: [siteId], references: [id])
+  simType    SimulationType @default(SUPORTE)
+  rounds     Int            @default(5)
+  status     String         @default("PENDING")
+  transcript Json           @default("[]")
+  analysis   String?
+  score      Int?
+  iteration  Int            @default(1)
+  violations Json?
+  suggestions Json?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+}
+
+model AutoTrainBatch {
+  id           String   @id @default(cuid())
+  siteId       String
+  simType      SimulationType @default(SUPORTE)
+  totalRuns    Int      @default(100)
+  completedRuns Int     @default(0)
+  status       String   @default("RUNNING")
+  avgScore     Float?
+  topFindings  Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

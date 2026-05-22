@@ -66,6 +66,7 @@ tr:hover td{background:#1c2333}
 .badge-OPENAI{background:#0d2a2a;color:#22d3ee}
 .badge-DEEPSEEK{background:#1a0e2a;color:#a78bfa}
 .badge-GROQ{background:#2a0e0a;color:#f97316}
+.badge-OPENROUTER{background:#0a1a2a;color:#38bdf8}
 /* Toggle switch */
 .toggle-wrap{display:flex;align-items:center;gap:8px}
 .toggle{position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0}
@@ -97,6 +98,14 @@ input:checked ~ .toggle-label{color:#22c55e}
 .pc-status.on{background:#0e3a1f;color:#4ade80}
 .pc-status.off{background:#1c2333;color:#8b949e}
 .pc-status.nokey{background:#3a2a00;color:#fbbf24}
+.pc-status.cooldown{background:#3a1a00;color:#fb923c;animation:pulse-badge 1.5s ease-in-out infinite}
+.provider-card.cooldown{border-color:#fb923c40;background:#1a0e00}
+@keyframes pulse-badge{0%,100%{opacity:1}50%{opacity:.6}}
+.pc-priority{display:flex;align-items:center;gap:4px;font-size:11px;color:#8b949e}
+.pc-priority-badge{background:#161b22;border:1px solid #30363d;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:700;color:#e6edf3}
+.pc-priority-btns{display:flex;flex-direction:column;gap:1px}
+.pc-priority-btns button{background:none;border:1px solid #30363d;border-radius:3px;color:#8b949e;cursor:pointer;font-size:9px;line-height:1;padding:1px 4px}
+.pc-priority-btns button:hover{background:#21262d;color:#e6edf3}
 .provider-card .pc-key{font-family:monospace;font-size:12px;color:#8b949e;margin:8px 0;letter-spacing:1px}
 .provider-card .pc-actions{display:flex;align-items:center;justify-content:space-between;margin-top:12px;border-top:1px solid #21262d;padding-top:12px}
 
@@ -178,10 +187,71 @@ input:checked ~ .toggle-label{color:#22c55e}
 .bar{width:100%;border-radius:3px 3px 0 0;background:#3b82f6;min-height:2px;transition:.2s}
 .bar-label{font-size:9px;color:#8b949e;margin-top:3px;transform:rotate(-45deg);transform-origin:top left;white-space:nowrap}
 .bar-wrap:hover .bar{background:#60a5fa}
+
+  .sim-type-btn{padding:10px 20px;border-radius:8px;border:2px solid #30363d;background:#1c2333;color:#8b949e;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s;display:flex;align-items:center;gap:6px}
+  .sim-type-btn:hover{border-color:#58a6ff;color:#e6edf3}
+  .sim-type-btn.active{border-color:#3b82f6;background:#1e3a5f;color:#93c5fd}
+  .sim-msg-client{background:#1c2333;border:1px solid #21262d;border-radius:4px 14px 14px 14px;padding:10px 14px;align-self:flex-start;max-width:82%;font-size:13px;line-height:1.55;color:#c9d1d9}
+  .sim-msg-agent{background:#1e40af;color:#fff;border-radius:14px 4px 14px 14px;padding:10px 14px;align-self:flex-end;max-width:82%;font-size:13px;line-height:1.55}
+  .sim-msg-system{color:#8b949e;font-size:11px;text-align:center;padding:4px 0;font-style:italic}
+  .sim-msg-thinking{color:#8b949e;font-style:italic;font-size:13px;align-self:flex-start;padding:8px 14px;background:#161b22;border-radius:4px 14px 14px 14px;border:1px solid #21262d}
+
+  /*  CSS Variables & Light mode  */
+  :root{--bg0:#0d1117;--bg1:#161b22;--bg2:#1c2333;--bdr:#21262d;--txt1:#e6edf3;--txt2:#8b949e;--acc:#3b82f6;--accH:#2563eb}
+  body.light-mode{--bg0:#f6f8fa;--bg1:#ffffff;--bg2:#f0f2f4;--bdr:#d0d7de;--txt1:#1f2328;--txt2:#636c76;--acc:#0969da;--accH:#0550ae}
+  body.light-mode .sidebar{background:var(--bg1);border-right-color:var(--bdr)}
+  body.light-mode .main{background:var(--bg0)}
+  body.light-mode .topbar{background:var(--bg1);border-bottom-color:var(--bdr)}
+  body.light-mode .table-container,body.light-mode .stat-card,body.light-mode .detail-panel{background:var(--bg1);border-color:var(--bdr);color:var(--txt1)}
+  body.light-mode table thead{background:var(--bg2)}
+  body.light-mode .nav-item{color:var(--txt2)}
+  body.light-mode .nav-item:hover,body.light-mode .nav-item.active{background:var(--bg2)}
+  body.light-mode .modal{background:var(--bg1);border-color:var(--bdr)}
+  body.light-mode .form-row input,body.light-mode .form-row select,body.light-mode .form-row textarea{background:var(--bg2);border-color:var(--bdr);color:var(--txt1)}
+
+  /*  Toast  */
+  @keyframes toastIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+  .toast{animation:toastIn .25s ease;display:flex;align-items:center;gap:10px;padding:11px 16px;border-radius:10px;font-size:13px;max-width:320px;box-shadow:0 4px 16px rgba(0,0,0,.4)}
+  .toast-info{background:#161b22;border:1px solid #3b82f6;color:#e6edf3}
+  .toast-success{background:#0a1f12;border:1px solid #22c55e;color:#e6edf3}
+  .toast-warning{background:#1a1200;border:1px solid #f59e0b;color:#e6edf3}
+  .toast-error{background:#1f0606;border:1px solid #ef4444;color:#e6edf3}
+
+  /*  Search overlay  */
+  #search-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;align-items:flex-start;justify-content:center;padding-top:80px}
+  #search-overlay.open{display:flex}
+  #search-box{background:#161b22;border:1px solid #30363d;border-radius:14px;width:100%;max-width:580px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+  .search-row{padding:12px 16px;display:flex;gap:10px;align-items:center;border-bottom:1px solid #21262d}
+  #search-input{flex:1;background:none;border:none;color:#e6edf3;font-size:15px;outline:none}
+  .search-item{padding:10px 12px;border-radius:8px;cursor:pointer;margin:2px 6px;transition:background .1s}
+  .search-item:hover{background:#1c2333}
+  .search-section-label{padding:6px 12px 4px;font-size:11px;color:#8b949e;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+
+  /*  Provider alert badge animation  */
+  @keyframes alertPulse{0%,100%{opacity:1}50%{opacity:.6}}
+  #provider-alert-badge{animation:alertPulse 2s infinite}
+
+  /*  Charts containers  */
+  .chart-card{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:16px}
+  .chart-card h3{font-size:12px;color:#8b949e;margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+  .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+  @media(max-width:768px){.charts-grid{grid-template-columns:1fr}}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
+<div id="toast-container" style="position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:flex-end"></div>
+<div id="search-overlay" onclick="if(event.target===this)closeSearch()">
+  <div id="search-box">
+    <div class="search-row">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b949e" stroke-width="2"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/></svg>
+      <input id="search-input" placeholder="Pesquisar conversas, conhecimento…" oninput="doSearch(this.value)" onkeydown="if(event.key==='Escape')closeSearch()">
+      <kbd style="background:#1c2333;border:1px solid #30363d;border-radius:4px;padding:2px 6px;font-size:11px;color:#8b949e">ESC</kbd>
+    </div>
+    <div id="search-results" style="padding:6px;max-height:380px;overflow-y:auto"></div>
+  </div>
+</div>
 <!-- Sidebar -->
 <aside class="sidebar">
   <div class="sidebar-logo">
@@ -202,11 +272,15 @@ input:checked ~ .toggle-label{color:#22c55e}
     </button>
     <button class="nav-item" onclick="show('scenarios')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"/></svg>
-      Cenários de Treino
+      Simulador
     </button>
     <button class="nav-item" onclick="show('simulations')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/></svg>
       Simulações
+    </button>
+    <button class="nav-item" data-section="autotrain" onclick="show('autotrain')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"/></svg>
+      Auto-Treino IA vs IA
     </button>
     <button class="nav-item" onclick="show('chat')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"/></svg>
@@ -232,6 +306,15 @@ input:checked ~ .toggle-label{color:#22c55e}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z"/><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z"/></svg>
       Analytics
     </button>
+    <div style="height:1px;background:#21262d;margin:8px 4px"></div>
+    <button class="nav-item" data-section="health" onclick="show('health')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>
+      Saúde do Sistema
+    </button>
+    <button class="nav-item" data-section="users" onclick="show('users')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+      Utilizadores
+    </button>
   </nav>
   <div class="sidebar-footer">
     <button class="btn-logout" onclick="logout()">
@@ -245,7 +328,16 @@ input:checked ~ .toggle-label{color:#22c55e}
 <main class="main">
   <div class="topbar">
     <h1 id="page-title">Dashboard</h1>
-    <span class="badge">ia.orbithubos.pt</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="toggleSearch()" title="Pesquisar (Ctrl+K)" style="padding:6px 8px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/></svg>
+      </button>
+      <button class="btn btn-ghost btn-sm" id="theme-btn" onclick="toggleTheme()" title="Alternar tema" style="padding:6px 8px">
+        <svg width="14" height="14" id="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      </button>
+      <span class="badge" id="provider-alert-badge" style="display:none;background:#92400e;border:1px solid #f59e0b;cursor:pointer" onclick="show('providers')"> Provider</span>
+      <span class="badge">ia.orbithubos.pt</span>
+    </div>
   </div>
   <div class="content">
 
@@ -265,6 +357,10 @@ input:checked ~ .toggle-label{color:#22c55e}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
             Novo Site
           </button>
+          <button class="btn btn-ghost" id="crawl-btn" onclick="crawlAllSites()" style="gap:6px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            Actualizar Conhecimento
+          </button>
         </div>
         <div id="sites-content"><div class="loading"><div class="spinner"></div></div></div>
       </div>
@@ -274,13 +370,293 @@ input:checked ~ .toggle-label{color:#22c55e}
     <div class="section" id="section-scenarios">
       <div class="table-container">
         <div class="table-header">
-          <h2>Cenários de Treino</h2>
-          <button class="btn btn-primary" onclick="openModal('scenario')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-            Novo Cenário
-          </button>
+          <h2>Simulador de Treino</h2>
         </div>
-        <div id="scenarios-content"><div class="loading"><div class="spinner"></div></div></div>
+
+        <!-- Type + site selector -->
+        <div style="background:#0d1117;border:1px solid #21262d;border-radius:12px;padding:20px;margin-bottom:20px">
+          <p style="font-size:12px;color:#8b949e;margin:0 0 14px 0">Selecione o tipo de simulação e o site a testar, depois inicie a sessão.</p>
+          <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+            <button class="sim-type-btn active" data-type="VENDAS" onclick="selectSimType('VENDAS')"> Vendas</button>
+            <button class="sim-type-btn" data-type="SUPORTE" onclick="selectSimType('SUPORTE')"> Suporte Técnico</button>
+            <button class="sim-type-btn" data-type="CANCELAMENTO" onclick="selectSimType('CANCELAMENTO')"> Cancelamento / Retenção</button>
+          </div>
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <select id="sim-site-select" style="background:#161b22;border:1px solid #30363d;color:#e6edf3;border-radius:8px;padding:8px 12px;font-size:13px;min-width:220px">
+              <option value="">Selecione um site…</option>
+            </select>
+            <button class="btn btn-primary" id="sim-start-btn" onclick="startSimulation()"> Iniciar Simulação</button>
+          </div>
+        </div>
+
+        <!-- Simulation chat (shown after start) -->
+        <div id="sim-chat-area" style="display:none;margin-bottom:20px">
+          <div style="background:#0d1117;border:1px solid #21262d;border-radius:12px;overflow:hidden">
+            <div style="background:#161b22;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #21262d">
+              <div>
+                <span id="sim-chat-label" style="font-weight:600;font-size:14px;color:#e6edf3"></span>
+                <span id="sim-chat-site" style="font-size:12px;color:#8b949e;margin-left:10px"></span>
+              </div>
+              <button class="btn btn-danger btn-sm" id="sim-finish-btn" onclick="finishSimulation()"> Terminar e Avaliar</button>
+            </div>
+            <div id="sim-messages" style="padding:16px;min-height:200px;max-height:450px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;background:#0d1117"></div>
+            <div style="padding:12px;background:#161b22;border-top:1px solid #21262d;display:flex;gap:8px;align-items:flex-end">
+              <textarea id="sim-input" placeholder="A sua resposta como agente…" rows="1"
+                style="flex:1;background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:8px;padding:9px 12px;font-size:13px;resize:none;height:38px;max-height:120px;outline:none;line-height:1.4"
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendSimMessage()}"
+                oninput="this.style.height='38px';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
+              <button id="sim-send-btn" class="btn btn-primary" onclick="sendSimMessage()" disabled style="height:38px;padding:0 16px">Enviar</button>
+            </div>
+          </div>
+          <!-- Evaluation result -->
+          <div id="sim-eval-result" style="display:none;margin-top:12px;background:#0d1117;border:1px solid #21262d;border-radius:12px;padding:18px">
+            <h4 style="color:#e6edf3;margin:0 0 12px 0;font-size:14px"> Avaliação da Simulação</h4>
+            <div id="sim-eval-content"></div>
+          </div>
+        </div>
+
+        <!-- Custom scenarios (collapsible) -->
+        <div>
+          <button class="btn btn-ghost btn-sm" style="font-size:12px" onclick="toggleCustomScenarios(this)"> Cenários Personalizados </button>
+          <div id="custom-scenarios-panel" style="display:none;margin-top:12px">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+              <button class="btn btn-primary btn-sm" onclick="openModal('scenario')">+ Novo Cenário</button>
+            </div>
+            <div id="scenarios-content"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUTO-TREINO IA vs IA -->
+    <div class="section" id="section-autotrain">
+      <div class="table-container">
+        <div class="table-header">
+          <h2>Auto-Treino IA vs IA</h2>
+          <p style="font-size:13px;color:#8b949e;margin:4px 0 0 0">A IA do lado do cliente e a IA do agente conversam automaticamente. No final, um coach de IA avalia e sugere melhorias detalhadas.</p>
+        </div>
+
+        <!-- Config -->
+        <div style="background:#0d1117;border:1px solid #21262d;border-radius:12px;padding:20px;margin-bottom:20px">
+          <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+            <button class="sim-type-btn active" data-type="VENDAS" onclick="atSelectType('VENDAS',this)"> Vendas</button>
+            <button class="sim-type-btn" data-type="SUPORTE" onclick="atSelectType('SUPORTE',this)"> Suporte</button>
+            <button class="sim-type-btn" data-type="CANCELAMENTO" onclick="atSelectType('CANCELAMENTO',this)"> Retenção</button>
+          </div>
+          <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+            <select id="at-site-select" style="background:#161b22;border:1px solid #30363d;color:#e6edf3;border-radius:8px;padding:8px 12px;font-size:13px;min-width:220px">
+              <option value="">Selecione um site…</option>
+            </select>
+            <label style="font-size:13px;color:#8b949e;display:flex;align-items:center;gap:8px;white-space:nowrap">
+              Trocas:
+              <input type="range" id="at-rounds" min="3" max="8" value="5" step="1"
+                oninput="document.getElementById('at-rounds-val').textContent=this.value"
+                style="width:100px">
+              <span id="at-rounds-val" style="color:#58a6ff;font-weight:600;min-width:16px">5</span>
+            </label>
+            <button class="btn btn-primary" id="at-start-btn" onclick="startAutoTrain()"> Iniciar Auto-Treino</button>
+            <button class="btn" id="at-stop-btn" onclick="stopAutoTrain()" style="display:none;background:#6e1919;border:1px solid #f85149;color:#f85149;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Parar</button>
+          </div>
+        </div>
+
+        <!-- Progress + Transcript -->
+        <div id="at-arena" style="display:none">
+          <!-- Status bar -->
+          <div id="at-status-bar" style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#58a6ff;display:flex;align-items:center;gap:10px">
+            <div class="spinner" style="width:14px;height:14px;border-width:2px"></div>
+            <span id="at-status-text">A inicializar…</span>
+          </div>
+
+          <!-- Round progress dots -->
+          <div id="at-rounds-track" style="display:flex;gap:6px;margin-bottom:14px;padding:0 2px"></div>
+
+          <!-- Transcript -->
+          <div id="at-transcript" style="display:flex;flex-direction:column;gap:10px;max-height:520px;overflow-y:auto;padding:4px 2px;margin-bottom:16px"></div>
+
+          <!-- Evaluation result (shown after done) -->
+          <div id="at-eval" style="display:none">
+            <!-- Score header -->
+            <div style="background:#0d1117;border:1px solid #21262d;border-radius:12px;padding:20px;margin-bottom:14px">
+              <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+                <div>
+                  <div style="font-size:12px;color:#8b949e;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Pontuação do Agente</div>
+                  <div style="display:flex;align-items:baseline;gap:8px">
+                    <span id="at-score-val" style="font-size:48px;font-weight:700;line-height:1">—</span>
+                    <span style="font-size:20px;color:#8b949e">/100</span>
+                    <span id="at-level-badge" style="font-size:12px;padding:3px 10px;border-radius:20px;font-weight:600;background:#21262d;color:#8b949e">—</span>
+                  </div>
+                </div>
+                <div id="at-result-badge" style="font-size:16px;padding:10px 20px;border-radius:10px;font-weight:700">—</div>
+              </div>
+              <div id="at-summary" style="font-size:14px;color:#8b949e;margin-top:12px;line-height:1.6"></div>
+            </div>
+
+            <!-- Strengths / Weaknesses -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+              <div style="background:#0d1117;border:1px solid #238636;border-radius:10px;padding:14px">
+                <div style="font-size:12px;color:#3fb950;font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em"> Pontos Fortes</div>
+                <ul id="at-strengths" style="margin:0;padding-left:16px;font-size:13px;color:#e6edf3;line-height:1.8"></ul>
+              </div>
+              <div style="background:#0d1117;border:1px solid #f85149;border-radius:10px;padding:14px">
+                <div style="font-size:12px;color:#f85149;font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em"> Pontos a Melhorar</div>
+                <ul id="at-weaknesses" style="margin:0;padding-left:16px;font-size:13px;color:#e6edf3;line-height:1.8"></ul>
+              </div>
+            </div>
+
+            <!-- Coaching cards -->
+            <div style="background:#0d1117;border:1px solid #21262d;border-radius:12px;padding:18px;margin-bottom:14px">
+              <div style="font-size:13px;color:#f0883e;font-weight:600;margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em"> Coaching por Troca</div>
+              <div id="at-coaching-cards" style="display:flex;flex-direction:column;gap:10px"></div>
+            </div>
+
+            <!-- Next steps -->
+            <div style="background:#0d1117;border:1px solid #21262d;border-radius:12px;padding:18px;margin-bottom:14px">
+              <div style="font-size:13px;color:#58a6ff;font-weight:600;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em"> Próximos Passos</div>
+              <ul id="at-next-steps" style="margin:0;padding-left:16px;font-size:13px;color:#e6edf3;line-height:2"></ul>
+            </div>
+
+            <!-- New session button -->
+            <div style="text-align:center;margin-top:4px">
+              <button class="btn btn-primary" onclick="resetAutoTrain()"> Nova Sessão de Treino</button>
+            </div>
+          </div>
+        </div>
+
+        <!--  Batch Training: 100 tests  -->
+        <div style="background:#0d1117;border:2px solid #f0883e33;border-radius:12px;padding:20px;margin-top:20px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+            <div>
+              <div style="font-size:15px;font-weight:700;color:#f0883e;margin-bottom:4px"> Modo Treino Contínuo</div>
+              <div style="font-size:12px;color:#8b949e">Executa até 100 sessões automáticas IA vs IA, analisa padrões, detecta violações de segurança e gera um plano de melhoria do agente.</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <label style="font-size:12px;color:#8b949e;display:flex;align-items:center;gap:6px">
+                Sessões:
+                <input type="number" id="batch-runs" value="20" min="5" max="100" style="width:60px;background:#161b22;border:1px solid #30363d;color:#e6edf3;border-radius:6px;padding:4px 8px;font-size:13px;text-align:center">
+              </label>
+              <label style="font-size:12px;color:#8b949e;display:flex;align-items:center;gap:6px">
+                Trocas/sessão:
+                <input type="number" id="batch-rounds" value="4" min="2" max="6" style="width:50px;background:#161b22;border:1px solid #30363d;color:#e6edf3;border-radius:6px;padding:4px 8px;font-size:13px;text-align:center">
+              </label>
+              <button class="btn" id="batch-start-btn"
+                style="background:#f0883e22;border:1px solid #f0883e;color:#f0883e;padding:7px 16px;font-size:13px;border-radius:8px;cursor:pointer;font-weight:600"
+                onclick="startBatchTrain()"> START</button>
+            </div>
+          </div>
+
+          <!-- Progress -->
+          <div id="batch-progress-area" style="display:none">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div style="flex:1;background:#21262d;border-radius:99px;height:8px;overflow:hidden">
+                <div id="batch-progress-bar" style="height:100%;background:linear-gradient(90deg,#f0883e,#ff6b35);border-radius:99px;width:0%;transition:width .4s"></div>
+              </div>
+              <span id="batch-progress-text" style="font-size:12px;color:#8b949e;min-width:60px;text-align:right">0 / 0</span>
+            </div>
+            <div id="batch-status-text" style="font-size:12px;color:#58a6ff;margin-bottom:10px"></div>
+
+            <!-- Live score stream -->
+            <div id="batch-live-feed" style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding:4px 0"></div>
+          </div>
+
+          <!-- Batch results -->
+          <div id="batch-results" style="display:none;margin-top:14px">
+            <!-- Score summary -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:14px">
+              <div style="background:#161b22;border:1px solid #21262d;border-radius:10px;padding:12px;text-align:center">
+                <div style="font-size:28px;font-weight:700;color:#58a6ff" id="br-avg">—</div>
+                <div style="font-size:11px;color:#8b949e;margin-top:2px">Média Geral</div>
+              </div>
+              <div style="background:#161b22;border:1px solid #3fb95033;border-radius:10px;padding:12px;text-align:center">
+                <div style="font-size:28px;font-weight:700;color:#3fb950" id="br-excellent">—</div>
+                <div style="font-size:11px;color:#8b949e;margin-top:2px">Excelentes ≥80</div>
+              </div>
+              <div style="background:#161b22;border:1px solid #f0883e33;border-radius:10px;padding:12px;text-align:center">
+                <div style="font-size:28px;font-weight:700;color:#f0883e" id="br-good">—</div>
+                <div style="font-size:11px;color:#8b949e;margin-top:2px">Bons 60-79</div>
+              </div>
+              <div style="background:#161b22;border:1px solid #f8514933;border-radius:10px;padding:12px;text-align:center">
+                <div style="font-size:28px;font-weight:700;color:#f85149" id="br-poor">—</div>
+                <div style="font-size:11px;color:#8b949e;margin-top:2px">A Melhorar &lt;60</div>
+              </div>
+            </div>
+
+            <!-- Top violations -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+              <div style="background:#0d1117;border:1px solid #f8514933;border-radius:10px;padding:14px">
+                <div style="font-size:12px;color:#f85149;font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em"> Violações de Segurança</div>
+                <div id="br-violations" style="font-size:12px;color:#e6edf3;line-height:1.8"></div>
+              </div>
+              <div style="background:#0d1117;border:1px solid #f0883e33;border-radius:10px;padding:14px">
+                <div style="font-size:12px;color:#f0883e;font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em"> Sugestões Frequentes</div>
+                <div id="br-suggestions" style="font-size:12px;color:#e6edf3;line-height:1.8"></div>
+              </div>
+            </div>
+
+            <!-- AI final diagnosis -->
+            <div id="br-diagnosis-wrap" style="background:#0d1117;border:1px solid #21262d;border-radius:10px;padding:16px;margin-bottom:12px;display:none">
+              <div style="font-size:13px;color:#58a6ff;font-weight:600;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em"> Diagnóstico IA</div>
+              <p id="br-diagnosis" style="font-size:13px;color:#e6edf3;margin:0 0 12px 0;line-height:1.6"></p>
+
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+                <div>
+                  <div style="font-size:11px;color:#3fb950;font-weight:600;margin-bottom:6px"> Frases Recomendadas</div>
+                  <ul id="br-use-these" style="margin:0;padding-left:16px;font-size:12px;color:#e6edf3;line-height:1.8"></ul>
+                </div>
+                <div>
+                  <div style="font-size:11px;color:#f85149;font-weight:600;margin-bottom:6px"> Frases a Evitar</div>
+                  <ul id="br-avoid-these" style="margin:0;padding-left:16px;font-size:12px;color:#e6edf3;line-height:1.8"></ul>
+                </div>
+              </div>
+
+              <div>
+                <div style="font-size:11px;color:#58a6ff;font-weight:600;margin-bottom:6px"> Melhorias ao System Prompt</div>
+                <ul id="br-prompt-improvements" style="margin:0;padding-left:16px;font-size:12px;color:#e6edf3;line-height:1.8"></ul>
+              </div>
+
+              <div id="br-mastery-row" style="margin-top:12px;padding:10px 14px;background:#161b22;border-radius:8px;font-size:12px;color:#f0883e;display:none">
+                 Sessões estimadas para atingir maestria (80+ de média): <strong id="br-mastery-count">—</strong>
+              </div>
+            </div>
+
+            <div style="text-align:center">
+              <button class="btn btn-primary" onclick="resetBatchTrain()"> Novo Treino em Lote</button>
+            </div>
+          </div>
+        </div>
+        <!--  Sessions History  -->
+        <div style="margin-top:24px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="font-size:14px;font-weight:700;color:#e6edf3"> Sessões Anteriores de Auto-Treino</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <select id="at-hist-site" onchange="loadAtSessions()" style="background:#161b22;border:1px solid #30363d;color:#e6edf3;border-radius:6px;padding:5px 10px;font-size:12px">
+                <option value="">Todos os sites</option>
+              </select>
+              <select id="at-hist-type" onchange="loadAtSessions()" style="background:#161b22;border:1px solid #30363d;color:#e6edf3;border-radius:6px;padding:5px 10px;font-size:12px">
+                <option value="">Todos os tipos</option>
+                <option value="VENDAS">Vendas</option>
+                <option value="SUPORTE">Suporte</option>
+                <option value="CANCELAMENTO">Retenção</option>
+              </select>
+              <button class="btn" onclick="loadAtSessions()" style="padding:5px 12px;font-size:12px">↺ Atualizar</button>
+            </div>
+          </div>
+          <div id="at-sessions-list" style="display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto"></div>
+        </div>
+
+        <!-- Modal: session detail -->
+        <div id="at-session-modal" style="display:none;position:fixed;inset:0;background:#00000088;z-index:200;align-items:center;justify-content:center">
+          <div style="background:#0d1117;border:1px solid #30363d;border-radius:14px;width:min(900px,95vw);max-height:90vh;overflow-y:auto;padding:24px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+              <div id="at-modal-title" style="font-size:16px;font-weight:700;color:#e6edf3"></div>
+              <div style="display:flex;gap:8px">
+                <button id="at-modal-apply-btn" class="btn btn-primary" style="font-size:12px;padding:6px 14px" onclick="applySessionToProduction()"> Aplicar ao Sistema</button>
+                <button class="btn btn-ghost" onclick="closeAtModal()" style="font-size:12px;padding:6px 12px"> Fechar</button>
+              </div>
+            </div>
+            <div id="at-modal-body"></div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -371,6 +747,7 @@ input:checked ~ .toggle-label{color:#22c55e}
         <select id="conv-site-filter" style="background:#1c2333;border:1px solid #30363d;color:#e6edf3;border-radius:8px;padding:5px 10px;font-size:12px" onchange="loadConversations(1)">
           <option value="">Todos os sites</option>
         </select>
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV()" title="Exportar CSV" style="padding:5px 8px"> CSV</button>
         <input type="date" id="conv-date-filter" style="background:#1c2333;border:1px solid #30363d;color:#e6edf3;border-radius:8px;padding:5px 10px;font-size:12px;color-scheme:dark" onchange="loadConversations(1)">
         <button class="btn btn-ghost btn-sm" onclick="document.getElementById('conv-date-filter').value='';loadConversations(1)">Limpar data</button>
       </div>
@@ -464,12 +841,21 @@ input:checked ~ .toggle-label{color:#22c55e}
 </div>
 
 <div class="modal-bg" id="modal-provider">
-  <div class="modal" style="max-width:420px">
+  <div class="modal" style="max-width:440px">
     <h2 id="modal-provider-title">Configurar Provider</h2>
     <input type="hidden" id="prov-id">
+    <p style="font-size:12px;color:#8b949e;margin:0 0 12px">Podes configurar até 3 chaves API. O sistema roda automaticamente quando uma atinge o limite.</p>
+    <div class="form-row" style="margin-bottom:10px">
+      <label>Chave API 1 (principal) <span id="prov-key1-status" style="font-size:11px;color:#8b949e"></span></label>
+      <input type="password" id="prov-key" placeholder="Deixe em branco para manter" autocomplete="new-password">
+    </div>
+    <div class="form-row" style="margin-bottom:10px">
+      <label>Chave API 2 (backup) <span id="prov-key2-status" style="font-size:11px;color:#8b949e"></span></label>
+      <input type="password" id="prov-key2" placeholder="Opcional" autocomplete="new-password">
+    </div>
     <div class="form-row" style="margin-bottom:12px">
-      <label>Chave API</label>
-      <input type="password" id="prov-key" placeholder="Deixe em branco para manter a actual" autocomplete="new-password">
+      <label>Chave API 3 (backup) <span id="prov-key3-status" style="font-size:11px;color:#8b949e"></span></label>
+      <input type="password" id="prov-key3" placeholder="Opcional" autocomplete="new-password">
     </div>
     <div class="form-row" style="margin-bottom:12px">
       <label>Modelo</label>
@@ -540,6 +926,7 @@ input:checked ~ .toggle-label{color:#22c55e}
           <option value="OPENAI">OpenAI</option>
           <option value="DEEPSEEK">DeepSeek</option>
           <option value="GROQ">Groq</option>
+          <option value="OPENROUTER">OpenRouter</option>
         </select>
       </div>
     </div>
@@ -552,15 +939,46 @@ input:checked ~ .toggle-label{color:#22c55e}
         <option value="OPENAI">OpenAI</option>
         <option value="DEEPSEEK">DeepSeek</option>
           <option value="GROQ">Groq</option>
+          <option value="OPENROUTER">OpenRouter</option>
       </select>
     </div>
     <div class="form-row">
-      <label>System Prompt</label>
+      <label>System Prompt A (principal)</label>
       <textarea id="site-prompt" placeholder="Instruções do assistente..."></textarea>
+      <button class="btn btn-ghost btn-sm" style="margin-top:6px;font-size:11px" onclick="loadPromptHistory()"> Ver histórico de prompts</button>
+      <div id="prompt-history-panel" style="display:none;margin-top:8px;max-height:200px;overflow-y:auto;border:1px solid #21262d;border-radius:8px;padding:8px"></div>
+    </div>
+    <div class="form-row">
+      <label>System Prompt B <span style="color:#8b949e;font-weight:400">(A/B testing — deixar vazio para desativar)</span></label>
+      <textarea id="site-prompt-b" placeholder="Versão alternativa do prompt…"></textarea>
+    </div>
+    <div class="form-row">
+      <label>% Tráfego para Prompt B <span style="color:#8b949e;font-weight:400" id="ab-pct-display">(0% = desativado)</span></label>
+      <input type="range" id="site-ab-pct" min="0" max="50" step="5" value="0" oninput="document.getElementById('ab-pct-display').textContent='('+this.value+'%)'">
     </div>
     <div class="form-row">
       <label>Ferramentas disponíveis (JSON array)</label>
       <input type="text" id="site-tools" placeholder='["executeVehicleAction","fetchBillingInvoice"]'>
+    </div>
+    <hr style="border-color:#21262d;margin:14px 0">
+    <div class="form-row">
+      <label style="color:#58a6ff;font-weight:600">O que o sistema realmente oferece</label>
+      <div style="font-size:11px;color:#8b949e;margin-bottom:6px">Descreve aqui as funcionalidades, paginas, precos e capacidades reais. A IA responde APENAS com base nisto. Nao incluas informacao confidencial aqui.</div>
+      <textarea id="site-facts" rows="6" placeholder="Exemplo:
+- O sistema permite rastrear veiculos em tempo real via GPS
+- Planos disponiveis: Basico (9.90/mes), Pro (19.90/mes), Enterprise (sob consulta)
+- A app esta disponivel para iOS e Android
+- Suporte disponivel por email e chat (dias uteis, 9h-18h)
+- Nao fazemos instalacao de GPS — o cliente instala ou usa instalador parceiro"></textarea>
+    </div>
+    <div class="form-row">
+      <label style="color:#f85149;font-weight:600">Informacao confidencial — nunca revelar</label>
+      <div style="font-size:11px;color:#8b949e;margin-bottom:6px">O que a IA NUNCA deve dizer ao cliente. Margem de lucro, detalhes internos, problemas conhecidos, etc.</div>
+      <textarea id="site-restricted" rows="4" placeholder="Exemplo:
+- Nunca revelar a margem de lucro ou custo interno
+- Nao mencionar que o sistema teve problemas em marco de 2025
+- Nunca confirmar ou negar integracoes nao documentadas
+- Nao discutir comparacoes com concorrentes especificos"></textarea>
     </div>
     <div class="form-actions">
       <button class="btn btn-ghost" onclick="closeModal('site')">Cancelar</button>
@@ -600,14 +1018,14 @@ input:checked ~ .toggle-label{color:#22c55e}
 </div>
 
 <script>
-const titles = {overview:'Dashboard',sites:'Sites',scenarios:'Cenários de Treino',simulations:'Simulações',chat:'Testar Chat',knowledge:'Conhecimento IA',providers:'Providers IA',logs:'Logs LLM',conversations:'Conversas',analytics:'Analytics'}
+const titles = {overview:'Dashboard',sites:'Sites',scenarios:'Simulador de Treino',autotrain:'Auto-Treino IA vs IA',simulations:'Simulações',chat:'Testar Chat',knowledge:'Conhecimento IA',providers:'Providers IA',logs:'Logs LLM',conversations:'Conversas',analytics:'Analytics',health:'Saúde do Sistema',users:'Utilizadores'}
 let chatSessionId = null, simPage = 1, logsPage = 1
 
 function show(section) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'))
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'))
   document.getElementById('section-'+section).classList.add('active')
-  document.querySelectorAll('.nav-item')[['overview','sites','scenarios','simulations','chat','knowledge','providers','logs','conversations','analytics'].indexOf(section)].classList.add('active')
+  document.querySelector(`.nav-item[data-section="${section}"]`)?.classList.add('active') || document.querySelector(`.nav-item[onclick*="'${section}'"]`)?.classList.add('active')
   document.getElementById('page-title').textContent = titles[section]
   load[section]?.()
 }
@@ -615,7 +1033,7 @@ function show(section) {
 const load = {
   overview: loadStats,
   sites: loadSites,
-  scenarios: loadScenarios,
+  scenarios: loadSimSites,
   simulations: () => loadSimulations(1),
   chat: loadChatConfig,
   knowledge: loadKnowledge,
@@ -623,6 +1041,9 @@ const load = {
   logs: () => loadLogs(1),
   conversations: () => loadConversations(1),
   analytics: loadAnalytics,
+  autotrain: loadAutoTrainSites,
+  health: loadHealth,
+  users: loadUsers,
 }
 
 async function api(path, opts={}) {
@@ -632,7 +1053,7 @@ async function api(path, opts={}) {
   try { return JSON.parse(txt) } catch { return txt }
 }
 
-// ─── STATS ──────────────────────────────────────────────────────────────────
+//  STATS 
 async function loadStats() {
   const d = await api('/stats')
   if (!d) return
@@ -649,7 +1070,7 @@ async function loadStats() {
   `
 }
 
-// ─── SITES ───────────────────────────────────────────────────────────────────
+//  SITES 
 async function loadSites() {
   const sites = await api('/sites')
   if (!sites) return
@@ -684,7 +1105,10 @@ function openModal(type) {
 function closeModal(type) { document.getElementById('modal-'+type).classList.remove('open') }
 
 function clearSiteForm() {
-  ['site-id','site-domain','site-brand','site-prompt','site-tools'].forEach(id=>document.getElementById(id).value='')
+  ['site-id','site-domain','site-brand','site-prompt','site-prompt-b','site-tools','site-facts','site-restricted'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''})
+  const abEl=document.getElementById('site-ab-pct');if(abEl)abEl.value='0'
+  document.getElementById('ab-pct-display').textContent='(0%)'
+  document.getElementById('prompt-history-panel').style.display='none'
   document.getElementById('site-type').value='SUPPORT'
   document.getElementById('site-provider').value='GEMINI'
   document.getElementById('site-fallback').value=''
@@ -700,7 +1124,11 @@ function editSite(s) {
   document.getElementById('site-provider').value = s.activeProvider
   document.getElementById('site-fallback').value = s.fallbackProvider || ''
   document.getElementById('site-prompt').value = s.systemPrompt
+  const pbEl = document.getElementById('site-prompt-b'); if(pbEl) pbEl.value = s.systemPromptB || ''
+  const abEl = document.getElementById('site-ab-pct'); if(abEl){abEl.value=s.abSplitPct||0;document.getElementById('ab-pct-display').textContent='('+(s.abSplitPct||0)+'%)'}
   document.getElementById('site-tools').value = s.availableTools ? JSON.stringify(s.availableTools) : ''
+  const factsEl = document.getElementById('site-facts'); if(factsEl) factsEl.value = s.factsDocument || ''
+  const restrictedEl = document.getElementById('site-restricted'); if(restrictedEl) restrictedEl.value = s.restrictedTopics || ''
   selectAgentType(s.agentType || 'SUPORTE')
   document.getElementById('site-isActive').checked = s.isActive !== false
   document.getElementById('modal-site-title').textContent = 'Editar Site'
@@ -727,7 +1155,11 @@ async function saveSite() {
     activeProvider: document.getElementById('site-provider').value,
     fallbackProvider: document.getElementById('site-fallback').value || null,
     systemPrompt: document.getElementById('site-prompt').value,
+    systemPromptB: document.getElementById('site-prompt-b').value || null,
+    abSplitPct: parseInt(document.getElementById('site-ab-pct').value) || 0,
     availableTools: tools,
+    factsDocument: document.getElementById('site-facts')?.value?.trim() || null,
+    restrictedTopics: document.getElementById('site-restricted')?.value?.trim() || null,
   }
   const r = id ? await api('/sites/'+id,{method:'PUT',body:JSON.stringify(data)})
                : await api('/sites',{method:'POST',body:JSON.stringify(data)})
@@ -742,6 +1174,25 @@ async function deleteSite(id) {
 }
 
 
+async function crawlAllSites(domain) {
+  const btn = document.getElementById('crawl-btn')
+  if (btn) { btn.disabled = true; btn.textContent = ' A crawlar...' }
+  showToast('A actualizar conhecimento dos sites... pode demorar 1-2 min', 'info')
+  try {
+    const body = domain ? JSON.stringify({ domain }) : '{}'
+    const r = await api('/crawl', { method: 'POST', body })
+    if (r?.error) { showToast('Erro: ' + r.error, 'error'); return }
+    const ok = (r.results || []).filter(x => x.status === 'ok').length
+    const total = (r.results || []).length
+    showToast('Conhecimento actualizado: ' + ok + '/' + total + ' sites', ok > 0 ? 'success' : 'warning')
+    loadSites()
+  } catch (e) {
+    showToast('Erro ao crawlar sites', 'error')
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = ' Actualizar Conhecimento' }
+  }
+}
+
 async function toggleSiteActive(id, active) {
   const r = await api('/config/'+id, {method:'PATCH', body: JSON.stringify({isActive: active})})
   if (r?.error) { alert('Erro: ' + r.error); loadSites() }
@@ -749,7 +1200,7 @@ async function toggleSiteActive(id, active) {
 
 
 
-// ─── KNOWLEDGE BASE ───────────────────────────────────────────────────────────
+//  KNOWLEDGE BASE 
 let knCurrentTab = 'pending'
 let knCurrentPage = 1
 let knSites = []
@@ -952,13 +1403,14 @@ async function bulkApprove() {
   }
 }
 
-// ─── PROVIDERS ───────────────────────────────────────────────────────────────
+//  PROVIDERS 
 const PROVIDER_ICONS = {
   GEMINI: 'G',
   CLAUDE: 'C',
   OPENAI: 'O',
   DEEPSEEK: 'D',
   GROQ: 'Q',
+  OPENROUTER: 'OR',
 }
 const PROVIDER_COLORS = {
   GEMINI: '#34d399',
@@ -966,29 +1418,57 @@ const PROVIDER_COLORS = {
   OPENAI: '#22d3ee',
   DEEPSEEK: '#a78bfa',
   GROQ: '#f97316',
+  OPENROUTER: '#38bdf8',
 }
 
-async function loadProviders() {
+let _providerRefreshTimer = null
+
+async function loadProviders(silent = false) {
   const el = document.getElementById('providers-content')
-  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>'
-  const providers = await api('/providers')
+  if (!silent) el.innerHTML = '<div class="loading"><div class="spinner"></div></div>'
+  const providers = await api('/providers/status')
   if (!providers) return
+
   const grid = document.createElement('div')
   grid.className = 'provider-grid'
-  providers.forEach(p => {
-    const statusClass = !p.isEnabled ? (p.hasKey ? 'off' : 'nokey') : 'on'
-    const statusLabel = p.isEnabled ? 'Activo' : (p.hasKey ? 'Inactivo' : 'Sem chave')
+
+  providers.forEach((p, idx) => {
+    const onCooldown = p.cooldownMs > 0
+    const minLeft = onCooldown ? Math.ceil(p.cooldownMs / 60000) : 0
+    const statusClass = onCooldown ? 'cooldown' : (!p.isEnabled ? (p.hasKey ? 'off' : 'nokey') : 'on')
+    const statusLabel = onCooldown
+      ? ` Aguardar ${minLeft}min`
+      : (p.isEnabled ? 'Activo' : (p.hasKey ? 'Inactivo' : 'Sem chave'))
+
+    const cardClass = 'provider-card'
+      + (onCooldown ? ' cooldown' : (p.isEnabled ? ' enabled' : (p.hasKey ? '' : ' no-key')))
+
+    const isFirst = idx === 0
+    const isLast = idx === providers.length - 1
+
     const card = document.createElement('div')
-    card.className = 'provider-card' + (p.isEnabled ? ' enabled' : p.hasKey ? '' : ' no-key')
+    card.className = cardClass
+    card.id = 'pc-' + p.provider
     card.innerHTML = `
       <div class="pc-head">
-        <div>
-          <div class="pc-name" style="color:${PROVIDER_COLORS[p.provider]}">${PROVIDER_ICONS[p.provider]} ${p.provider}</div>
-          <div class="pc-model">${p.model || 'modelo não configurado'}</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="pc-priority-btns">
+            <button onclick="moveProvider('${p.provider}',-1)" ${isFirst ? 'disabled' : ''} title="Subir prioridade"></button>
+            <button onclick="moveProvider('${p.provider}',+1)" ${isLast ? 'disabled' : ''} title="Baixar prioridade"></button>
+          </div>
+          <div>
+            <div class="pc-name" style="color:${PROVIDER_COLORS[p.provider]}">${PROVIDER_ICONS[p.provider]} ${p.provider}</div>
+            <div class="pc-model">${p.model || 'modelo não configurado'}</div>
+          </div>
         </div>
-        <span class="pc-status ${statusClass}">${statusLabel}</span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span class="pc-status ${statusClass}">${statusLabel}</span>
+          <span class="pc-priority">prioridade <span class="pc-priority-badge">${p.priority}</span></span>
+        </div>
       </div>
-      <div class="pc-key">${p.hasKey ? p.apiKey : '— sem chave API —'}</div>
+      <div class="pc-key" style="display:flex;gap:6px;align-items:center">
+        ${p.keyStatuses ? p.keyStatuses.map((ks, i) => `<span title="Chave ${i+1}${ks.cooldownMs > 0 ? ' — cooldown ' + Math.ceil(ks.cooldownMs/60000) + 'min' : ''}" style="display:inline-flex;align-items:center;gap:3px;font-size:11px;color:${ks.cooldownMs > 0 ? '#f59e0b' : ks.hasKey ? '#22c55e' : '#4b5563'}"><span style="width:7px;height:7px;border-radius:50%;background:${ks.cooldownMs > 0 ? '#f59e0b' : ks.hasKey ? '#22c55e' : '#374151'};display:inline-block"></span>${ks.hasKey ? ks.masked : 'vazia'}</span>`).join('') : (p.hasKey ? p.apiKey : '— sem chave —')}
+      </div>
       <div class="pc-actions">
         <label class="toggle" title="Activar/desactivar">
           <input type="checkbox" ${p.isEnabled ? 'checked' : ''} ${!p.hasKey ? 'disabled title="Configure a chave primeiro"' : ''}
@@ -996,7 +1476,8 @@ async function loadProviders() {
           <span class="toggle-slider"></span>
         </label>
         <div style="display:flex;gap:6px">
-          <button class="btn btn-ghost btn-sm" id="btn-test-${p.provider}" onclick='testProvider("${p.provider}")' ${!p.isEnabled || !p.hasKey ? 'disabled' : ''}>Testar</button>
+          ${onCooldown ? `<button class="btn btn-ghost btn-sm" onclick="clearCooldown('${p.provider}')" style="color:#fb923c">Limpar cooldown</button>` : ''}
+          <button class="btn btn-ghost btn-sm" id="btn-test-${p.provider}" onclick='testProvider("${p.provider}")' ${(!p.isEnabled && !onCooldown) || !p.hasKey ? 'disabled' : ''}>Testar</button>
           <button class="btn btn-ghost btn-sm" onclick='openProviderModal(${JSON.stringify(p)})'>
             ${p.hasKey ? 'Editar' : 'Configurar'}
           </button>
@@ -1006,16 +1487,64 @@ async function loadProviders() {
     `
     grid.appendChild(card)
   })
+
   el.innerHTML = ''
   el.appendChild(grid)
+
+  // Add info bar if any on cooldown
+  const cooling = providers.filter(p => p.cooldownMs > 0)
+  if (cooling.length) {
+    const bar = document.createElement('div')
+    bar.style = 'margin:0 16px 8px;padding:10px 14px;background:#1a0e00;border:1px solid #fb923c40;border-radius:8px;font-size:12px;color:#fb923c'
+    bar.innerHTML = ` Auto-fallback activo — ${cooling.map(p => `<strong>${p.provider}</strong> em cooldown por ${Math.ceil(p.cooldownMs/60000)}min`).join(', ')}. O sistema usa automaticamente o próximo provider disponível.`
+    el.insertBefore(bar, el.firstChild)
+  }
+
+  // Auto-refresh while any provider is on cooldown
+  if (_providerRefreshTimer) clearInterval(_providerRefreshTimer)
+  if (cooling.length > 0) {
+    _providerRefreshTimer = setInterval(() => loadProviders(true), 30000)
+  }
+}
+
+async function moveProvider(provider, direction) {
+  const providers = await api('/providers/status')
+  if (!providers) return
+  const idx = providers.findIndex(p => p.provider === provider)
+  const swapIdx = idx + direction
+  if (swapIdx < 0 || swapIdx >= providers.length) return
+  const myPriority = providers[idx].priority
+  const swapPriority = providers[swapIdx].priority
+  await Promise.all([
+    api('/providers/' + provider, { method: 'PUT', body: JSON.stringify({ priority: swapPriority }) }),
+    api('/providers/' + providers[swapIdx].provider, { method: 'PUT', body: JSON.stringify({ priority: myPriority }) }),
+  ])
+  loadProviders()
+}
+
+async function clearCooldown(provider) {
+  await api('/providers/' + provider + '/clear-cooldown', { method: 'POST' })
+  loadProviders()
 }
 
 function openProviderModal(p) {
   document.getElementById('prov-id').value = p.provider
   document.getElementById('prov-key').value = ''
+  document.getElementById('prov-key2').value = ''
+  document.getElementById('prov-key3').value = ''
   document.getElementById('prov-model').value = p.model || ''
   document.getElementById('prov-enabled').checked = p.isEnabled
   document.getElementById('modal-provider-title').textContent = 'Configurar ' + p.provider
+  const ks = p.keyStatuses || []
+  const statusLabel = (ks, i) => {
+    if (!ks[i]) return ''
+    if (!ks[i].hasKey) return '(vazia)'
+    if (ks[i].cooldownMs > 0) return `(${ks[i].masked} — cooldown ${Math.ceil(ks[i].cooldownMs/60000)}min)`
+    return `(${ks[i].masked} — activa)`
+  }
+  document.getElementById('prov-key1-status').textContent = statusLabel(ks, 0)
+  document.getElementById('prov-key2-status').textContent = statusLabel(ks, 1)
+  document.getElementById('prov-key3-status').textContent = statusLabel(ks, 2)
   document.getElementById('modal-provider').classList.add('open')
 }
 
@@ -1027,18 +1556,163 @@ async function toggleProvider(provider, enabled) {
 
 async function saveProvider() {
   const provider = document.getElementById('prov-id').value
-  const key = document.getElementById('prov-key').value.trim()
+  const key  = document.getElementById('prov-key').value.trim()
+  const key2 = document.getElementById('prov-key2').value.trim()
+  const key3 = document.getElementById('prov-key3').value.trim()
   const model = document.getElementById('prov-model').value.trim()
   const isEnabled = document.getElementById('prov-enabled').checked
   const body = { isEnabled, model }
-  if (key) body.apiKey = key
+  if (key  !== '') body.apiKey  = key
+  if (key2 !== '') body.apiKey2 = key2
+  if (key3 !== '') body.apiKey3 = key3
   const r = await api('/providers/'+provider, {method:'PUT', body: JSON.stringify(body)})
   if (r?.error) { alert('Erro: ' + r.error); return }
   closeModal('provider')
   loadProviders()
 }
 
-// ─── SCENARIOS ───────────────────────────────────────────────────────────────
+//  SCENARIOS 
+
+//  SIMULATOR 
+let selectedSimType = 'VENDAS'
+let currentSimId = null
+let simSending = false
+
+function selectSimType(type) {
+  selectedSimType = type
+  document.querySelectorAll('.sim-type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type))
+}
+
+function toggleCustomScenarios(btn) {
+  const panel = document.getElementById('custom-scenarios-panel')
+  const open = panel.style.display !== 'none'
+  panel.style.display = open ? 'none' : 'block'
+  btn.textContent = (open ? ' Cenários Personalizados ' : ' Cenários Personalizados ')
+  if (!open) loadScenarios()
+}
+
+async function loadSimSites() {
+  const sites = await api('/sites')
+  if (!sites?.length) return
+  const sel = document.getElementById('sim-site-select')
+  if (!sel) return
+  sel.innerHTML = '<option value="">Selecione um site…</option>' +
+    sites.map(s => `<option value="${s.id}">${s.domain} — ${s.brand}</option>`).join('')
+}
+
+async function startSimulation() {
+  const siteId = document.getElementById('sim-site-select').value
+  if (!siteId) { alert('Selecione um site primeiro'); return }
+  const btn = document.getElementById('sim-start-btn')
+  btn.disabled = true; btn.textContent = '…'
+  const r = await fetch('/api/simulation/create', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ siteId, simulationType: selectedSimType, traineeUserId: 'admin' })
+  }).then(r => r.json()).catch(() => null)
+  btn.disabled = false; btn.textContent = ' Iniciar Simulação'
+  if (!r?.simulationId) { alert(r?.error || 'Erro ao iniciar simulação'); return }
+  currentSimId = r.simulationId
+  const typeLabels = { VENDAS:' Vendas', SUPORTE:' Suporte Técnico', CANCELAMENTO:' Cancelamento / Retenção' }
+  const sel = document.getElementById('sim-site-select')
+  document.getElementById('sim-chat-label').textContent = typeLabels[selectedSimType]
+  document.getElementById('sim-chat-site').textContent = sel.options[sel.selectedIndex].text
+  document.getElementById('sim-messages').innerHTML = ''
+  document.getElementById('sim-eval-result').style.display = 'none'
+  document.getElementById('sim-send-btn').disabled = true
+  document.getElementById('sim-input').disabled = false
+  document.getElementById('sim-input').value = ''
+  document.getElementById('sim-chat-area').style.display = 'block'
+  document.getElementById('sim-finish-btn').disabled = false
+  addSimMsg('system', ' Simulação iniciada. Você é o agente — responda ao cliente abaixo.')
+  addSimMsg('thinking', '…')
+  const reply = await callSimAdvance('[INICIO]')
+  removeSimThinking()
+  if (reply) { addSimMsg('client', reply); document.getElementById('sim-send-btn').disabled = false; document.getElementById('sim-input').focus() }
+}
+
+async function sendSimMessage() {
+  if (simSending || !currentSimId) return
+  const input = document.getElementById('sim-input')
+  const msg = input.value.trim()
+  if (!msg) return
+  simSending = true
+  document.getElementById('sim-send-btn').disabled = true
+  input.value = ''; input.style.height = '38px'
+  addSimMsg('agent', msg)
+  addSimMsg('thinking', '…')
+  const reply = await callSimAdvance(msg)
+  removeSimThinking()
+  if (reply) addSimMsg('client', reply)
+  simSending = false
+  document.getElementById('sim-send-btn').disabled = false
+  input.focus()
+}
+
+async function callSimAdvance(message) {
+  try {
+    const r = await fetch('/api/simulation/admin-advance', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ simulationId: currentSimId, message, traineeUserId: 'admin' })
+    })
+    return (await r.json()).reply || null
+  } catch { return null }
+}
+
+async function finishSimulation() {
+  if (!currentSimId) return
+  const finBtn = document.getElementById('sim-finish-btn')
+  finBtn.disabled = true
+  document.getElementById('sim-send-btn').disabled = true
+  document.getElementById('sim-input').disabled = true
+  addSimMsg('system', ' A avaliar a conversa…')
+  const r = await fetch('/api/simulation/evaluate', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ simulationId: currentSimId, traineeUserId: 'admin' })
+  }).then(r => r.json()).catch(() => null)
+  if (!r?.simulationId) { addSimMsg('system', ' Erro ao iniciar avaliação'); finBtn.disabled = false; return }
+  // Poll for result
+  let attempts = 0
+  const poll = async () => {
+    const s = await fetch('/api/simulation/status/' + currentSimId).then(r => r.json()).catch(() => null)
+    if (!s || s.status === 'ACTIVE' || s.status === 'EVALUATING') {
+      if (++attempts < 20) setTimeout(poll, 2000)
+      else addSimMsg('system', ' Avaliação demorou demasiado. Verifique Simulações.')
+      return
+    }
+    removeLastSimSystemMsg()
+    if (s.score !== null && s.score !== undefined) {
+      const scoreColor = s.score >= 70 ? '#22c55e' : s.score >= 50 ? '#f59e0b' : '#ef4444'
+      document.getElementById('sim-eval-content').innerHTML = `
+        <div style="display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap">
+          <div style="text-align:center">
+            <div style="font-size:48px;font-weight:700;color:${scoreColor};line-height:1">${s.score}</div>
+            <div style="font-size:12px;color:#8b949e">/ 100</div>
+          </div>
+          <div style="flex:1;min-width:200px;font-size:13px;color:#c9d1d9;line-height:1.6">${escapeHtml(s.feedback||'')}</div>
+        </div>`
+      document.getElementById('sim-eval-result').style.display = 'block'
+    } else {
+      addSimMsg('system', s.status === 'EVALUATION_FAILED' ? ' Falha na avaliação.' : ' Concluído.')
+    }
+    currentSimId = null
+  }
+  setTimeout(poll, 2000)
+}
+
+function addSimMsg(type, text) {
+  const el = document.getElementById('sim-messages')
+  const div = document.createElement('div')
+  div.className = type === 'agent' ? 'sim-msg-agent' : type === 'client' ? 'sim-msg-client' : type === 'thinking' ? 'sim-msg-thinking' : 'sim-msg-system'
+  if (type === 'thinking') div.dataset.thinking = '1'
+  div.textContent = text
+  el.appendChild(div); el.scrollTop = el.scrollHeight
+}
+function removeSimThinking() { document.querySelectorAll('#sim-messages [data-thinking]').forEach(e => e.remove()) }
+function removeLastSimSystemMsg() {
+  const items = [...document.querySelectorAll('#sim-messages .sim-msg-system')]
+  if (items.length) items[items.length-1].remove()
+}
+
 async function loadScenarios() {
   const scenarios = await api('/scenarios')
   if (!scenarios) return
@@ -1093,18 +1767,18 @@ async function deleteScenario(id) {
   loadScenarios()
 }
 
-// ─── SIMULATIONS ─────────────────────────────────────────────────────────────
+//  SIMULATIONS 
 async function loadSimulations(page) {
   simPage = page
   const d = await api('/simulations?page='+page)
   if (!d) return
   const el = document.getElementById('simulations-content')
   if (!d.items.length) { el.innerHTML = '<div class="empty">Nenhuma simulação ainda</div>'; return }
-  el.innerHTML = `<table><thead><tr><th>Utilizador</th><th>Cenário</th><th>Marca</th><th>Estado</th><th>Score</th><th>Início</th><th></th></tr></thead><tbody>
+  el.innerHTML = `<table><thead><tr><th>Tipo</th><th>Site</th><th>Utilizador</th><th>Estado</th><th>Score</th><th>Início</th><th></th></tr></thead><tbody>
     ${d.items.map(s=>`<tr>
-      <td><code style="font-size:11px">${s.traineeUserId.substring(0,12)}…</code></td>
-      <td>${s.scenario?.title||'—'}</td>
-      <td>${s.scenario?.brand||'—'}</td>
+      <td><span style="font-size:12px;color:#8b949e">${({VENDAS:' Vendas',SUPORTE:' Suporte',CANCELAMENTO:' Cancelamento'})[s.simulationType]||s.scenario?.title||'—'}</span></td>
+      <td style="font-size:12px">${s.site?.domain||s.site?.brand||s.scenario?.brand||'—'}</td>
+      <td><span style="font-size:11px;color:#8b949e">${s.traineeUserId.substring(0,10)}…</span></td>
       <td><span class="badge-status badge-${s.status}">${s.status}</span></td>
       <td>${s.score !== null ? s.score+'/100' : '—'}</td>
       <td>${new Date(s.startedAt).toLocaleDateString('pt')}</td>
@@ -1136,7 +1810,7 @@ async function loadSimDetail(id) {
     </div>`
 }
 
-// ─── CHAT ────────────────────────────────────────────────────────────────────
+//  CHAT 
 async function loadChatConfig() {
   const sites = await api('/sites')
   if (!sites?.length) return
@@ -1177,7 +1851,7 @@ async function sendChatMsg() {
   } catch { document.getElementById('thinking')?.remove(); msgs.innerHTML += '<div class="msg msg-system">Erro ao enviar mensagem</div>' }
 }
 
-// ─── LOGS ────────────────────────────────────────────────────────────────────
+//  LOGS 
 async function loadLogs(page) {
   logsPage = page
   const d = await api('/logs?page='+page)
@@ -1202,14 +1876,14 @@ async function loadLogs(page) {
   </div>`
 }
 
-// ─── AUTH ────────────────────────────────────────────────────────────────────
+//  AUTH 
 async function logout() {
   await fetch('/api/auth/logout', {method:'POST'})
   window.location.href = '/login'
 }
 
 
-// ─── CONVERSATIONS ───────────────────────────────────────────────────────────
+//  CONVERSATIONS 
 let convPage = 1, convSitesLoaded = false
 
 async function loadConversations(page) {
@@ -1243,13 +1917,14 @@ async function loadConversations(page) {
   if (!d.items?.length) { el.innerHTML = '<div class="empty">Nenhuma conversa encontrada</div>'; return }
 
   el.innerHTML = `<table><thead><tr>
-    <th>Data</th><th>Site</th><th>Mensagens</th><th>IP</th><th></th>
+    <th>Data</th><th>Site</th><th>Msgs</th><th>IP</th><th>Página</th><th></th>
   </tr></thead><tbody>
     ${d.items.map(s => `<tr>
       <td style="white-space:nowrap">${new Date(s.createdAt).toLocaleString('pt')}</td>
       <td style="font-size:12px">${s.site?.domain || '—'}</td>
       <td style="text-align:center">${s._count?.messages || 0}</td>
       <td style="font-size:11px;color:#8b949e">${s.visitorIp || '—'}</td>
+      <td style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${s.pageUrl||''}">${s.pageUrl ? '<a href="'+escapeHtml(s.pageUrl)+'" target="_blank" rel="noopener" style="color:#58a6ff">'+escapeHtml(s.pageUrl.replace(/^https?:\/\/[^/]+/,''))||'/'+'</a>' : '—'}</td>
       <td><button class="btn btn-ghost btn-sm" onclick="loadConvDetail('${s.id}')">Ver</button></td>
     </tr>`).join('')}
   </tbody></table>
@@ -1276,13 +1951,14 @@ async function loadConvDetail(id) {
       <span style="color:#8b949e;font-size:12px">${new Date(s.createdAt).toLocaleString('pt')}</span>
       <span style="color:#8b949e;font-size:12px">${(s.messages||[]).length} mensagens</span>
       ${s.visitorIp ? `<span style="color:#8b949e;font-size:12px">IP: ${escapeHtml(s.visitorIp)}</span>` : ''}
+      ${s.pageUrl ? `<a href="${escapeHtml(s.pageUrl)}" target="_blank" rel="noopener" style="color:#58a6ff;font-size:12px;word-break:break-all">${escapeHtml(s.pageUrl)}</a>` : ''}
     </div>
     <div class="transcript">${msgs || '<span style="color:#8b949e">Sem mensagens</span>'}</div>
   </div>`
   detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
 }
 
-// ─── ANALYTICS ───────────────────────────────────────────────────────────────
+//  ANALYTICS 
 async function loadAnalytics() {
   if (!convSitesLoaded) await loadConversations.call({}, 999) // preload sites
   const siteId = document.getElementById('analytics-site-filter')?.value || ''
@@ -1322,7 +1998,7 @@ async function loadAnalytics() {
   }
 }
 
-// ─── PROVIDER TEST ────────────────────────────────────────────────────────────
+//  PROVIDER TEST 
 async function testProvider(provider) {
   const resultEl = document.getElementById('test-result-' + provider)
   if (!resultEl) return
@@ -1335,24 +2011,784 @@ async function testProvider(provider) {
     const d = await r.json()
     if (d.ok) {
       resultEl.innerHTML = `<div style="background:#0e3a1f;border:1px solid #22c55e40;border-radius:6px;padding:6px 8px;color:#4ade80">
-        ✓ OK · ${d.latencyMs}ms · <span style="opacity:.7">${escapeHtml(d.model)}</span><br>
+         OK · ${d.latencyMs}ms · <span style="opacity:.7">${escapeHtml(d.model)}</span><br>
         <span style="color:#8b949e">${escapeHtml((d.response||'').substring(0,120))}</span>
       </div>`
     } else {
       resultEl.innerHTML = `<div style="background:#3a0e0e;border:1px solid #f8717140;border-radius:6px;padding:6px 8px;color:#f87171">
-        ✗ ${escapeHtml(d.error||'erro desconhecido')}
+         ${escapeHtml(d.error||'erro desconhecido')}
       </div>`
     }
   } catch(e) {
-    resultEl.innerHTML = `<div style="background:#3a0e0e;border-radius:6px;padding:6px 8px;color:#f87171">✗ Erro de rede</div>`
+    resultEl.innerHTML = `<div style="background:#3a0e0e;border-radius:6px;padding:6px 8px;color:#f87171"> Erro de rede</div>`
   }
 }
+
+
+//  THEME TOGGLE 
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light-mode')
+  localStorage.setItem('aic-theme', isLight ? 'light' : 'dark')
+  document.getElementById('theme-icon').outerHTML = isLight
+    ? '<svg id="theme-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>'
+    : '<svg id="theme-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>'
+}
+if (localStorage.getItem('aic-theme') === 'light') { document.body.classList.add('light-mode') }
+
+//  TOAST SYSTEM 
+function showToast(msg, type='info') {
+  const el = document.createElement('div')
+  el.className = `toast toast-${type}`
+  el.innerHTML = `<span style="flex:1">${msg}</span><button onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;opacity:.6;font-size:16px;padding:0 0 0 8px">×</button>`
+  document.getElementById('toast-container').appendChild(el)
+  setTimeout(() => el?.remove(), 5000)
+}
+
+//  SEARCH 
+function toggleSearch() {
+  const ov = document.getElementById('search-overlay')
+  ov.classList.toggle('open')
+  if (ov.classList.contains('open')) { document.getElementById('search-input').focus(); document.getElementById('search-results').innerHTML = '' }
+}
+function closeSearch() { document.getElementById('search-overlay').classList.remove('open'); document.getElementById('search-input').value = '' }
+document.addEventListener('keydown', e => { if ((e.ctrlKey||e.metaKey) && e.key==='k') { e.preventDefault(); toggleSearch() } })
+let _searchT = null
+async function doSearch(q) {
+  clearTimeout(_searchT)
+  if (q.length < 2) { document.getElementById('search-results').innerHTML = '<div style="padding:16px;text-align:center;color:#8b949e;font-size:13px">Escreva pelo menos 2 caracteres…</div>'; return }
+  _searchT = setTimeout(async () => {
+    const d = await api('/search?q=' + encodeURIComponent(q))
+    if (!d) return
+    let html = ''
+    if (d.sessions?.length) {
+      html += '<div class="search-section-label">Conversas</div>'
+      html += d.sessions.map(s => `<div class="search-item" onclick="closeSearch();show('conversations');setTimeout(()=>loadConvDetail('${s.sessionId}'),600)"><div style="font-size:11px;color:#8b949e;margin-bottom:3px">${escapeHtml(s.domain)} · ${new Date(s.date).toLocaleDateString('pt')}</div><div style="font-size:12px;color:#c9d1d9">${escapeHtml(s.snippet)}</div></div>`).join('')
+    }
+    if (d.knowledge?.length) {
+      html += '<div class="search-section-label">Base de Conhecimento</div>'
+      html += d.knowledge.map(k => `<div class="search-item" onclick="closeSearch();show('knowledge')"><div style="font-size:11px;color:#8b949e;margin-bottom:3px">${escapeHtml(k.domain)}</div><div style="font-size:12px;color:#c9d1d9">${escapeHtml(k.trigger)}</div></div>`).join('')
+    }
+    if (!html) html = '<div style="padding:20px;text-align:center;color:#8b949e;font-size:13px">Sem resultados para "' + escapeHtml(q) + '"</div>'
+    document.getElementById('search-results').innerHTML = html
+  }, 280)
+}
+
+//  EXPORT CSV 
+function exportCSV() { window.location.href = '/api/admin/export/sessions.csv' }
+
+//  HEALTH 
+let _healthCharts = []
+async function loadHealth() {
+  const el = document.getElementById('health-content')
+  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>'
+  const d = await api('/health')
+  if (!d) return
+  _healthCharts.forEach(c => c.destroy()); _healthCharts = []
+  const errColor = d.errorRate > 10 ? '#ef4444' : d.errorRate > 5 ? '#f59e0b' : '#22c55e'
+  el.innerHTML = `
+    <div class="stats-grid" style="margin-bottom:16px">
+      <div class="stat-card"><div class="stat-value">${d.calls24h.toLocaleString('pt')}</div><div class="stat-label">Chamadas LLM (24h)</div></div>
+      <div class="stat-card"><div class="stat-value">${d.avgLatencyMs}ms</div><div class="stat-label">Latência Média</div></div>
+      <div class="stat-card"><div class="stat-value" style="color:${errColor}">${d.errorRate}%</div><div class="stat-label">Taxa de Erro (24h)</div></div>
+      <div class="stat-card"><div class="stat-value">${d.errors24h}</div><div class="stat-label">Erros (24h)</div></div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-card"><h3>Sessões — Últimos 7 Dias</h3><canvas id="hc-sessions" height="140"></canvas></div>
+      <div class="chart-card"><h3>Chamadas por Provider (24h)</h3><canvas id="hc-providers" height="140"></canvas></div>
+    </div>
+    <div class="table-container" style="margin-top:16px">
+      <div class="table-header"><h2>Performance por Provider</h2></div>
+      <table><thead><tr><th>Provider</th><th>Chamadas (24h)</th><th>Latência Média</th></tr></thead><tbody>
+        ${d.providers.map(p=>`<tr><td><strong>${p.provider}</strong></td><td>${p.calls}</td><td>${p.avgLatency}ms</td></tr>`).join('')||'<tr><td colspan="3" style="text-align:center;color:#8b949e">Sem dados</td></tr>'}
+      </tbody></table>
+    </div>`
+  if (typeof Chart !== 'undefined') {
+    const opts = { plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#8b949e',font:{size:11}},grid:{display:false}}, y:{ticks:{color:'#8b949e',precision:0,font:{size:11}},grid:{color:'#21262d'}} } }
+    _healthCharts.push(new Chart(document.getElementById('hc-sessions'), {type:'bar',data:{labels:d.dailySessions.map(s=>s.date),datasets:[{data:d.dailySessions.map(s=>s.count),backgroundColor:'#3b82f640',borderColor:'#3b82f6',borderWidth:2,borderRadius:4}]},options:opts}))
+    if (d.providers.length) {
+      _healthCharts.push(new Chart(document.getElementById('hc-providers'), {type:'doughnut',data:{labels:d.providers.map(p=>p.provider),datasets:[{data:d.providers.map(p=>p.calls),backgroundColor:['#3b82f6','#8b5cf6','#22c55e','#f59e0b','#ef4444']}]},options:{plugins:{legend:{position:'right',labels:{color:'#8b949e',font:{size:11}}}}}}))
+    }
+  }
+}
+
+//  DASHBOARD CHARTS 
+let _dashCharts = []
+async function renderDashCharts() {
+  const d = await api('/health').catch(() => null)
+  if (!d) return
+  const chartsEl = document.getElementById('stats-charts')
+  if (!chartsEl) return
+  _dashCharts.forEach(c=>c.destroy()); _dashCharts = []
+  chartsEl.innerHTML = `
+    <div class="chart-card"><h3>Sessões — Últimos 7 Dias</h3><canvas id="dc-sessions" height="120"></canvas></div>
+    <div class="chart-card"><h3>Chamadas LLM por Provider (24h)</h3><canvas id="dc-providers" height="120"></canvas></div>`
+  if (typeof Chart !== 'undefined') {
+    const opts = {plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b949e',font:{size:11}},grid:{display:false}},y:{ticks:{color:'#8b949e',precision:0,font:{size:11}},grid:{color:'#21262d'}}}}
+    _dashCharts.push(new Chart(document.getElementById('dc-sessions'),{type:'line',data:{labels:d.dailySessions.map(s=>s.date),datasets:[{data:d.dailySessions.map(s=>s.count),borderColor:'#3b82f6',backgroundColor:'#3b82f620',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#3b82f6'}]},options:opts}))
+    if (d.providers.length) _dashCharts.push(new Chart(document.getElementById('dc-providers'),{type:'bar',data:{labels:d.providers.map(p=>p.provider),datasets:[{data:d.providers.map(p=>p.calls),backgroundColor:['#3b82f680','#8b5cf680','#22c55e80','#f59e0b80','#ef444480'],borderColor:['#3b82f6','#8b5cf6','#22c55e','#f59e0b','#ef4444'],borderWidth:1,borderRadius:4}]},options:{...opts,plugins:{legend:{display:false}}}}))
+  }
+}
+
+//  USERS 
+const roleLabel = {SUPER_ADMIN:'Super Admin',ADMIN:'Admin',OPERATOR:'Operador'}
+async function loadUsers() {
+  const el = document.getElementById('users-content')
+  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>'
+  const users = await api('/users')
+  if (!users?.length) { el.innerHTML = '<div class="empty">Nenhum utilizador criado</div>'; loadConfig(); return }
+  el.innerHTML = `<table><thead><tr><th>Nome</th><th>Email</th><th>Perfil</th><th>Último acesso</th><th>Estado</th><th></th></tr></thead><tbody>
+    ${users.map(u=>`<tr>
+      <td><strong>${escapeHtml(u.name)}</strong></td>
+      <td style="font-size:12px">${escapeHtml(u.email)}</td>
+      <td><span class="badge" style="background:${u.role==='SUPER_ADMIN'?'#1e40af':u.role==='ADMIN'?'#065f46':'#1c2333'}">${roleLabel[u.role]||u.role}</span></td>
+      <td style="font-size:11px;color:#8b949e">${u.lastLogin?new Date(u.lastLogin).toLocaleString('pt'):'Nunca'}</td>
+      <td><span style="font-size:12px;color:${u.isActive?'#22c55e':'#ef4444'}">${u.isActive?'Ativo':'Inativo'}</span></td>
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-ghost btn-sm" onclick='editUser(${JSON.stringify(u).replace(/'/g,"&#39;")})'>Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteUser('${u.id}')">Apagar</button>
+      </td>
+    </tr>`).join('')}
+  </tbody></table>`
+  loadConfig()
+}
+
+function openUserModal() {
+  document.getElementById('user-id').value = ''
+  document.getElementById('user-name').value = ''
+  document.getElementById('user-email').value = ''
+  document.getElementById('user-role').value = 'OPERATOR'
+  document.getElementById('user-password').value = ''
+  document.getElementById('user-isActive').checked = true
+  document.getElementById('modal-user-title').textContent = 'Novo Utilizador'
+  document.getElementById('modal-user').classList.add('open')
+}
+
+function editUser(u) {
+  document.getElementById('user-id').value = u.id
+  document.getElementById('user-name').value = u.name
+  document.getElementById('user-email').value = u.email
+  document.getElementById('user-role').value = u.role
+  document.getElementById('user-password').value = ''
+  document.getElementById('user-isActive').checked = u.isActive
+  document.getElementById('modal-user-title').textContent = 'Editar Utilizador'
+  document.getElementById('modal-user').classList.add('open')
+}
+
+async function saveUser() {
+  const id = document.getElementById('user-id').value
+  const data = {
+    email: document.getElementById('user-email').value,
+    name: document.getElementById('user-name').value,
+    role: document.getElementById('user-role').value,
+    isActive: document.getElementById('user-isActive').checked,
+    password: document.getElementById('user-password').value || undefined,
+  }
+  if (!id) delete data.isActive
+  if (!data.password) delete data.password
+  if (!data.email || !data.name) { alert('Email e nome são obrigatórios'); return }
+  const r = id ? await api('/users/'+id,{method:'PUT',body:JSON.stringify(data)}) : await api('/users',{method:'POST',body:JSON.stringify(data)})
+  if (r?.error) { showToast(r.error, 'error'); return }
+  closeModal('user'); loadUsers()
+  showToast(id ? 'Utilizador atualizado' : 'Utilizador criado com sucesso', 'success')
+}
+
+async function deleteUser(id) {
+  if (!confirm('Apagar este utilizador?')) return
+  const r = await api('/users/'+id, {method:'DELETE'})
+  if (r?.error) { showToast(r.error, 'error'); return }
+  loadUsers(); showToast('Utilizador apagado', 'success')
+}
+
+async function loadConfig() {
+  const d = await api('/config')
+  if (!d) return
+  const f = (id, key) => { const el = document.getElementById(id); if(el && d[key]) el.value = d[key] }
+  f('cfg-smtp-host','smtp.host'); f('cfg-smtp-port','smtp.port')
+  f('cfg-smtp-user','smtp.user'); f('cfg-alert-email','alerts.email')
+}
+
+async function saveConfig() {
+  const data = {}
+  const f = (id, key) => { const v = document.getElementById(id)?.value; if(v) data[key] = v }
+  f('cfg-smtp-host','smtp.host'); f('cfg-smtp-port','smtp.port')
+  f('cfg-smtp-user','smtp.user'); f('cfg-smtp-pass','smtp.pass'); f('cfg-alert-email','alerts.email')
+  const r = await api('/config', {method:'POST', body:JSON.stringify(data)})
+  if (r?.ok) showToast('Configurações guardadas com sucesso', 'success')
+  else showToast('Erro ao guardar configurações', 'error')
+}
+
+//  PROMPT HISTORY 
+async function loadPromptHistory() {
+  const id = document.getElementById('site-id').value
+  if (!id) { alert('Guarde o site primeiro'); return }
+  const panel = document.getElementById('prompt-history-panel')
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none'
+  if (panel.style.display === 'none') return
+  panel.innerHTML = '<div style="color:#8b949e;font-size:12px;padding:8px">A carregar…</div>'
+  const history = await api('/sites/' + id + '/prompt-history')
+  if (!history?.length) { panel.innerHTML = '<div style="color:#8b949e;font-size:12px;padding:8px">Sem histórico</div>'; return }
+  panel.innerHTML = history.map(h => `<div style="border-bottom:1px solid #21262d;padding:8px 4px;cursor:pointer" onclick="document.getElementById('site-prompt').value=this.dataset.prompt" data-prompt="${escapeHtml(h.prompt)}">
+    <div style="font-size:10px;color:#8b949e;margin-bottom:3px">Prompt ${h.label} · ${new Date(h.createdAt).toLocaleString('pt')}</div>
+    <div style="font-size:11px;color:#c9d1d9;white-space:pre-line;max-height:60px;overflow:hidden">${escapeHtml(h.prompt.substring(0,150))}${h.prompt.length>150?'…':''}</div>
+  </div>`).join('')
+}
+
+//  PROVIDER ALERT POLLING 
+async function checkProviderAlerts() {
+  const d = await api('/providers/status').catch(() => null)
+  if (!d) return
+  const onCooldown = d.filter(p => p.isEnabled && p.cooldownMs > 0)
+  const badge = document.getElementById('provider-alert-badge')
+  if (onCooldown.length) {
+    badge.style.display = ''
+    badge.textContent = ` ${onCooldown.length} Provider${onCooldown.length>1?'s':''} em cooldown`
+  } else {
+    badge.style.display = 'none'
+  }
+}
+setInterval(checkProviderAlerts, 30000)
 
 // Close modals on bg click
 document.querySelectorAll('.modal-bg').forEach(bg => bg.addEventListener('click', e => { if(e.target===bg) bg.classList.remove('open') }))
 
 // Init
 loadStats()
+checkProviderAlerts()
+//  Auto-Treino IA vs IA 
+let atType = 'VENDAS', atRunning = false, atAbortController = null, atCurrentSessionId = null
+
+
+
+async function loadAtSessions() {
+  const siteId = document.getElementById('at-hist-site')?.value || ''
+  const simType = document.getElementById('at-hist-type')?.value || ''
+  let url = '/api/simulation/auto-train/sessions?'
+  if (siteId) url += 'siteId=' + siteId + '&'
+  if (simType) url += 'simType=' + simType + '&'
+  const data = await api(url.replace('/api/admin/', '').replace('/api/', '')).catch(() => null)
+  // fetch directly since not under /api/admin
+  const resp = await fetch('/api/simulation/auto-train/sessions' + (siteId || simType ? '?' : '') + (siteId ? 'siteId=' + siteId + '&' : '') + (simType ? 'simType=' + simType : ''))
+  if (!resp.ok) return
+  const sessions = await resp.json()
+  const list = document.getElementById('at-sessions-list')
+  if (!list) return
+  if (!sessions.length) { list.innerHTML = '<div style="color:#8b949e;font-size:13px;padding:12px 0;text-align:center">Nenhuma sessão encontrada</div>'; return }
+  list.innerHTML = sessions.map(s => {
+    const score = s.score ?? 0
+    const scoreColor = score >= 95 ? '#3fb950' : score >= 80 ? '#58a6ff' : score >= 60 ? '#f0883e' : '#f85149'
+    const badge = score >= 95 ? '' : score >= 80 ? '' : score >= 60 ? '' : ''
+    const typeIcon = s.simType === 'VENDAS' ? '' : s.simType === 'CANCELAMENTO' ? '' : ''
+    const date = new Date(s.createdAt).toLocaleString('pt-PT', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
+    return `<div onclick="openAtSession('${s.id}')" style="display:flex;align-items:center;gap:10px;background:#161b22;border:1px solid #21262d;border-radius:8px;padding:10px 14px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='#58a6ff'" onmouseout="this.style.borderColor='#21262d'">
+      <span style="font-size:18px">${badge}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:#e6edf3">${s.site?.brand || s.siteId} ${typeIcon} ${s.simType}</div>
+        <div style="font-size:11px;color:#8b949e">${date} · ${s.rounds} trocas</div>
+      </div>
+      <div style="font-size:22px;font-weight:700;color:${scoreColor};min-width:48px;text-align:right">${score}</div>
+      ${score >= 95 ? '<span style="font-size:10px;color:#3fb950;background:#238636;padding:2px 8px;border-radius:99px;white-space:nowrap">Aplicado</span>' : `<button onclick="event.stopPropagation();applySessionDirect('${s.id}')" style="font-size:10px;color:#58a6ff;background:transparent;border:1px solid #30363d;padding:3px 8px;border-radius:6px;cursor:pointer;white-space:nowrap">Aplicar</button>`}
+    </div>`
+  }).join('')
+
+  // Populate site filter if not populated
+  const siteSelect = document.getElementById('at-hist-site')
+  if (siteSelect && siteSelect.options.length <= 1) {
+    const sites = [...new Map(sessions.filter(s => s.site).map(s => [s.siteId, s.site])).entries()]
+    sites.forEach(([id, site]) => {
+      const opt = new Option(site.brand + ' — ' + site.domain, id)
+      siteSelect.appendChild(opt)
+    })
+  }
+}
+
+async function openAtSession(id) {
+  atCurrentSessionId = id
+  const resp = await fetch('/api/simulation/auto-train/sessions/' + id)
+  if (!resp.ok) { showToast('Erro ao carregar sessão', 'error'); return }
+  const session = await resp.json()
+  document.getElementById('at-modal-title').textContent =
+    `${session.site?.brand || ''} — ${session.simType} — Score: ${session.score ?? '—'}/100`
+
+  let ev = null
+  if (session.analysis) {
+    try { const m = session.analysis.match(/\{[\s\S]*\}/); if (m) ev = JSON.parse(m[0]) } catch {}
+  }
+
+  const transcript = Array.isArray(session.transcript) ? session.transcript : []
+  const convHtml = transcript.map(m => {
+    const isClient = m.role === 'CLIENT'
+    return `<div style="display:flex;flex-direction:column;gap:3px;align-items:${isClient?'flex-start':'flex-end'};margin-bottom:8px">
+      <div style="font-size:10px;color:#8b949e">${isClient?' Cliente IA':' Agente IA'} · Troca ${m.round}</div>
+      <div style="max-width:85%;background:${isClient?'#1c2128':'#0d419d22'};border:1px solid ${isClient?'#30363d':'#1f6feb'};border-radius:${isClient?'4px 12px 12px 12px':'12px 4px 12px 12px'};padding:10px 13px;font-size:12px;color:#e6edf3;line-height:1.5;white-space:pre-wrap">${m.content}</div>
+    </div>`
+  }).join('')
+
+  const evalHtml = ev ? `
+    <div style="margin-top:16px;background:#161b22;border-radius:10px;padding:14px">
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
+        <span style="font-size:32px;font-weight:700;color:${(ev.score||0)>=80?'#3fb950':(ev.score||0)>=60?'#f0883e':'#f85149'}">${ev.score}</span>
+        <span style="font-size:14px;color:#8b949e">/100 · ${ev.level||''} · ${ev.result||''}</span>
+      </div>
+      <p style="font-size:13px;color:#e6edf3;margin:0 0 10px">${ev.summary||''}</p>
+      ${(ev.coaching||[]).map(c=>`<div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px;margin-bottom:8px">
+        <div style="font-size:11px;color:#f0883e;margin-bottom:6px">Troca ${c.round}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px">
+          <div><div style="color:#8b949e;margin-bottom:3px">Disse:</div><div style="color:#f85149;background:#161b22;padding:6px;border-radius:4px">${c.agentSaid}</div></div>
+          <div><div style="color:#8b949e;margin-bottom:3px">Podia dizer:</div><div style="color:#3fb950;background:#161b22;padding:6px;border-radius:4px">${c.couldSay}</div></div>
+        </div>
+        <div style="font-size:11px;color:#58a6ff;margin-top:6px"> ${c.tip}</div>
+      </div>`).join('')}
+    </div>` : '<div style="color:#8b949e;font-size:13px;margin-top:12px">Sem análise disponível</div>'
+
+  document.getElementById('at-modal-body').innerHTML =
+    '<div style="max-height:300px;overflow-y:auto;margin-bottom:12px">' + convHtml + '</div>' + evalHtml
+
+  const modal = document.getElementById('at-session-modal')
+  modal.style.display = 'flex'
+}
+
+function closeAtModal() {
+  document.getElementById('at-session-modal').style.display = 'none'
+  atCurrentSessionId = null
+}
+
+async function applySessionToProduction() {
+  if (!atCurrentSessionId) return
+  const btn = document.getElementById('at-modal-apply-btn')
+  btn.disabled = true; btn.textContent = ' A aplicar…'
+  const resp = await fetch('/api/simulation/auto-train/sessions/' + atCurrentSessionId + '/apply', { method: 'POST' })
+  const data = await resp.json().catch(() => ({}))
+  if (resp.ok && data.applied) {
+    showToast(' System prompt melhorado e aplicado!', 'success')
+    btn.textContent = ' Aplicado'
+    loadAtSessions()
+  } else {
+    showToast(data.error || 'Erro ao aplicar', 'error')
+    btn.disabled = false; btn.textContent = ' Aplicar ao Sistema'
+  }
+}
+
+async function applySessionDirect(id) {
+  const resp = await fetch('/api/simulation/auto-train/sessions/' + id + '/apply', { method: 'POST' })
+  const data = await resp.json().catch(() => ({}))
+  if (resp.ok && data.applied) {
+    showToast(' System prompt melhorado e aplicado!', 'success')
+    loadAtSessions()
+  } else {
+    showToast(data.error || 'Erro ao aplicar', 'error')
+  }
+}
+
+function atSelectType(type, btn) {
+  atType = type
+  document.querySelectorAll('.sim-type-btn').forEach(b => b.classList.remove('active'))
+  btn.classList.add('active')
+}
+
+async function loadAutoTrainSites() {
+  loadAtSessions()
+  const data = await api('/sites')
+  const sel = document.getElementById('at-site-select')
+  if (!data || !sel) return
+  sel.innerHTML = '<option value="">Selecione um site…</option>' +
+    (data.sites || data).map(s => `<option value="${s.id}">${s.brand} — ${s.domain}</option>`).join('')
+}
+
+function resetAutoTrain() {
+  document.getElementById('at-arena').style.display = 'none'
+  document.getElementById('at-eval').style.display = 'none'
+  document.getElementById('at-transcript').innerHTML = ''
+  document.getElementById('at-rounds-track').innerHTML = ''
+  document.getElementById('at-start-btn').disabled = false
+  document.getElementById('at-start-btn').textContent = ' Iniciar Auto-Treino'
+  document.getElementById('at-stop-btn').style.display = 'none'
+  atRunning = false
+}
+
+function atAppendMessage(role, content, round) {
+  const box = document.getElementById('at-transcript')
+  const isClient = role === 'CLIENT'
+  const div = document.createElement('div')
+  div.style.cssText = `display:flex;flex-direction:column;gap:3px;align-items:${isClient ? 'flex-start' : 'flex-end'}`
+  div.innerHTML = `
+    <div style="font-size:10px;color:#8b949e;padding:0 4px">${isClient ? ' Cliente IA' : ' Agente IA'} · Troca ${round}</div>
+    <div style="max-width:85%;background:${isClient ? '#1c2128' : '#0d419d22'};border:1px solid ${isClient ? '#30363d' : '#1f6feb'};border-radius:${isClient ? '4px 12px 12px 12px' : '12px 4px 12px 12px'};padding:10px 13px;font-size:13px;color:#e6edf3;line-height:1.55;white-space:pre-wrap">${content}</div>
+  `
+  box.appendChild(div)
+  box.scrollTop = box.scrollHeight
+}
+
+function atSetRoundDot(round, total, state) {
+  const track = document.getElementById('at-rounds-track')
+  if (track.children.length < total) {
+    track.innerHTML = ''
+    for (let i = 1; i <= total; i++) {
+      const d = document.createElement('div')
+      d.id = `at-dot-${i}`
+      d.style.cssText = 'width:28px;height:28px;border-radius:50%;background:#21262d;border:2px solid #30363d;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#8b949e;transition:all .3s'
+      d.textContent = i
+      track.appendChild(d)
+    }
+  }
+  const dot = document.getElementById(`at-dot-${round}`)
+  if (!dot) return
+  if (state === 'active') { dot.style.background = '#1f6feb'; dot.style.borderColor = '#58a6ff'; dot.style.color = '#fff' }
+  else if (state === 'done') { dot.style.background = '#238636'; dot.style.borderColor = '#3fb950'; dot.style.color = '#fff' }
+}
+
+function stopAutoTrain() {
+  if (!atRunning) return
+  const btn = document.getElementById('at-stop-btn')
+  btn.disabled = true
+  btn.textContent = 'A parar…'
+  // Signal backend to stop
+  if (atCurrentSessionId) {
+    fetch('/api/simulation/auto-train/' + atCurrentSessionId + '/stop', { method: 'POST' }).catch(() => {})
+  }
+  // Abort SSE reader
+  if (atAbortController) atAbortController.abort()
+}
+
+async function startAutoTrain() {
+  const siteId = document.getElementById('at-site-select').value
+  const rounds = parseInt(document.getElementById('at-rounds').value)
+  if (!siteId) { showToast('Selecione um site', 'warning'); return }
+  if (atRunning) return
+  atRunning = true
+
+  atAbortController = new AbortController()
+  atCurrentSessionId = null
+  document.getElementById('at-start-btn').disabled = true
+  document.getElementById('at-start-btn').textContent = ' A correr…'
+  document.getElementById('at-stop-btn').style.display = ''
+  document.getElementById('at-stop-btn').disabled = false
+  document.getElementById('at-stop-btn').textContent = 'Parar'
+  document.getElementById('at-transcript').innerHTML = ''
+  document.getElementById('at-rounds-track').innerHTML = ''
+  document.getElementById('at-eval').style.display = 'none'
+  document.getElementById('at-arena').style.display = 'block'
+  document.getElementById('at-status-bar').querySelector('.spinner').style.display = ''
+  document.getElementById('at-status-text').textContent = 'A inicializar…'
+
+  const resp = await fetch('/api/simulation/auto-train', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ siteId, simulationType: atType, rounds }),
+    signal: atAbortController.signal
+  })
+
+  if (!resp.ok) {
+    const e = await resp.json().catch(() => ({}))
+    showToast(e.error || 'Erro ao iniciar', 'error')
+    resetAutoTrain()
+    return
+  }
+
+  const reader = resp.body.getReader()
+  const decoder = new TextDecoder()
+  let buf = ''
+
+  try {
+  while (true) {
+    const { value, done } = await reader.read()
+    if (done) break
+    buf += decoder.decode(value, { stream: true })
+    const lines = buf.split('\n')
+    buf = lines.pop()
+    for (const line of lines) {
+      if (!line.startsWith('data:')) continue
+      let evt
+      try { evt = JSON.parse(line.slice(5).trim()) } catch { continue }
+
+      if (evt.status === 'starting') {
+        if (evt.sessionId) atCurrentSessionId = evt.sessionId
+        document.getElementById('at-status-text').textContent = `A iniciar ${evt.rounds} trocas para ${evt.brand} — ${evt.simulationType}`
+      } else if (evt.status === 'round') {
+        atSetRoundDot(evt.round, evt.total, 'active')
+        document.getElementById('at-status-text').textContent = `Troca ${evt.round} de ${evt.total}…`
+      } else if (evt.role === 'CLIENT' || evt.role === 'AGENT') {
+        atAppendMessage(evt.role, evt.content, evt.round)
+        if (evt.role === 'AGENT') atSetRoundDot(evt.round, rounds, 'done')
+            } else if (evt.status === 'promoting') {
+        document.getElementById('at-status-bar').querySelector('.spinner').style.display = ''
+        document.getElementById('at-status-text').textContent = ` Score ${evt.score}/100 ≥ 9,5 — A aplicar melhorias ao sistema…`
+      } else if (evt.status === 'promoted') {
+        document.getElementById('at-status-bar').querySelector('.spinner').style.display = 'none'
+        document.getElementById('at-status-text').textContent = ` Sistema actualizado! (Score ${evt.score}/100)`
+        const pd = document.createElement('div')
+        pd.style.cssText = 'background:#0d1117;border:2px solid #3fb950;border-radius:10px;padding:14px;margin-top:10px'
+        pd.innerHTML = '<div style="font-size:13px;color:#3fb950;font-weight:700;margin-bottom:6px"> System Prompt Melhorado e Aplicado</div>' +
+          '<div style="font-size:12px;color:#8b949e;margin-bottom:8px">' + (evt.summary||'') + '</div>' +
+          '<details><summary style="font-size:11px;color:#58a6ff;cursor:pointer">Ver prévia…</summary>' +
+          '<pre style="font-size:11px;color:#e6edf3;white-space:pre-wrap;margin-top:6px;background:#161b22;padding:8px;border-radius:6px">' +
+          (evt.newPromptPreview||'').replace(/</g,'&lt;') + '…</pre></details>'
+        document.getElementById('at-transcript').appendChild(pd)
+        showToast(' System prompt melhorado e aplicado ao sistema!', 'success')
+      } else if (evt.status === 'promote_error') {
+        showToast('Aviso: ' + (evt.message || 'falha ao aplicar melhorias'), 'warning')
+} else if (evt.status === 'evaluating') {
+        document.getElementById('at-status-text').textContent = ' Coach de IA a analisar a conversa…'
+      } else if (evt.status === 'done') {
+        document.getElementById('at-stop-btn').style.display = 'none'
+        document.getElementById('at-status-bar').querySelector('.spinner').style.display = 'none'
+        document.getElementById('at-status-text').textContent = ' Avaliação concluída!'
+        atRenderEval(evt.evaluation)
+      } else if (evt.status === 'stopped') {
+        document.getElementById('at-status-bar').querySelector('.spinner').style.display = 'none'
+        document.getElementById('at-status-text').textContent = `Treino parado na troca ${evt.round}.`
+        document.getElementById('at-stop-btn').style.display = 'none'
+        document.getElementById('at-start-btn').disabled = false
+        document.getElementById('at-start-btn').textContent = ' Iniciar Auto-Treino'
+        atRunning = false
+        showToast('Treino interrompido.', 'warning')
+      } else if (evt.status === 'error') {
+        showToast(evt.message || 'Erro no auto-treino', 'error')
+        document.getElementById('at-status-text').textContent = ' Erro: ' + (evt.message || 'Erro desconhecido')
+        atRunning = false
+        document.getElementById('at-start-btn').disabled = false
+        document.getElementById('at-start-btn').textContent = ' Iniciar Auto-Treino'
+      }
+    }
+  }
+  } catch (err) {
+    if (err && err.name === 'AbortError') {
+      document.getElementById('at-status-bar').querySelector('.spinner').style.display = 'none'
+      document.getElementById('at-status-text').textContent = 'Treino interrompido.'
+      showToast('Treino interrompido.', 'warning')
+    }
+  }
+  document.getElementById('at-stop-btn').style.display = 'none'
+  document.getElementById('at-start-btn').disabled = false
+  document.getElementById('at-start-btn').textContent = ' Iniciar Auto-Treino'
+  document.getElementById('at-stop-btn').style.display = 'none'
+  atRunning = false
+  atAbortController = null
+}
+
+function atRenderEval(ev) {
+  if (!ev) return
+  const scoreColors = ev.score >= 80 ? '#3fb950' : ev.score >= 55 ? '#f0883e' : '#f85149'
+  document.getElementById('at-score-val').textContent = ev.score ?? '—'
+  document.getElementById('at-score-val').style.color = scoreColors
+
+  const levelBadge = document.getElementById('at-level-badge')
+  levelBadge.textContent = ev.level ?? '—'
+  const levelColors = { 'PROFISSIONAL': '#3fb950', 'AVANÇADO': '#58a6ff', 'INTERMÉDIO': '#f0883e', 'INICIANTE': '#f85149' }
+  levelBadge.style.background = levelColors[ev.level] ? levelColors[ev.level] + '22' : '#21262d'
+  levelBadge.style.color = levelColors[ev.level] ?? '#8b949e'
+  levelBadge.style.border = `1px solid ${levelColors[ev.level] ?? '#30363d'}`
+
+  const resultBadge = document.getElementById('at-result-badge')
+  const resultMap = { 'SUCESSO': ['#238636', '#3fb950', ' SUCESSO'], 'PARCIAL': ['#9e6a03', '#f0883e', ' PARCIAL'], 'FALHA': ['#6e1919', '#f85149', ' FALHA'] }
+  const [bg, fg, label] = resultMap[ev.result] ?? ['#21262d', '#8b949e', ev.result ?? '—']
+  resultBadge.style.background = bg; resultBadge.style.color = fg; resultBadge.textContent = label
+
+  document.getElementById('at-summary').textContent = ev.summary ?? ''
+
+  const str = document.getElementById('at-strengths')
+  str.innerHTML = (ev.strengths || []).map(s => `<li>${s}</li>`).join('') || '<li style="color:#8b949e">Nenhum registado</li>'
+  const weak = document.getElementById('at-weaknesses')
+  weak.innerHTML = (ev.weaknesses || []).map(s => `<li>${s}</li>`).join('') || '<li style="color:#8b949e">Nenhum registado</li>'
+
+  const cards = document.getElementById('at-coaching-cards')
+  cards.innerHTML = (ev.coaching || []).map(c => `
+    <div style="background:#161b22;border:1px solid #21262d;border-radius:10px;overflow:hidden">
+      <div style="padding:10px 14px;font-size:12px;color:#f0883e;font-weight:600;border-bottom:1px solid #21262d">Troca ${c.round}</div>
+      <div style="padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <div style="font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">O que disse</div>
+          <div style="font-size:12px;color:#e6edf3;background:#0d1117;border:1px solid #f85149;border-radius:6px;padding:8px;line-height:1.5;white-space:pre-wrap">${c.agentSaid}</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Podia dizer</div>
+          <div style="font-size:12px;color:#e6edf3;background:#0d1117;border:1px solid #3fb950;border-radius:6px;padding:8px;line-height:1.5;white-space:pre-wrap">${c.couldSay}</div>
+        </div>
+      </div>
+      <div style="padding:8px 14px 12px;font-size:12px;color:#8b949e;line-height:1.5"><strong style="color:#58a6ff"> Porquê:</strong> ${c.tip}</div>
+    </div>
+  `).join('') || '<p style="color:#8b949e;font-size:13px">Sem sugestões específicas.</p>'
+
+  const steps = document.getElementById('at-next-steps')
+  steps.innerHTML = (ev.nextSteps || []).map(s => `<li>${s}</li>`).join('') || '<li style="color:#8b949e">Sem próximos passos definidos</li>'
+
+  document.getElementById('at-eval').style.display = 'block'
+  document.getElementById('at-eval').scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+//  Batch Training (100 sessions) 
+let batchRunning = false
+
+function resetBatchTrain() {
+  batchRunning = false
+  document.getElementById('batch-start-btn').disabled = false
+  document.getElementById('batch-start-btn').textContent = ' START'
+  document.getElementById('batch-progress-area').style.display = 'none'
+  document.getElementById('batch-results').style.display = 'none'
+  document.getElementById('batch-live-feed').innerHTML = ''
+  document.getElementById('batch-progress-bar').style.width = '0%'
+}
+
+async function startBatchTrain() {
+  const siteId = document.getElementById('at-site-select').value
+  const simulationType = atType
+  const totalRuns = parseInt(document.getElementById('batch-runs').value) || 20
+  const roundsPerRun = parseInt(document.getElementById('batch-rounds').value) || 4
+
+  if (!siteId) { showToast('Selecione um site primeiro', 'warning'); return }
+  if (batchRunning) return
+  batchRunning = true
+
+  document.getElementById('batch-start-btn').disabled = true
+  document.getElementById('batch-start-btn').textContent = ' A correr…'
+  document.getElementById('batch-progress-area').style.display = 'block'
+  document.getElementById('batch-results').style.display = 'none'
+  document.getElementById('batch-live-feed').innerHTML = ''
+  document.getElementById('batch-progress-bar').style.width = '0%'
+  document.getElementById('batch-progress-text').textContent = `0 / ${totalRuns}`
+  document.getElementById('batch-status-text').textContent = 'A iniciar batch…'
+
+  const resp = await fetch('/api/simulation/batch-train', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ siteId, simulationType, totalRuns, roundsPerRun })
+  })
+
+  if (!resp.ok) {
+    const e = await resp.json().catch(() => ({}))
+    showToast(e.error || 'Erro ao iniciar batch', 'error')
+    resetBatchTrain()
+    return
+  }
+
+  const reader = resp.body.getReader()
+  const decoder = new TextDecoder()
+  let buf = ''
+
+  try {
+  while (true) {
+    const { value, done } = await reader.read()
+    if (done) break
+    buf += decoder.decode(value, { stream: true })
+    const lines = buf.split('\n')
+    buf = lines.pop()
+    for (const line of lines) {
+      if (!line.startsWith('data:')) continue
+      let evt
+      try { evt = JSON.parse(line.slice(5).trim()) } catch { continue }
+
+      if (evt.status === 'batch_start') {
+        document.getElementById('batch-status-text').textContent = ` Batch iniciado — ${evt.totalRuns} sessões de ${evt.roundsPerRun} trocas para ${evt.brand}`
+      } else if (evt.status === 'run_start') {
+        const pct = Math.round(((evt.run - 1) / evt.total) * 100)
+        document.getElementById('batch-progress-bar').style.width = pct + '%'
+        document.getElementById('batch-progress-text').textContent = `${evt.run - 1} / ${evt.total}`
+        document.getElementById('batch-status-text').textContent = ` Sessão ${evt.run} de ${evt.total}…`
+      } else if (evt.status === 'run_done') {
+        const pct = Math.round((evt.run / evt.total) * 100)
+        document.getElementById('batch-progress-bar').style.width = pct + '%'
+        document.getElementById('batch-progress-text').textContent = `${evt.run} / ${evt.total}`
+        const scoreColor = evt.score >= 80 ? '#3fb950' : evt.score >= 60 ? '#f0883e' : '#f85149'
+        const resultMap = { SUCESSO: '', PARCIAL: '', FALHA: '' }
+        const feed = document.getElementById('batch-live-feed')
+        const row = document.createElement('div')
+        row.style.cssText = 'display:flex;align-items:flex-start;gap:8px;font-size:11px;color:#8b949e;border-bottom:1px solid #21262d;padding:4px 0'
+        row.innerHTML = `<span style="min-width:22px;text-align:right;color:#e6edf3">#${evt.run}</span>
+          <span style="color:${scoreColor};font-weight:700;min-width:28px">${evt.score}</span>
+          <span>${resultMap[evt.result] || '•'}</span>
+          <span style="flex:1;color:#e6edf3">${evt.topIssue || ''}</span>
+          ${evt.violations?.length ? `<span style="color:#f85149;font-size:10px">${evt.violations.length}</span>` : ''}`
+        feed.appendChild(row)
+        feed.scrollTop = feed.scrollHeight
+      } else if (evt.status === 'run_error') {
+        const feed = document.getElementById('batch-live-feed')
+        const row = document.createElement('div')
+        row.style.cssText = 'font-size:11px;color:#f85149;padding:3px 0'
+        row.textContent = `#${evt.run} — Erro: ${evt.message}`
+        feed.appendChild(row)
+      } else if (evt.status === 'analysing') {
+        document.getElementById('batch-status-text').textContent = ' Coach IA a analisar todos os resultados…'
+        document.getElementById('batch-progress-bar').style.width = '100%'
+      } else if (evt.status === 'batch_done') {
+        document.getElementById('batch-status-text').textContent = ' Batch concluído!'
+        document.getElementById('batch-progress-text').textContent = `${evt.totalRuns} / ${evt.totalRuns}`
+        batchRenderResults(evt)
+        batchRunning = false
+        document.getElementById('batch-start-btn').disabled = false
+        document.getElementById('batch-start-btn').textContent = ' START'
+      }
+    }
+  }
+  } catch (err) {
+    if (err && err.name !== 'AbortError') showToast('Erro no batch: ' + (err.message || err), 'error')
+  }
+  resetBatchTrain()
+}
+
+function batchRenderResults(evt) {
+  document.getElementById('br-avg').textContent = evt.avgScore ?? '—'
+  const avgColor = evt.avgScore >= 80 ? '#3fb950' : evt.avgScore >= 60 ? '#f0883e' : '#f85149'
+  document.getElementById('br-avg').style.color = avgColor
+  document.getElementById('br-excellent').textContent = evt.scoreDistribution?.excellent ?? '—'
+  document.getElementById('br-good').textContent = evt.scoreDistribution?.good ?? '—'
+  document.getElementById('br-poor').textContent = evt.scoreDistribution?.poor ?? '—'
+
+  const violEl = document.getElementById('br-violations')
+  violEl.innerHTML = evt.topViolations?.length
+    ? evt.topViolations.map(v => `<div style="display:flex;justify-content:space-between;padding:2px 0"><span>${v.text}</span><span style="color:#f85149;font-weight:600">${v.count}x</span></div>`).join('')
+    : '<span style="color:#8b949e">Nenhuma detectada </span>'
+
+  const sugEl = document.getElementById('br-suggestions')
+  sugEl.innerHTML = evt.topSuggestions?.length
+    ? evt.topSuggestions.map(s => `<div style="display:flex;justify-content:space-between;padding:2px 0"><span>${s.text}</span><span style="color:#f0883e;font-weight:600">${s.count}x</span></div>`).join('')
+    : '<span style="color:#8b949e">Sem sugestões</span>'
+
+  const fa = evt.finalAnalysis
+  if (fa && fa.diagnosis) {
+    document.getElementById('br-diagnosis').textContent = fa.diagnosis
+    const ul = (id, arr) => { document.getElementById(id).innerHTML = (arr||[]).map(s=>`<li>${s}</li>`).join('') || '<li style="color:#8b949e">—</li>' }
+    ul('br-use-these', fa.useThese)
+    ul('br-avoid-these', fa.avoidThese)
+    ul('br-prompt-improvements', fa.promptImprovements)
+    if (fa.sessionsToMastery) {
+      document.getElementById('br-mastery-count').textContent = fa.sessionsToMastery
+      document.getElementById('br-mastery-row').style.display = 'block'
+    }
+    document.getElementById('br-diagnosis-wrap').style.display = 'block'
+  }
+
+  document.getElementById('batch-results').style.display = 'block'
+  document.getElementById('batch-results').scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
 </script>
+
+<!-- Modal: User -->
+<div class="modal-bg" id="modal-user">
+  <div class="modal">
+    <h2 id="modal-user-title">Novo Utilizador</h2>
+    <input type="hidden" id="user-id">
+    <div class="form-grid">
+      <div class="form-row"><label>Nome</label><input type="text" id="user-name" placeholder="João Silva"></div>
+      <div class="form-row"><label>Email</label><input type="email" id="user-email" placeholder="joao@empresa.com"></div>
+      <div class="form-row">
+        <label>Perfil</label>
+        <select id="user-role">
+          <option value="OPERATOR">Operador</option>
+          <option value="ADMIN">Admin</option>
+          <option value="SUPER_ADMIN">Super Admin</option>
+        </select>
+      </div>
+      <div class="form-row"><label>Password <span style="color:#8b949e;font-weight:400">(deixar vazio para manter)</span></label><input type="password" id="user-password" placeholder="…"></div>
+    </div>
+    <div class="form-row">
+      <label>Estado</label>
+      <label class="toggle"><input type="checkbox" id="user-isActive" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('user')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveUser()">Guardar</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

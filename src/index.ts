@@ -6,12 +6,14 @@ import path from 'path'
 import { PrismaClient } from '@prisma/client'
 import chatRouter from './routes/chat'
 import simulationRouter from './routes/simulation'
+import autoTrainRouter from './routes/autoTrain'
 import evaluationRouter from './routes/evaluation'
 import adminApiRouter from './routes/adminApi'
 import { startEvaluationWorker } from './workers/evaluationWorker'
 import { generateToken, verifyToken, requireAdminAuth } from './middleware/adminAuth'
 
 const app = express()
+app.set("trust proxy", 1)
 const prisma = new PrismaClient()
 const PORT = parseInt(process.env.PORT || '3002', 10)
 
@@ -20,6 +22,7 @@ const ALLOWED_ORIGINS = [
   'https://www.autotrack.pt',
   'https://gps.autotrack.pt',
   'https://app.rinosat.com',
+  'https://rinosat.com',
   'https://orbithubos.pt',
   'https://www.orbithubos.pt',
   'https://app.orbithubos.pt',
@@ -99,6 +102,7 @@ app.get('/widget.js', (_req: Request, res: Response) => {
 // ─── Chat API (public — protected by session context) ────────────────────────
 app.use('/api/chat', chatRouter)
 app.use('/api/simulation', simulationRouter)
+app.use('/api/simulation', autoTrainRouter)
 app.use('/api/simulation', evaluationRouter)
 
 // ─── Admin panel (requires auth) ─────────────────────────────────────────────

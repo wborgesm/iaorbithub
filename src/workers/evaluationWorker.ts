@@ -1,7 +1,7 @@
 import { Worker } from 'bullmq'
 import { PrismaClient } from '@prisma/client'
 import { z } from 'zod'
-import { callLLM } from '../services/llm'
+import { callLLMAuto } from '../services/llm'
 import type { LLMMessage } from '../types'
 
 const prisma = new PrismaClient()
@@ -30,6 +30,10 @@ async function runEvaluation(simulationId: string) {
 
   if (!simulation) throw new Error(`Simulation ${simulationId} not found`)
 
+  const typeLabels: Record<string, string> = { VENDAS: 'Simulação de Vendas', SUPORTE: 'Simulação de Suporte', CANCELAMENTO: 'Simulação de Cancelamento / Retenção' }
+  const scenarioTitle = simulation.scenario?.title ?? typeLabels[(simulation as any).simulationType] ?? 'Simulação de Treino'
+  const scenarioPersona = (simulation as any).personaPrompt ?? simulation.scenario?.personaPrompt ?? ''
+
   // Build transcript
   const transcript = simulation.messages
     .map(m => `[${m.role === 'HUMAN_AGENT' ? 'Agente' : 'Cliente'}]: ${m.content}`)
@@ -38,9 +42,9 @@ async function runEvaluation(simulationId: string) {
   const evalPrompt: LLMMessage[] = [
     {
       role: 'system',
-      content: `Você é um supervisor de qualidade para equipes de suporte ao cliente. Avalie a conversa de treinamento abaixo.
-Cenário: "${simulation.scenario.title}"
-Persona do cliente: "${simulation.scenario.personaPrompt}"
+      content: `Você é um supervisor de qualidade para equipas de suporte ao cliente. Avalie a conversa de treino abaixo.
+Cenário: "${scenarioTitle}"
+Persona do cliente: "${scenarioPersona.slice(0, 200)}"
 
 Avalie o agente de 0 a 100 considerando:
 - Empatia (relação com o cliente)
@@ -58,20 +62,14 @@ Retorne APENAS um JSON válido no formato: {"score": <número 0-100>, "feedback"
   let rawOutput = ''
   let parsedResult: z.infer<typeof EvalResultSchema> | null = null
 
-  // Try providers in order
-  for (const provider of ['CLAUDE', 'GEMINI', 'OPENAI'] as const) {
-    try {
-      const resp = await callLLM(provider, evalPrompt)
-      rawOutput = resp.content || ''
-      const extracted = extractJSON(rawOutput)
-      const validated = EvalResultSchema.safeParse(extracted)
-      if (validated.success) {
-        parsedResult = validated.data
-        break
-      }
-    } catch (err) {
-      console.warn(`[evaluationWorker] Provider ${provider} failed:`, err)
-    }
+  try {
+    const resp = await callLLMAuto(evalPrompt)
+    rawOutput = resp.content ?? ''
+    const extracted = extractJSON(rawOutput)
+    const validated = EvalResultSchema.safeParse(extracted)
+    if (validated.success) parsedResult = validated.data
+  } catch (err) {
+    console.warn('[evaluationWorker] callLLMAuto failed:', err)
   }
 
   if (parsedResult) {

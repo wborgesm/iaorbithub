@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { ToolExecutionService, TOOL_DEFINITIONS } from '../services/toolExecution'
 import { checkRateLimit } from '../services/rateLimiter'
 import { getRelevantKnowledge, savePendingKnowledge, detectCategory } from '../services/knowledge'
-import { callLLM } from '../services/llm'
+import { callLLMAuto } from '../services/llm'
 import type { LLMMessage, SessionContext, SupportedProvider } from '../types'
 
 const router = Router()
@@ -87,12 +87,17 @@ router.post('/send', async (req: Request, res: Response) => {
     })
 
     const agentType = session.site.agentType
-    const baseSystemPrompt = getSystemPrompt(agentType, session.site.systemPrompt)
-    const knowledgeContext = await getRelevantKnowledge(session.siteId, message)
+    const abSplit = (session.site as any).abSplitPct ?? 0
+    const useVariantB = abSplit > 0 && Math.random() * 100 < abSplit && (session.site as any).systemPromptB
+    const activePrompt = useVariantB ? (session.site as any).systemPromptB : session.site.systemPrompt
+    const baseSystemPrompt = getSystemPrompt(agentType, activePrompt)
+    if (useVariantB) {
+      void prisma.chatSession.update({ where: { id: sessionId }, data: { abVariant: 'B' } }).catch(() => {})
+    }
+    const knowledgeContext = await getRelevantKnowledge(session.siteId, message, (session.site as any).factsDocument, (session.site as any).restrictedTopics)
     const systemPrompt = baseSystemPrompt + knowledgeContext
 
     const primaryProvider = session.site.activeProvider as SupportedProvider
-    const fallbackProvider = session.site.fallbackProvider as SupportedProvider | null
 
     const historyMessages: LLMMessage[] = session.messages.map(m => ({
       role: m.role === 'ASSISTANT' ? 'assistant' as const : 'user' as const,
@@ -111,22 +116,11 @@ router.post('/send', async (req: Request, res: Response) => {
     let usedProvider = primaryProvider
     let usedModel = ''
 
-    async function callWithFallback(msgs: LLMMessage[]) {
-      try {
-        const result = await callLLM(primaryProvider, msgs)
-        usedProvider = primaryProvider
-        usedModel = result.model
-        return result
-      } catch (e) {
-        if (fallbackProvider) {
-          console.warn(`[chat/send] ${primaryProvider} falhou, a usar fallback ${fallbackProvider}:`, (e as Error).message)
-          const result = await callLLM(fallbackProvider, msgs)
-          usedProvider = fallbackProvider
-          usedModel = result.model
-          return result
-        }
-        throw e
-      }
+    async function callWithFallback(msgs: LLMMessage[], toolDefs?: object[]) {
+      const result = await callLLMAuto(msgs, primaryProvider, toolDefs)
+      usedProvider = result.usedProvider
+      usedModel = result.model
+      return result
     }
 
     if (agentType === 'VENDAS' || tools.length === 0) {
@@ -162,7 +156,7 @@ Quando usar uma ferramenta, responda APENAS com o JSON da ferramenta. Após rece
           ...loopHistory,
           { role: 'user', content: loopInput },
         ]
-        const result = await callWithFallback(msgs)
+        const result = await callWithFallback(msgs, tools)
         promptTokens += result.promptTokens
         completionTokens += result.completionTokens
         const content = result.content ?? ''
@@ -242,14 +236,14 @@ Quando usar uma ferramenta, responda APENAS com o JSON da ferramenta. Após rece
 
 router.post('/session', async (req: Request, res: Response) => {
   try {
-    const { siteId, userId } = req.body as { siteId: string; userId?: string }
+    const { siteId, userId, pageUrl } = req.body as { siteId: string; userId?: string; pageUrl?: string }
     if (!siteId) return res.status(400).json({ error: 'siteId obrigatório' })
 
     const site = await prisma.aISite.findUnique({ where: { id: siteId } })
     if (!site) return res.status(404).json({ error: 'Site não encontrado' })
 
     const session = await prisma.chatSession.create({
-      data: { siteId, userId, visitorIp: req.ip },
+      data: { siteId, userId, visitorIp: req.ip, pageUrl },
     })
 
     return res.json({
@@ -267,7 +261,7 @@ export default router
 
 router.post('/session/domain', async (req: Request, res: Response) => {
   try {
-    const { domain, userId } = req.body as { domain: string; userId?: string }
+    const { domain, userId, pageUrl } = req.body as { domain: string; userId?: string; pageUrl?: string }
     if (!domain) return res.status(400).json({ error: 'domain obrigatório' })
 
     const clean = domain.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase()
@@ -275,7 +269,7 @@ router.post('/session/domain', async (req: Request, res: Response) => {
     if (!site) return res.status(404).json({ error: 'Site não configurado' })
 
     const session = await prisma.chatSession.create({
-      data: { siteId: site.id, userId, visitorIp: req.ip },
+      data: { siteId: site.id, userId, visitorIp: req.ip, pageUrl },
     })
 
     return res.json({

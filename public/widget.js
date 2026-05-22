@@ -127,7 +127,7 @@
       const r = await fetch(BASE_URL + '/api/chat/session/domain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ domain: DOMAIN }),
+        body: JSON.stringify({ domain: DOMAIN, pageUrl: window.location.href }),
         credentials: 'omit',
       })
       const data = await r.json()
