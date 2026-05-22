@@ -3,6 +3,8 @@ import { PrismaClient } from '@prisma/client'
 import { z } from 'zod'
 import { ToolExecutionService, TOOL_DEFINITIONS } from '../services/toolExecution'
 import { checkRateLimit } from '../services/rateLimiter'
+import { requestApproval } from '../modules/humanApproval'
+import { generateReasoning } from '../modules/reactLoop'
 import { getRelevantKnowledge, savePendingKnowledge, detectCategory } from '../services/knowledge'
 import { callLLMAuto } from '../services/llm'
 import type { LLMMessage, SessionContext, SupportedProvider } from '../types'
@@ -95,7 +97,7 @@ router.post('/send', async (req: Request, res: Response) => {
       void prisma.chatSession.update({ where: { id: sessionId }, data: { abVariant: 'B' } }).catch(() => {})
     }
     const knowledgeContext = await getRelevantKnowledge(session.siteId, message, (session.site as any).factsDocument, (session.site as any).restrictedTopics)
-    const systemPrompt = baseSystemPrompt + knowledgeContext
+    let systemPrompt = baseSystemPrompt + knowledgeContext
 
     const primaryProvider = session.site.activeProvider as SupportedProvider
 
@@ -103,6 +105,13 @@ router.post('/send', async (req: Request, res: Response) => {
       role: m.role === 'ASSISTANT' ? 'assistant' as const : 'user' as const,
       content: m.content,
     }))
+
+    // ReAct: gera raciocínio interno antes de responder (só se activo no site)
+    if ((session.site as any).enableReact) {
+      const recentCtx = historyMessages.slice(-4).map(m => `${m.role}: ${m.content}`).join('\n')
+      const reasoning = await generateReasoning(sessionId, session.siteId, message, recentCtx, primaryProvider)
+      if (reasoning) systemPrompt += `\n\n## Raciocínio interno (guia a tua resposta, nunca revelar):\n${reasoning}`
+    }
 
     const availableTools = agentType === 'SUPORTE' && Array.isArray(session.site.availableTools)
       ? session.site.availableTools as string[]
@@ -165,6 +174,14 @@ Quando usar uma ferramenta, responda APENAS com o JSON da ferramenta. Após rece
         if (toolMatch) {
           try {
             const parsed = JSON.parse(toolMatch[0]) as { tool: string; args: Record<string, unknown> }
+            // Human-in-the-loop: aguarda aprovação do admin se activo no site
+            if ((session.site as any).enableHumanApproval) {
+              const approved = await requestApproval(sessionId, session.siteId, parsed.tool, parsed.args)
+              if (!approved) {
+                finalContent = 'A operação foi cancelada pelo sistema de segurança. Por favor contacte o suporte se precisar de ajuda.'
+                break
+              }
+            }
             const toolResult = await toolService.execute(parsed.tool, parsed.args, ctx, userMsg.id)
             loopHistory = [...loopHistory, { role: 'user', content: loopInput }, { role: 'assistant', content }]
             loopInput = `Resultado da ferramenta ${parsed.tool}: ${JSON.stringify(toolResult)}`

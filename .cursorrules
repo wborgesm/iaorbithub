@@ -1,0 +1,107 @@
+# AI Command Center — Cursor Rules
+# Claude é o cérebro. Cursor executa. Segue estas regras sem desvios.
+
+## O QUE É ESTE PROJECTO
+Microserviço Node.js/Express/TypeScript que gere todos os chatbots IA das marcas Autotrack, Rinosat e OrbitHub OS.
+Corre em produção em `ia.orbithubos.pt` (porta 3002), gerido por systemd (`ai-command-center.service`).
+
+## STACK
+- **Runtime:** Node.js + Express 4 + TypeScript (compilado para `/dist`)
+- **ORM:** Prisma 6 com PostgreSQL (`ai_command_center` DB)
+- **Cache/Queue:** Redis + BullMQ (evaluationWorker)
+- **LLM providers:** GROQ (principal, llama-3.3-70b-versatile), Gemini, Claude, OpenAI, DeepSeek, OpenRouter
+- **Auth admin:** token `INTERNAL_API_SECRET` no header `x-internal-secret`
+
+## ESTRUTURA DE FICHEIROS
+```
+src/
+  index.ts              — entry point, Express app, CORS, rotas
+  routes/
+    chat.ts             — POST /api/chat/session + /send (widget público)
+    adminApi.ts         — GET/POST /api/admin/* (sites, providers, health, export, users)
+    simulation.ts       — POST /api/simulation/create + /advance + /admin-advance
+    autoTrain.ts        — POST /api/simulation/auto-train + /batch-train + sessões
+    evaluation.ts       — POST /api/simulation/evaluate
+  services/
+    llm.ts              — callLLM(), streamLLM(), callLLMAuto() com fallback automático
+    providerConfig.ts   — cache de ProviderConfig (TTL 30s), circuit breaker cooldown
+    rateLimiter.ts      — Redis rate limiter
+    emailService.ts     — alertas SMTP via SystemConfig
+    knowledge.ts        — busca em KnowledgeEntry
+  workers/
+    evaluationWorker.ts — BullMQ worker para avaliar simulações
+  types/index.ts        — LLMMessage, SupportedProvider, etc.
+prisma/schema.prisma    — fonte de verdade do schema
+public/
+  admin/index.html      — painel admin (SPA, vanilla JS, sem framework)
+  widget.js             — widget embeddável (carregado por sites externos)
+```
+
+## REGRAS CRÍTICAS DE DESENVOLVIMENTO
+
+### Antes de qualquer edição
+1. Ler o ficheiro completo antes de editar
+2. Nunca usar `--force-reset` no `prisma db push` — apaga TODOS os dados de produção
+3. Para schema: `cd /opt/ai-command-center && sudo -u autotrack npx prisma db push` (sem flags destrutivas)
+4. Compilar sempre: `sudo -u autotrack npx tsc` — zero erros antes de reiniciar
+5. Reiniciar: `sudo systemctl restart ai-command-center`
+6. Verificar: `systemctl is-active ai-command-center && curl -s http://localhost:3002/health`
+
+### Padrões de código
+- Sem emojis em nenhum ficheiro
+- Sem comentários óbvios — só comentar WHY, nunca WHAT
+- TypeScript strict — sem `any` a não ser quando estritamente necessário
+- Usar `callLLMAuto()` para todas as chamadas LLM (fallback automático entre providers)
+- Queries Prisma: sempre `try/catch`, nunca deixar erros silenciosos em produção
+- SSE endpoints: sempre `res.setHeader('Content-Type','text/event-stream')` + `res.flushHeaders()` + `req.on('close',...)`
+
+### Base de dados
+- DB: `postgresql://ai_command_user:aicommand_secure_2026@localhost:5432/ai_command_center`
+- Tabelas principais: AISite, ChatSession, ChatMessage, ProviderConfig, UserSimulation, AutoTrainSession, KnowledgeEntry, PromptHistory, SystemConfig, AdminUser
+- ProviderConfig tem cache TTL 30s — após alterar na BD aguardar 31s ou reiniciar serviço
+- IDs de sites hardcoded noutros projectos:
+  - `orbithubos.pt` → `756d7113-a5d7-40a3-b978-ccaf19863762` (usado pelo autotrack app)
+  - `rinosat.com` → `5148d37c-7436-403c-9d3d-cd29a44823a8` (usado pelo rinosat-site)
+
+### Rotas e segurança
+- Rotas públicas (sem auth): `/health`, `/widget.js`, `/api/chat/*`
+- Rotas admin (requerem header): `/api/admin/*` — verificar `x-internal-secret`
+- CORS: permitido para autotrack.pt, rinosat.com, orbithubos.pt e subdomínios
+- Trust proxy activo (`app.set('trust proxy', 1)`) — `req.ip` devolve IP real do visitante
+
+### LLM e providers
+- Provider activo: GROQ (llama-3.3-70b-versatile) — limite gratuito 100k tokens/dia
+- Fallback automático por ordem de prioridade (campo `priority` na tabela ProviderConfig)
+- Circuit breaker: 10 min cooldown após erro 429/quota — em memória, limpa ao reiniciar
+- `callLLMAuto()` tenta todos os providers activos antes de lançar erro
+
+### Admin HTML (public/admin/index.html)
+- SPA vanilla JS — sem React, sem build step, editar directamente
+- CSS variables para tema escuro/claro
+- `api(path)` — helper para `fetch('/api/admin/' + path)` com auth header automático
+- Funções de secção: cada secção tem `load{Nome}()` mapeada no objecto `loaders`
+- Toasts: `showToast(msg, 'success'|'info'|'warning'|'error')`
+- Modais: `openModal('nome')` / `closeModal('nome')`
+
+## O QUE NUNCA FAZER
+- NUNCA `prisma db push --force-reset` em produção
+- NUNCA hardcodar chaves API no código — vêm sempre da tabela ProviderConfig
+- NUNCA alterar IDs dos sites `756d7113-...` e `5148d37c-...` — estão hardcoded noutros projectos
+- NUNCA fazer push para produção sem compilar e verificar o serviço activo
+- NUNCA apagar o ficheiro `.env` — contém DATABASE_URL e REDIS_URL
+- NUNCA desactivar o `trust proxy` — quebra a captura de IPs reais
+
+## COMANDOS ÚTEIS
+```bash
+# Ver logs em tempo real
+journalctl -u ai-command-center -f
+
+# Verificar providers activos na BD
+psql 'postgresql://ai_command_user:aicommand_secure_2026@localhost:5432/ai_command_center' \
+  -c 'SELECT provider, "isEnabled", length("apiKey") as key_len, model FROM "ProviderConfig" ORDER BY priority'
+
+# Testar endpoint de chat
+curl -X POST http://localhost:3002/api/chat/session \
+  -H 'Content-Type: application/json' \
+  -d '{"siteId":"756d7113-a5d7-40a3-b978-ccaf19863762"}'
+```

@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express'
 import { PrismaClient } from '@prisma/client'
 import { crawlAllSites } from '../scripts/crawlSites'
+import { getPendingApprovals, resolveApproval } from '../modules/humanApproval'
+import { getMemoryStats } from '../modules/agenticMemory'
 
 const router = Router()
 const prisma = new PrismaClient()
@@ -62,7 +64,7 @@ router.put('/sites/:id', async (req: Request, res: Response) => {
         await prisma.promptHistory.create({ data: { siteId: id, prompt: current.systemPromptB, label: 'B' } }).catch(() => {})
       }
     }
-    const allowed = ['domain','brand','type','isActive','agentType','activeProvider','fallbackProvider','systemPrompt','systemPromptB','abSplitPct','geminiModel','availableTools','factsDocument','restrictedTopics']
+    const allowed = ['domain','brand','type','isActive','agentType','activeProvider','fallbackProvider','systemPrompt','systemPromptB','abSplitPct','geminiModel','availableTools','factsDocument','restrictedTopics','enableHumanApproval','enableReact']
     const data: Record<string, unknown> = {}
     for (const k of allowed) if (k in req.body) data[k] = req.body[k]
     const site = await prisma.aISite.update({ where: { id }, data })
@@ -718,6 +720,24 @@ router.post('/config', async (req: Request, res: Response) => {
   } catch (err: any) {
     return res.status(400).json({ error: err.message || 'Erro' })
   }
+})
+
+
+
+// Agentic AI: Human Approval queue
+router.get('/approvals', (_req: Request, res: Response) => {
+  return res.json(getPendingApprovals())
+})
+router.post('/approvals/:id/approve', (req: Request, res: Response) => {
+  const ok = resolveApproval(req.params.id as string, true)
+  return ok ? res.json({ ok: true }) : res.status(404).json({ error: 'Aprovacao nao encontrada ou expirada' })
+})
+router.post('/approvals/:id/reject', (req: Request, res: Response) => {
+  const ok = resolveApproval(req.params.id as string, false)
+  return ok ? res.json({ ok: true }) : res.status(404).json({ error: 'Aprovacao nao encontrada ou expirada' })
+})
+router.get('/memory/stats', (_req: Request, res: Response) => {
+  return res.json(getMemoryStats())
 })
 
 export default router
