@@ -113,6 +113,16 @@ router.post('/send', async (req: Request, res: Response) => {
       if (reasoning) systemPrompt += `\n\n## Raciocínio interno (guia a tua resposta, nunca revelar):\n${reasoning}`
     }
 
+    // Memória: injeta contexto de interacções passadas relevantes
+    if ((session.site as any).enableReact) {
+      const { searchMemory } = await import('../modules/agenticMemory')
+      const memories = await searchMemory(message, session.siteId, 3)
+      if (memories.length > 0) {
+        const memCtx = memories.map(m => `[${m.type}] ${m.content.slice(0, 200)}`).join('\n---\n')
+        systemPrompt += `\n\n## Memória de interacções passadas relevantes:\n${memCtx}`
+      }
+    }
+
     const availableTools = agentType === 'SUPORTE' && Array.isArray(session.site.availableTools)
       ? session.site.availableTools as string[]
       : []
