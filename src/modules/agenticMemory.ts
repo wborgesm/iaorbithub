@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
 import { PrismaClient } from '@prisma/client'
+import { generateEmbedding } from '../services/embeddings'
 
 const prisma = new PrismaClient()
 
@@ -105,11 +106,32 @@ export async function saveMemoryVector(entry: {
   metadata?: Record<string, unknown>
 }): Promise<void> {
   try {
-    await prisma.$executeRaw`
-      INSERT INTO "MemoryVector" ("id","createdAt","siteId","sessionId","type","content","metadata")
-      VALUES (gen_random_uuid()::text, NOW(), ${entry.siteId ?? null}, ${entry.sessionId ?? null},
-              ${entry.type}, ${entry.content}, ${JSON.stringify(entry.metadata ?? {})}::jsonb)
-    `
+    const embedding = await generateEmbedding(entry.content)
+    if (embedding) {
+      const vec = `[${embedding.join(',')}]`
+      await prisma.$executeRaw`
+        INSERT INTO "MemoryVector"
+          ("id","createdAt","siteId","sessionId","type","content","embedding","metadata")
+        VALUES (
+          gen_random_uuid()::text, NOW(),
+          ${entry.siteId ?? null}, ${entry.sessionId ?? null},
+          ${entry.type}, ${entry.content},
+          ${vec}::vector,
+          ${JSON.stringify(entry.metadata ?? {})}::jsonb
+        )
+      `
+    } else {
+      await prisma.$executeRaw`
+        INSERT INTO "MemoryVector"
+          ("id","createdAt","siteId","sessionId","type","content","metadata")
+        VALUES (
+          gen_random_uuid()::text, NOW(),
+          ${entry.siteId ?? null}, ${entry.sessionId ?? null},
+          ${entry.type}, ${entry.content},
+          ${JSON.stringify(entry.metadata ?? {})}::jsonb
+        )
+      `
+    }
   } catch (err) {
     console.warn('[agenticMemory] saveMemoryVector falhou:', (err as Error).message)
   }
@@ -122,7 +144,20 @@ export async function searchMemory(
   limit = 5,
 ): Promise<Array<{ id: string; type: string; content: string; createdAt: Date }>> {
   try {
-    const results = await prisma.$queryRaw<Array<{ id: string; type: string; content: string; createdAt: Date }>>`
+    const embedding = await generateEmbedding(query)
+    if (embedding) {
+      const vec = `[${embedding.join(',')}]`
+      const results = await prisma.$queryRaw<Array<{ id: string; type: string; content: string; createdAt: Date }>>`
+        SELECT id, type, content, "createdAt"
+        FROM "MemoryVector"
+        WHERE (${siteId ?? null}::text IS NULL OR "siteId" = ${siteId ?? null})
+          AND embedding IS NOT NULL
+        ORDER BY embedding <=> ${vec}::vector
+        LIMIT ${limit}
+      `
+      if (results.length > 0) return results
+    }
+    return await prisma.$queryRaw<Array<{ id: string; type: string; content: string; createdAt: Date }>>`
       SELECT id, type, content, "createdAt"
       FROM "MemoryVector"
       WHERE (${siteId ?? null}::text IS NULL OR "siteId" = ${siteId ?? null})
@@ -130,7 +165,6 @@ export async function searchMemory(
       ORDER BY "createdAt" DESC
       LIMIT ${limit}
     `
-    return results
   } catch {
     return []
   }
