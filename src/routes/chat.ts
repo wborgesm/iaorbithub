@@ -137,7 +137,7 @@ router.post('/send', async (req: Request, res: Response) => {
       ? session.site.availableTools as string[]
       : []
     const orbitExtraTools = session.site.domain === 'orbit.internal'
-      ? ['controlSmartHome', 'sendWhatsApp', 'createCalendarEvent', 'listOrbitCapabilities', 'getBankBalance', 'getRecentTransactions']
+      ? ['controlSmartHome', 'sendWhatsApp', 'createCalendarEvent', 'listOrbitCapabilities', 'getBankBalance', 'getRecentTransactions', 'readEmails', 'readEmailContent', 'listEmailFolders']
       : []
     const mergedToolNames = [...new Set([...availableTools, ...orbitExtraTools])]
     const tools = TOOL_DEFINITIONS.filter(t => mergedToolNames.includes(t.function.name))

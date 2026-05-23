@@ -453,7 +453,7 @@
           title: 'Email (Gmail)',
           fields: [
             { key: 'orbit.gmail_user', label: 'Gmail (utilizador)', type: 'text', plain: true },
-            { key: 'orbit.gmail_app_password', label: 'Gmail App Password', type: 'password' },
+            { key: 'orbit.gmail_app_password', label: 'Gmail App Password', type: 'password', hint: 'App Password de 16 caracteres (Google → Segurança → App Passwords). Não uses a senha normal.' },
           ],
         },
         {
@@ -504,6 +504,7 @@
               return `
               <div class="cfg-field" data-key="${f.key}">
                 <label>${f.label}</label>
+                ${f.hint ? `<p style="font-size:11px;color:#8b949e;margin-bottom:6px">${f.hint}</p>` : ''}
                 <div class="cfg-field-row">
                   <input type="${f.type}" data-key="${f.key}" data-plain="${f.plain ? '1' : '0'}"
                     placeholder="${ph}" value="${f.plain && val ? val.replace(/"/g, '&quot;') : ''}"

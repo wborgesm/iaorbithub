@@ -2,6 +2,7 @@ import { PrismaClient, Prisma } from '@prisma/client'
 import { Pool } from 'pg'
 import { triggerIFTTT } from './smartHome'
 import { fetchBankBalance, fetchRecentTransactions } from './truelayerBanking'
+import { readEmails, readEmailById, listEmailFolders } from './emailReader'
 import type { SessionContext, ToolCallResult } from '../types'
 
 const prisma = new PrismaClient()
@@ -130,6 +131,44 @@ export const TOOL_DEFINITIONS = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'readEmails',
+      description: 'Lê os emails de Wanderson. Pode filtrar por não lidos, pasta, ou termo de pesquisa.',
+      parameters: {
+        type: 'object',
+        properties: {
+          folder: { type: 'string', description: 'Pasta a ler (default: INBOX). Exemplos: INBOX, Sent, Spam' },
+          limit: { type: 'number', description: 'Quantos emails mostrar (default: 10, máx: 20)' },
+          onlyUnread: { type: 'boolean', description: 'true para mostrar apenas emails não lidos' },
+          search: { type: 'string', description: 'Filtrar por remetente ou assunto' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'readEmailContent',
+      description: 'Lê o conteúdo completo de um email específico pelo seu ID.',
+      parameters: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'ID do email (obtido com readEmails)' },
+        },
+        required: ['id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'listEmailFolders',
+      description: 'Lista todas as pastas/etiquetas do email de Wanderson.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
 ]
 
 async function authorizeVehicleAction(userId: string, vehicleId: number): Promise<boolean> {
@@ -220,6 +259,7 @@ export class ToolExecutionService {
             capabilities: [
               'Controlar casa inteligente (luzes, aquecedor) via Google Home/IFTTT',
               'Consultar saldo e transacções Revolut (TrueLayer)',
+              'Ler emails Gmail (caixa de entrada, não lidos, conteúdo completo)',
               'Responder perguntas e gerir contexto de conversa',
               'WhatsApp (em breve)',
               'Google Calendar (em breve)',
@@ -244,6 +284,38 @@ export class ToolExecutionService {
           result = { success: true, data: { items } }
         } catch (err) {
           result = { success: false, error: err instanceof Error ? err.message : 'Erro ao consultar transacções' }
+        }
+      } else if (toolName === 'readEmails') {
+        authorized = true
+        try {
+          const items = await readEmails({
+            folder: typeof args.folder === 'string' ? args.folder : undefined,
+            limit: typeof args.limit === 'number' ? args.limit : undefined,
+            onlyUnread: typeof args.onlyUnread === 'boolean' ? args.onlyUnread : undefined,
+            search: typeof args.search === 'string' ? args.search : undefined,
+          })
+          result = { success: true, data: { items } }
+        } catch (err) {
+          result = { success: false, error: err instanceof Error ? err.message : 'Erro ao ler emails' }
+        }
+      } else if (toolName === 'readEmailContent') {
+        authorized = true
+        try {
+          const id = args.id as string
+          const email = await readEmailById(id)
+          result = email
+            ? { success: true, data: email }
+            : { success: false, error: 'Email não encontrado' }
+        } catch (err) {
+          result = { success: false, error: err instanceof Error ? err.message : 'Erro ao ler email' }
+        }
+      } else if (toolName === 'listEmailFolders') {
+        authorized = true
+        try {
+          const folders = await listEmailFolders()
+          result = { success: true, data: { folders } }
+        } catch (err) {
+          result = { success: false, error: err instanceof Error ? err.message : 'Erro ao listar pastas' }
         }
       }
     } catch (err) {
