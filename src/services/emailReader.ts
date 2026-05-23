@@ -50,8 +50,12 @@ function formatAddress(addrs?: Array<{ name?: string; address?: string }>): stri
 
 async function createClient(): Promise<ImapFlow> {
   const user = await getOrbitConfig('gmail_user')
-  const pass = await getOrbitConfig('gmail_app_password')
+  const passRaw = await getOrbitConfig('gmail_app_password')
+  const pass = passRaw.replace(/\s/g, '')
   if (!user || !pass) throw new Error(AUTH_ERROR)
+  if (pass.length !== 16) {
+    throw new Error('App Password inválida — deve ter exactamente 16 caracteres (Google → Segurança → App Passwords)')
+  }
   return new ImapFlow({
     host: 'imap.gmail.com',
     port: 993,

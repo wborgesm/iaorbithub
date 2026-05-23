@@ -452,8 +452,16 @@
           id: 'google',
           title: 'Google (Gmail + Calendar + Drive)',
           fields: [
-            { key: 'orbit.google_client_id', label: 'Client ID', type: 'text', plain: true, hint: 'OAuth2 → Aplicação Web → xxx.apps.googleusercontent.com' },
-            { key: 'orbit.google_client_secret', label: 'Client Secret', type: 'password', hint: 'Redirect URI: https://ia.orbithubos.pt/api/orbit/google/callback' },
+            { key: 'orbit.google_client_id', label: 'Client ID (OAuth)', type: 'text', plain: true, hint: 'Google Cloud → Credenciais OAuth → Aplicação Web. Depois clica Ligar Google.' },
+            { key: 'orbit.google_client_secret', label: 'Client Secret (OAuth)', type: 'password', hint: 'Redirect: https://ia.orbithubos.pt/api/orbit/google/callback' },
+          ],
+        },
+        {
+          id: 'gmail',
+          title: 'Gmail IMAP (só leitura, alternativa)',
+          fields: [
+            { key: 'orbit.gmail_user', label: 'Gmail (email)', type: 'text', plain: true },
+            { key: 'orbit.gmail_app_password', label: 'App Password (16 caracteres)', type: 'password', hint: 'Não é a senha normal. Google → Segurança → Verificação em 2 passos → App Passwords. Copia os 16 caracteres (com ou sem espaços).' },
           ],
         },
         {

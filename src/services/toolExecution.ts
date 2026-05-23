@@ -2,8 +2,18 @@ import { PrismaClient, Prisma } from '@prisma/client'
 import { Pool } from 'pg'
 import { triggerIFTTT } from './smartHome'
 import { fetchBankBalance, fetchRecentTransactions } from './truelayerBanking'
+import { isGoogleConnected } from './googleAuth'
 import { readEmails as gmailReadEmails, readEmailById as gmailReadById, sendEmail, listGmailLabels } from './gmailService'
+import { readEmails as imapReadEmails, readEmailById as imapReadById, listEmailFolders as imapListFolders } from './emailReader'
 import { listCalendarEvents, createCalendarEvent as createGCalEvent } from './calendarService'
+
+async function gmailViaApi(): Promise<boolean> {
+  try {
+    return await isGoogleConnected()
+  } catch {
+    return false
+  }
+}
 import type { SessionContext, ToolCallResult } from '../types'
 
 const prisma = new PrismaClient()
@@ -352,12 +362,15 @@ export class ToolExecutionService {
       } else if (toolName === 'readEmails') {
         authorized = true
         try {
-          const items = await gmailReadEmails({
+          const opts = {
             folder: typeof args.folder === 'string' ? args.folder : undefined,
             limit: typeof args.limit === 'number' ? args.limit : undefined,
             onlyUnread: typeof args.onlyUnread === 'boolean' ? args.onlyUnread : undefined,
             search: typeof args.search === 'string' ? args.search : undefined,
-          })
+          }
+          const items = (await gmailViaApi())
+            ? await gmailReadEmails(opts)
+            : await imapReadEmails(opts)
           result = { success: true, data: { items } }
         } catch (err) {
           result = { success: false, error: err instanceof Error ? err.message : 'Erro ao ler emails' }
@@ -366,7 +379,7 @@ export class ToolExecutionService {
         authorized = true
         try {
           const id = args.id as string
-          const email = await gmailReadById(id)
+          const email = (await gmailViaApi()) ? await gmailReadById(id) : await imapReadById(id)
           result = email
             ? { success: true, data: email }
             : { success: false, error: 'Email não encontrado' }
@@ -376,7 +389,7 @@ export class ToolExecutionService {
       } else if (toolName === 'listEmailFolders') {
         authorized = true
         try {
-          const folders = await listGmailLabels()
+          const folders = (await gmailViaApi()) ? await listGmailLabels() : await imapListFolders()
           result = { success: true, data: { folders } }
         } catch (err) {
           result = { success: false, error: err instanceof Error ? err.message : 'Erro ao listar pastas' }
@@ -384,11 +397,15 @@ export class ToolExecutionService {
       } else if (toolName === 'sendEmail') {
         authorized = true
         try {
-          const to = args.to as string
-          const subject = args.subject as string
-          const body = args.body as string
-          await sendEmail(to, subject, body)
-          result = { success: true, data: { message: `Email enviado para ${to}` } }
+          if (!(await gmailViaApi())) {
+            result = { success: false, error: 'Enviar email requer Ligar Google (OAuth). App Password só permite ler.' }
+          } else {
+            const to = args.to as string
+            const subject = args.subject as string
+            const body = args.body as string
+            await sendEmail(to, subject, body)
+            result = { success: true, data: { message: `Email enviado para ${to}` } }
+          }
         } catch (err) {
           result = { success: false, error: err instanceof Error ? err.message : 'Erro ao enviar email' }
         }

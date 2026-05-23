@@ -5,6 +5,7 @@ const prisma = new PrismaClient()
 const PLAIN_TEXT_KEYS = new Set([
   'orbit.google_project_id',
   'orbit.google_client_id',
+  'orbit.gmail_user',
   'orbit.whatsapp_api_url',
 ])
 
