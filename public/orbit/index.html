@@ -657,6 +657,8 @@
           fields: [
             { key: 'orbit.api_key', label: 'API Key (Siri/externa)', type: 'password' },
             { key: 'orbit.ifttt_key', label: 'IFTTT Webhook Key', type: 'password' },
+            { key: 'orbit.elevenlabs_key', label: 'ElevenLabs API Key (TTS natural)', type: 'password', hint: 'Cria em elevenlabs.io → Profile → API Key. Voz neural em português.' },
+            { key: 'orbit.elevenlabs_voice_id', label: 'ElevenLabs Voice ID (opcional)', type: 'text', plain: true, hint: 'Default: Charlotte (XB0fDUnXU5powFXDhCwa). Outros: Rachel (21m00Tcm4TlvDq8ikWAM), Daniel (onwK4e9ZLuTAKqWW03F9)' },
             { key: 'orbit.google_project_id', label: 'Google Actions Project ID', type: 'text', plain: true },
           ],
         },
@@ -992,18 +994,64 @@
             .replace(/`/g, '')
         }
 
-        function speakText(text) {
+        var currentAudio = null
+
+        function speakBrowser(text) {
           return new Promise(function(resolve) {
             synth.cancel()
             var u = new SpeechSynthesisUtterance(stripMd(text))
             u.lang = 'pt-PT'
             u.rate = 1.05
+            // Esperar por vozes (Chrome carrega de forma assíncrona)
             var vs = synth.getVoices()
-            var pv = vs.find(function(v) { return v.lang && v.lang.startsWith('pt') }) || null
+            var pv = vs.find(function(v) { return v.lang && v.lang.startsWith('pt') && v.name.includes('Google') })
+              || vs.find(function(v) { return v.lang && v.lang.startsWith('pt') })
+              || vs.find(function(v) { return v.name && v.name.includes('Google') && v.lang.startsWith('en') })
+              || null
             if (pv) u.voice = pv
-            u.onend = resolve
-            u.onerror = resolve
+            // Anti-bug Chrome: keepAlive para síntese longa
+            var keepAlive = setInterval(function() {
+              if (!synth.speaking) { clearInterval(keepAlive); return }
+              if (synth.paused) synth.resume()
+            }, 5000)
+            u.onend = function() { clearInterval(keepAlive); resolve() }
+            u.onerror = function() { clearInterval(keepAlive); resolve() }
             synth.speak(u)
+          })
+        }
+
+        function speakText(text) {
+          return new Promise(async function(resolve) {
+            if (currentAudio) { currentAudio.pause(); currentAudio = null }
+            var plain = stripMd(text)
+            try {
+              var r = await fetch('/api/orbit/tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ text: plain })
+              })
+              if (!r.ok) {
+                var err = await r.json().catch(function() { return {} })
+                if (err.error === 'no_key') {
+                  // Sem chave ElevenLabs — usar browser TTS
+                  await speakBrowser(plain)
+                  return resolve()
+                }
+                throw new Error(r.status)
+              }
+              var blob = await r.blob()
+              var url = URL.createObjectURL(blob)
+              var audio = new Audio(url)
+              currentAudio = audio
+              audio.onended = function() { URL.revokeObjectURL(url); currentAudio = null; resolve() }
+              audio.onerror = function() { URL.revokeObjectURL(url); currentAudio = null; resolve() }
+              audio.play().catch(function() { resolve() })
+            } catch(e) {
+              // Fallback para browser TTS em caso de erro de rede
+              await speakBrowser(plain)
+              resolve()
+            }
           })
         }
 
@@ -1087,6 +1135,7 @@
 
         function stopVoice() {
           voiceActive = false; isSpeaking = false; synth.cancel()
+          if (currentAudio) { currentAudio.pause(); currentAudio = null }
           if (recognition) { try { recognition.abort() } catch(ex) {} recognition = null }
           setOrbState('idle')
           hideOverlay()

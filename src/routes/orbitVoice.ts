@@ -130,7 +130,8 @@ Quando usar uma ferramenta, responda APENAS com o JSON da ferramenta. Após rece
       const result = await callWithFallback(msgs, tools)
       const content = result.content ?? ''
 
-      const toolMatch = content.trim().match(/^\{.*"tool"\s*:.*\}$/s)
+      const jsonLine = content.split('\n').map(l => l.trim()).find(l => l.startsWith('{') && /"tool"\s*:/.test(l))
+      const toolMatch = jsonLine ? [jsonLine] : null
       if (toolMatch) {
         try {
           const parsed = JSON.parse(toolMatch[0]) as { tool: string; args: Record<string, unknown> }
@@ -296,6 +297,46 @@ router.delete('/config/:key', requireAdminAuth, async (req: Request, res: Respon
     return res.json({ ok: true })
   } catch (err) {
     return res.status(500).json({ error: err instanceof Error ? err.message : 'Erro' })
+  }
+})
+
+
+// ── TTS via ElevenLabs ──────────────────────────────────────────────────────
+router.post('/tts', requireAdminAuth, async (req: Request, res: Response) => {
+  try {
+    const text = typeof req.body?.text === 'string' ? req.body.text.trim() : ''
+    if (!text) return res.status(400).json({ error: 'text obrigatório' })
+
+    const apiKey = await getOrbitConfig('elevenlabs_key')
+    if (!apiKey) return res.status(404).json({ error: 'no_key' })
+
+    // Charlotte — eleven_multilingual_v2 — óptima para português
+    const voiceId = await getOrbitConfig('elevenlabs_voice_id') || 'XB0fDUnXU5powFXDhCwa'
+    const elRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?optimize_streaming_latency=3`, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json',
+        'Accept': 'audio/mpeg',
+      },
+      body: JSON.stringify({
+        text,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: { stability: 0.45, similarity_boost: 0.82, style: 0.0, use_speaker_boost: true },
+      }),
+    })
+
+    if (!elRes.ok) {
+      const errText = await elRes.text().catch(() => '')
+      return res.status(elRes.status).json({ error: 'ElevenLabs: ' + errText.slice(0, 200) })
+    }
+
+    const buf = await elRes.arrayBuffer()
+    res.setHeader('Content-Type', 'audio/mpeg')
+    res.setHeader('Cache-Control', 'no-cache')
+    return res.send(Buffer.from(buf))
+  } catch (err) {
+    return res.status(500).json({ error: err instanceof Error ? err.message : 'Erro TTS' })
   }
 })
 
