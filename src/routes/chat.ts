@@ -189,7 +189,7 @@ Quando usar uma ferramenta, responda APENAS com o JSON da ferramenta. Após rece
           ...loopHistory,
           { role: 'user', content: loopInput },
         ]
-        const result = await callWithFallback(msgs, tools)
+        const result = await callWithFallback(msgs)
         promptTokens += result.promptTokens
         completionTokens += result.completionTokens
         const content = result.content ?? ''
