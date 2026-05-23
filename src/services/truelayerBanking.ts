@@ -97,7 +97,6 @@ export function buildConnectUrl(): string {
     client_id: TL_CLIENT_ID,
     scope: 'accounts balance transactions offline_access',
     redirect_uri: REDIRECT_URI,
-    providers: 'ob-revolut',
   })
   return `${TL_AUTH_BASE}/?${params.toString()}`
 }
