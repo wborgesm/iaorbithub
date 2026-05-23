@@ -10,6 +10,7 @@ import autoTrainRouter from './routes/autoTrain'
 import evaluationRouter from './routes/evaluation'
 import adminApiRouter from './routes/adminApi'
 import orbitRouter from './routes/orbit'
+import orbitVoiceRouter from './routes/orbitVoice'
 import { startEvaluationWorker } from './workers/evaluationWorker'
 import { generateToken, verifyToken, requireAdminAuth } from './middleware/adminAuth'
 
@@ -58,6 +59,11 @@ app.get('/robots.txt', (_req: Request, res: Response) => {
   res.type('text/plain').send('User-agent: *\nDisallow: /')
 })
 
+app.get('/orbit/actions-setup', (_req: Request, res: Response) => {
+  res.type('text/markdown; charset=utf-8')
+  res.sendFile(path.join(__dirname, '../public/orbit/actions-setup.md'))
+})
+
 // Login page
 app.get('/login', (_req: Request, res: Response) => {
   res.sendFile(path.join(__dirname, '../public/login.html'))
@@ -102,6 +108,7 @@ app.get('/widget.js', (_req: Request, res: Response) => {
 
 // ─── Chat API (public — protected by session context) ────────────────────────
 app.use('/api/chat', chatRouter)
+app.use('/api/orbit', orbitVoiceRouter)
 app.use('/api/simulation', simulationRouter)
 app.use('/api/simulation', autoTrainRouter)
 app.use('/api/simulation', evaluationRouter)
