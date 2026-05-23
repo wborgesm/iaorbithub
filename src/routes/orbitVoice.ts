@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express'
 import { PrismaClient } from '@prisma/client'
 import { callLLMAuto } from '../services/llm'
 import { TOOL_DEFINITIONS, ToolExecutionService } from '../services/toolExecution'
+import { getOrbitConfig, listOrbitConfigs, normalizeOrbitKey } from '../services/orbitConfig'
+import { requireAdminAuth } from '../middleware/adminAuth'
 import type { LLMMessage, SessionContext, SupportedProvider } from '../types'
 
 const router = Router()
@@ -18,9 +20,9 @@ function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4)
 }
 
-function validateOrbitKey(req: Request, res: Response): boolean {
+async function validateOrbitKey(req: Request, res: Response): Promise<boolean> {
   const key = req.headers['x-orbit-key'] as string | undefined
-  const expected = process.env.ORBIT_API_KEY
+  const expected = await getOrbitConfig('api_key')
   if (!expected || key !== expected) {
     res.status(401).json({ error: 'Unauthorized' })
     return false
@@ -212,7 +214,7 @@ function buildGoogleResponse(
 }
 
 router.post('/voice', async (req: Request, res: Response) => {
-  if (!validateOrbitKey(req, res)) return
+  if (!(await validateOrbitKey(req, res))) return
 
   const message = typeof req.body?.message === 'string' ? req.body.message.trim() : ''
   if (!message) return res.status(400).json({ error: 'message obrigatório' })
@@ -256,6 +258,44 @@ router.post('/google-action', async (req: Request, res: Response) => {
   }
 
   return res.json(buildGoogleResponse(googleSessionId, result.reply, result.sessionId, false))
+})
+
+router.get('/config', requireAdminAuth, async (_req: Request, res: Response) => {
+  try {
+    const items = await listOrbitConfigs()
+    return res.json({ items })
+  } catch (err) {
+    return res.status(500).json({ error: err instanceof Error ? err.message : 'Erro' })
+  }
+})
+
+router.post('/config', requireAdminAuth, async (req: Request, res: Response) => {
+  try {
+    const { key, value } = req.body as { key?: string; value?: string }
+    if (!key || typeof key !== 'string') return res.status(400).json({ error: 'key obrigatório' })
+    if (typeof value !== 'string' || !value.trim()) return res.status(400).json({ error: 'value obrigatório' })
+    const fullKey = normalizeOrbitKey(key)
+    if (!fullKey.startsWith('orbit.')) return res.status(400).json({ error: 'Chave inválida' })
+    await prisma.systemConfig.upsert({
+      where: { key: fullKey },
+      update: { value: value.trim() },
+      create: { key: fullKey, value: value.trim() },
+    })
+    return res.json({ ok: true, key: fullKey })
+  } catch (err) {
+    return res.status(500).json({ error: err instanceof Error ? err.message : 'Erro' })
+  }
+})
+
+router.delete('/config/:key', requireAdminAuth, async (req: Request, res: Response) => {
+  try {
+    const fullKey = normalizeOrbitKey(req.params.key as string)
+    if (!fullKey.startsWith('orbit.')) return res.status(400).json({ error: 'Chave inválida' })
+    await prisma.systemConfig.delete({ where: { key: fullKey } }).catch(() => {})
+    return res.json({ ok: true })
+  } catch (err) {
+    return res.status(500).json({ error: err instanceof Error ? err.message : 'Erro' })
+  }
 })
 
 export default router

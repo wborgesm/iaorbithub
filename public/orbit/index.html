@@ -158,15 +158,77 @@
     }
     #send:disabled { opacity: 0.4; cursor: default; }
     #send:not(:disabled):hover { background: #2563eb; }
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+    #btn-settings {
+      width: 36px; height: 36px; border: 1px solid #30363d; border-radius: 8px;
+      background: #161b22; color: #8b949e; font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #btn-settings:hover { color: #e6edf3; border-color: #388bfd; }
+    .config-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 100;
+    }
+    .config-overlay.open { display: block; }
+    .config-panel {
+      position: fixed; top: 0; right: 0; width: min(420px, 100vw); height: 100%;
+      background: #0d1117; border-left: 1px solid #21262d; z-index: 101;
+      transform: translateX(100%); transition: transform .25s ease;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .config-panel.open { transform: translateX(0); }
+    .config-panel header {
+      padding: 16px; border-bottom: 1px solid #21262d;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .config-panel header h2 { font-size: 15px; font-weight: 600; }
+    #btn-close-config {
+      background: none; border: none; color: #8b949e; font-size: 22px; cursor: pointer; line-height: 1;
+    }
+    #btn-close-config:hover { color: #e6edf3; }
+    .config-body { flex: 1; overflow-y: auto; padding: 16px; }
+    .config-group {
+      margin-bottom: 20px; padding: 14px; background: #161b22;
+      border: 1px solid #21262d; border-radius: 10px;
+    }
+    .config-group h3 {
+      font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
+      color: #8b949e; margin-bottom: 12px;
+    }
+    .cfg-field { margin-bottom: 12px; }
+    .cfg-field label { display: block; font-size: 12px; color: #8b949e; margin-bottom: 4px; }
+    .cfg-field input {
+      width: 100%; padding: 8px 10px; font-size: 13px;
+      background: #0d1117; border: 1px solid #30363d; border-radius: 8px; color: #e6edf3;
+    }
+    .cfg-field input:focus { border-color: #388bfd; outline: none; }
+    .cfg-field-row { display: flex; gap: 6px; align-items: center; }
+    .cfg-field-row input { flex: 1; }
+    .btn-del {
+      flex-shrink: 0; width: 32px; height: 32px; border: 1px solid #30363d;
+      border-radius: 8px; background: #0d1117; color: #f85149; cursor: pointer; font-size: 14px;
+    }
+    .btn-del:hover { border-color: #f85149; }
+    .btn-save-group {
+      width: 100%; margin-top: 4px; padding: 8px; font-size: 13px; font-weight: 500;
+      border: none; border-radius: 8px; background: #1d4ed8; color: #fff; cursor: pointer;
+    }
+    .btn-save-group:hover { background: #2563eb; }
+    .btn-save-group:disabled { opacity: .5; cursor: default; }
+    .cfg-feedback { font-size: 11px; margin-top: 6px; min-height: 16px; }
+    .cfg-feedback.ok { color: #3fb950; }
+    .cfg-feedback.err { color: #f85149; }
   </style>
 </head>
 <body>
   <div class="orbit-wrap">
     <header>
       <span class="orbit-brand">ORBIT</span>
-      <div class="orbit-status">
-        <span class="orbit-dot" id="statusDot"></span>
-        <span id="statusText">Online</span>
+      <div class="header-actions">
+        <div class="orbit-status">
+          <span class="orbit-dot" id="statusDot"></span>
+          <span id="statusText">Online</span>
+        </div>
+        <button type="button" id="btn-settings" title="Configuração" aria-label="Configuração">⚙</button>
       </div>
     </header>
     <div id="messages" role="log" aria-live="polite"></div>
@@ -181,6 +243,16 @@
       </form>
     </footer>
   </div>
+
+  <div class="config-overlay" id="configOverlay" aria-hidden="true"></div>
+  <aside class="config-panel" id="configPanel" aria-label="Configuração ORBIT">
+    <header>
+      <h2>Configuração ORBIT</h2>
+      <button type="button" id="btn-close-config" aria-label="Fechar">×</button>
+    </header>
+    <div class="config-body" id="configBody"></div>
+  </aside>
+
   <script>
     (function () {
       const STORAGE_KEY = 'orbit_chat_session_id'
@@ -354,6 +426,183 @@
       })
 
       window.addEventListener('load', initSession)
+
+      // ── Configuração ORBIT ─────────────────────────────────────────────────
+      const CONFIG_GROUPS = [
+        {
+          id: 'voice',
+          title: 'Voz & Integrações',
+          fields: [
+            { key: 'orbit.api_key', label: 'API Key (Siri/externa)', type: 'password' },
+            { key: 'orbit.ifttt_key', label: 'IFTTT Webhook Key', type: 'password' },
+            { key: 'orbit.google_project_id', label: 'Google Actions Project ID', type: 'text', plain: true },
+          ],
+        },
+        {
+          id: 'gmail',
+          title: 'Email (Gmail)',
+          fields: [
+            { key: 'orbit.gmail_user', label: 'Gmail (utilizador)', type: 'text', plain: true },
+            { key: 'orbit.gmail_app_password', label: 'Gmail App Password', type: 'password' },
+          ],
+        },
+        {
+          id: 'whatsapp',
+          title: 'WhatsApp',
+          fields: [
+            { key: 'orbit.whatsapp_api_url', label: 'WhatsApp API URL', type: 'text', plain: true },
+            { key: 'orbit.whatsapp_api_key', label: 'WhatsApp API Key', type: 'password' },
+          ],
+        },
+        {
+          id: 'calendar',
+          title: 'Calendário',
+          fields: [
+            { key: 'orbit.gcal_client_id', label: 'Google Calendar Client ID', type: 'text', plain: true },
+            { key: 'orbit.gcal_client_secret', label: 'Google Calendar Secret', type: 'password' },
+            { key: 'orbit.gcal_refresh_token', label: 'Refresh Token', type: 'password' },
+          ],
+        },
+      ]
+
+      const configOverlay = document.getElementById('configOverlay')
+      const configPanel = document.getElementById('configPanel')
+      const configBody = document.getElementById('configBody')
+      const btnSettings = document.getElementById('btn-settings')
+      const btnCloseConfig = document.getElementById('btn-close-config')
+      let configByKey = {}
+
+      function isMaskedPlaceholder(v) {
+        return !v || /^[•]+$/.test(v) || (v.startsWith('••••') && v.length <= 12)
+      }
+
+      function renderConfigPanel() {
+        configBody.innerHTML = CONFIG_GROUPS.map(g => `
+          <section class="config-group" data-group="${g.id}">
+            <h3>${g.title}</h3>
+            ${g.fields.map(f => {
+              const meta = configByKey[f.key] || {}
+              const ph = meta.hasValue && f.type === 'password' ? '••••••••••••' : ''
+              const val = meta.hasValue && f.plain ? (meta.value || '') : ''
+              return `
+              <div class="cfg-field" data-key="${f.key}">
+                <label>${f.label}</label>
+                <div class="cfg-field-row">
+                  <input type="${f.type}" data-key="${f.key}" data-plain="${f.plain ? '1' : '0'}"
+                    placeholder="${ph}" value="${f.plain && val ? val.replace(/"/g, '&quot;') : ''}"
+                    autocomplete="off" />
+                  <button type="button" class="btn-del" data-key="${f.key}" title="Apagar">🗑</button>
+                </div>
+              </div>`
+            }).join('')}
+            <button type="button" class="btn-save-group" data-group="${g.id}">Guardar</button>
+            <div class="cfg-feedback" data-feedback="${g.id}"></div>
+          </section>
+        `).join('')
+
+        configBody.querySelectorAll('.btn-save-group').forEach(btn => {
+          btn.addEventListener('click', () => saveConfigGroup(btn.dataset.group))
+        })
+        configBody.querySelectorAll('.btn-del').forEach(btn => {
+          btn.addEventListener('click', () => deleteConfigKey(btn.dataset.key))
+        })
+      }
+
+      async function loadConfig() {
+        try {
+          const r = await fetch('/api/orbit/config', { credentials: 'same-origin' })
+          if (r.status === 401) {
+            configByKey = {}
+            return
+          }
+          const data = await r.json()
+          configByKey = {}
+          for (const item of data.items || []) {
+            configByKey[item.key] = item
+          }
+        } catch {
+          configByKey = {}
+        }
+      }
+
+      async function saveConfigGroup(groupId) {
+        const group = CONFIG_GROUPS.find(g => g.id === groupId)
+        const feedback = configBody.querySelector(`[data-feedback="${groupId}"]`)
+        if (!group || !feedback) return
+        feedback.textContent = ''
+        feedback.className = 'cfg-feedback'
+
+        const section = configBody.querySelector(`[data-group="${groupId}"]`)
+        const inputs = section.querySelectorAll('input[data-key]')
+        let saved = 0
+        let failed = false
+
+        for (const input of inputs) {
+          const key = input.dataset.key
+          const val = input.value.trim()
+          if (!val || isMaskedPlaceholder(val)) continue
+          try {
+            const r = await fetch('/api/orbit/config', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'same-origin',
+              body: JSON.stringify({ key, value: val }),
+            })
+            if (!r.ok) { failed = true; break }
+            saved++
+            input.value = ''
+            if (input.type === 'password') input.placeholder = '••••••••••••'
+          } catch {
+            failed = true
+            break
+          }
+        }
+
+        if (failed) {
+          feedback.textContent = 'Erro ✗'
+          feedback.className = 'cfg-feedback err'
+        } else if (saved > 0) {
+          feedback.textContent = 'Guardado ✓'
+          feedback.className = 'cfg-feedback ok'
+          await loadConfig()
+        } else {
+          feedback.textContent = 'Nada para guardar'
+          feedback.className = 'cfg-feedback'
+        }
+      }
+
+      async function deleteConfigKey(key) {
+        if (!confirm('Apagar esta chave?')) return
+        try {
+          const enc = encodeURIComponent(key.replace(/^orbit\./, ''))
+          const r = await fetch('/api/orbit/config/' + enc, {
+            method: 'DELETE',
+            credentials: 'same-origin',
+          })
+          if (r.ok) {
+            delete configByKey[key]
+            const input = configBody.querySelector(`input[data-key="${key}"]`)
+            if (input) { input.value = ''; input.placeholder = '' }
+          }
+        } catch { /* ignore */ }
+      }
+
+      function openConfigPanel() {
+        configOverlay.classList.add('open')
+        configPanel.classList.add('open')
+        configOverlay.setAttribute('aria-hidden', 'false')
+        loadConfig().then(renderConfigPanel)
+      }
+
+      function closeConfigPanel() {
+        configOverlay.classList.remove('open')
+        configPanel.classList.remove('open')
+        configOverlay.setAttribute('aria-hidden', 'true')
+      }
+
+      btnSettings.addEventListener('click', openConfigPanel)
+      btnCloseConfig.addEventListener('click', closeConfigPanel)
+      configOverlay.addEventListener('click', closeConfigPanel)
     })()
   </script>
 </body>

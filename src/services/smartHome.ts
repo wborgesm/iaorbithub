@@ -1,10 +1,12 @@
+import { getOrbitConfig } from './orbitConfig'
+
 export async function triggerIFTTT(
   eventName: string,
   value1?: string,
   value2?: string,
   value3?: string,
 ): Promise<boolean> {
-  const key = process.env.IFTTT_WEBHOOK_KEY
+  const key = await getOrbitConfig('ifttt_key')
   if (!key) return false
   try {
     const url = `https://maker.ifttt.com/trigger/${encodeURIComponent(eventName)}/with/key/${key}`
