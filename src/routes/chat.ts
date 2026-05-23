@@ -194,7 +194,9 @@ Quando usar uma ferramenta, responda APENAS com o JSON da ferramenta. Após rece
         completionTokens += result.completionTokens
         const content = result.content ?? ''
 
-        const toolMatch = content.trim().match(/^\{.*"tool"\s*:.*\}$/s)
+        // Extrair JSON de ferramenta de qualquer parte do conteúdo (o LLM às vezes mistura com texto)
+        const jsonLine = content.split('\n').map(l => l.trim()).find(l => l.startsWith('{') && /"tool"\s*:/.test(l))
+        const toolMatch = jsonLine ? [jsonLine] : null
         if (toolMatch) {
           try {
             const parsed = JSON.parse(toolMatch[0]) as { tool: string; args: Record<string, unknown> }

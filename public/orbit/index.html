@@ -247,6 +247,95 @@
     .cfg-feedback.err { color: #f85149; }
     .bank-actions { margin-top: 8px; }
     .bank-actions .btn-save-group + .btn-save-group { margin-top: 8px; }
+
+    /* ── Voice Live Overlay ──────────────────────────────────────────── */
+    #voice-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #0d1117;
+      z-index: 1000;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+    }
+    #voice-overlay.active { display: flex; }
+    .voice-orb {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #1e3a5f, #0d1117);
+      box-shadow: 0 0 0 0 rgba(88,166,255,0.3);
+      transition: box-shadow 0.3s, background 0.3s;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .voice-orb svg { opacity: 0.7; }
+    .voice-orb.listening {
+      background: radial-gradient(circle at 35% 35%, #1a4d2e, #0d1117);
+      box-shadow: 0 0 0 18px rgba(63,185,80,0.12), 0 0 0 36px rgba(63,185,80,0.06);
+      animation: orb-pulse-green 1.5s ease-in-out infinite;
+    }
+    .voice-orb.speaking {
+      background: radial-gradient(circle at 35% 35%, #1e3a5f, #0d1117);
+      box-shadow: 0 0 0 18px rgba(88,166,255,0.15), 0 0 0 36px rgba(88,166,255,0.07);
+      animation: orb-pulse-blue 1.2s ease-in-out infinite;
+    }
+    .voice-orb.thinking {
+      background: radial-gradient(circle at 35% 35%, #3d2e10, #0d1117);
+      box-shadow: 0 0 0 12px rgba(210,153,34,0.1);
+    }
+    @keyframes orb-pulse-green {
+      0%, 100% { box-shadow: 0 0 0 14px rgba(63,185,80,0.12), 0 0 0 28px rgba(63,185,80,0.05); }
+      50% { box-shadow: 0 0 0 22px rgba(63,185,80,0.18), 0 0 0 44px rgba(63,185,80,0.08); }
+    }
+    @keyframes orb-pulse-blue {
+      0%, 100% { box-shadow: 0 0 0 14px rgba(88,166,255,0.15), 0 0 0 28px rgba(88,166,255,0.06); }
+      50% { box-shadow: 0 0 0 24px rgba(88,166,255,0.2), 0 0 0 48px rgba(88,166,255,0.09); }
+    }
+    .voice-state-label {
+      font-size: 14px;
+      color: #8b949e;
+      letter-spacing: 0.05em;
+      min-height: 20px;
+      text-align: center;
+    }
+    .voice-transcript {
+      font-size: 18px;
+      color: #e6edf3;
+      max-width: 480px;
+      text-align: center;
+      min-height: 56px;
+      line-height: 1.5;
+      padding: 0 24px;
+      transition: opacity 0.3s;
+    }
+    .voice-transcript.faded { color: #8b949e; font-size: 14px; }
+    .voice-stop-btn {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: 2px solid #f85149;
+      background: transparent;
+      color: #f85149;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      transition: background 0.2s, transform 0.1s;
+      margin-top: 8px;
+    }
+    .voice-stop-btn:hover { background: rgba(248,81,73,0.1); transform: scale(1.05); }
+    .voice-hint {
+      font-size: 12px;
+      color: #484f58;
+      position: absolute;
+      bottom: 24px;
+    }
   </style>
 </head>
 <body>
@@ -746,33 +835,63 @@
       // ── Conversa de Voz em Tempo Real ────────────────────────────────────────
       ;(function initVoice() {
         var micBtn = document.getElementById('btn-mic')
+        var overlay = document.getElementById('voice-overlay')
+        var voiceOrb = document.getElementById('voiceOrb')
+        var voiceStateLabel = document.getElementById('voiceStateLabel')
+        var voiceTranscript = document.getElementById('voiceTranscript')
+        var voiceStopBtn = document.getElementById('voiceStopBtn')
         var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition
+
         if (!SpeechRec) {
           micBtn.disabled = true
-          micBtn.title = 'Voz nao suportada neste browser (use Chrome)'
+          micBtn.title = 'Voz nao suportada (use Chrome)'
           return
         }
+
         var synth = window.speechSynthesis
         var voiceActive = false
         var isSpeaking = false
         var recognition = null
-        // pre-load voices
         if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = function() {}
 
-        function setMicState(s) {
+        function setOrbState(s) {
+          voiceOrb.classList.remove('listening', 'speaking', 'thinking')
           micBtn.classList.remove('voice-listening', 'voice-speaking', 'voice-thinking')
           if (s === 'listening') {
+            voiceOrb.classList.add('listening')
             micBtn.classList.add('voice-listening')
-            micBtn.title = 'A ouvir... (diga "pode ir" para parar)'
+            voiceStateLabel.textContent = 'A ouvir…'
+            micBtn.title = 'A ouvir (diga pode ir para parar)'
           } else if (s === 'speaking') {
+            voiceOrb.classList.add('speaking')
             micBtn.classList.add('voice-speaking')
-            micBtn.title = 'ORBIT a falar...'
+            voiceStateLabel.textContent = 'ORBIT a falar…'
+            micBtn.title = 'ORBIT a falar'
           } else if (s === 'thinking') {
+            voiceOrb.classList.add('thinking')
             micBtn.classList.add('voice-thinking')
-            micBtn.title = 'A pensar...'
+            voiceStateLabel.textContent = 'A pensar…'
+            micBtn.title = 'A pensar'
           } else {
+            voiceStateLabel.textContent = ''
             micBtn.title = 'Ativar voz'
           }
+        }
+
+        function showOverlay() {
+          overlay.classList.add('active')
+          voiceTranscript.textContent = 'Pode falar…'
+          voiceTranscript.classList.remove('faded')
+        }
+
+        function hideOverlay() {
+          overlay.classList.remove('active')
+        }
+
+        function setTranscript(text, faded) {
+          voiceTranscript.textContent = text
+          if (faded) voiceTranscript.classList.add('faded')
+          else voiceTranscript.classList.remove('faded')
         }
 
         function stripMd(t) {
@@ -807,26 +926,23 @@
 
           rec.onresult = async function(e) {
             var t = (e.results[0][0].transcript || '').trim()
-            if (!t) {
-              if (voiceActive && !isSpeaking) startListening()
-              return
-            }
+            if (!t) { if (voiceActive && !isSpeaking) startListening(); return }
+
             if (t.toLowerCase().includes('pode ir')) {
               stopVoice()
               addBot('Voz desativada. Ate logo!')
               return
             }
-            if (sending || !sessionId) {
-              if (voiceActive) setTimeout(startListening, 500)
-              return
-            }
-            setMicState('thinking')
+
+            if (sending || !sessionId) { if (voiceActive) setTimeout(startListening, 500); return }
+
+            setOrbState('thinking')
             setStatus('thinking')
-            sending = true
-            sendBtn.disabled = true
-            inputEl.disabled = true
+            setTranscript(t, false)
+            sending = true; sendBtn.disabled = true; inputEl.disabled = true
             addUser(t)
             var typEl = showTyping()
+
             try {
               var r = await fetch('/api/chat/send', {
                 method: 'POST',
@@ -836,46 +952,36 @@
               })
               var data = await r.json()
               typEl.remove()
-              var reply = data.content || 'Nao consegui processar o pedido.'
+              var reply = data.content || 'Nao consegui processar.'
               addBot(reply)
               isSpeaking = true
-              setMicState('speaking')
+              setOrbState('speaking')
+              setTranscript(stripMd(reply).slice(0, 120) + (reply.length > 120 ? '…' : ''), true)
               await speakText(reply)
               isSpeaking = false
             } catch(err) {
-              typEl.remove()
-              addBot('Erro de ligacao.')
-              isSpeaking = false
+              typEl.remove(); addBot('Erro de ligacao.'); isSpeaking = false
             } finally {
-              sending = false
-              setStatus('online')
-              inputEl.disabled = false
-              sendBtn.disabled = false
+              sending = false; setStatus('online'); inputEl.disabled = false; sendBtn.disabled = false
             }
-            if (voiceActive) startListening()
+
+            if (voiceActive) { setTranscript('Pode falar…', false); startListening() }
           }
 
           rec.onerror = function(e) {
             if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-              addBot('Microfone bloqueado. Permite o acesso ao microfone nas definicoes do browser.')
-              stopVoice()
-              return
+              addBot('Microfone bloqueado. Permite o acesso nas definicoes do browser.')
+              stopVoice(); return
             }
-            if (e.error === 'no-speech') {
-              if (voiceActive && !isSpeaking) startListening()
-              return
-            }
+            if (e.error === 'no-speech') { if (voiceActive && !isSpeaking) startListening(); return }
             if (voiceActive && !isSpeaking) setTimeout(startListening, 500)
           }
 
           rec.onend = function() {
             if (voiceActive && !isSpeaking) {
-              setTimeout(function() {
-                if (voiceActive && !isSpeaking) startListening()
-              }, 150)
+              setTimeout(function() { if (voiceActive && !isSpeaking) startListening() }, 150)
             }
           }
-
           return rec
         }
 
@@ -884,32 +990,30 @@
           try {
             if (recognition) { try { recognition.abort() } catch(ex) {} }
             recognition = buildRec()
-            setMicState('listening')
+            setOrbState('listening')
             recognition.start()
-          } catch(ex) {
-            setTimeout(function() { if (voiceActive && !isSpeaking) startListening() }, 300)
-          }
+          } catch(ex) { setTimeout(function() { if (voiceActive && !isSpeaking) startListening() }, 300) }
         }
 
         function stopVoice() {
-          voiceActive = false
-          isSpeaking = false
-          synth.cancel()
+          voiceActive = false; isSpeaking = false; synth.cancel()
           if (recognition) { try { recognition.abort() } catch(ex) {} recognition = null }
-          setMicState('idle')
+          setOrbState('idle')
+          hideOverlay()
           micBtn.setAttribute('aria-pressed', 'false')
         }
 
         micBtn.addEventListener('click', function() {
-          if (voiceActive) {
-            stopVoice()
-          } else {
+          if (voiceActive) { stopVoice() }
+          else {
             voiceActive = true
             micBtn.setAttribute('aria-pressed', 'true')
-            addBot('Voz ativada. Pode falar! (diga "pode ir" para parar)')
+            showOverlay()
             startListening()
           }
         })
+
+        voiceStopBtn.addEventListener('click', function() { stopVoice() })
       })()
 
       btnSettings.addEventListener('click', openConfigPanel)
@@ -926,5 +1030,17 @@
       }
     })()
   </script>
+
+  <div id="voice-overlay" aria-modal="true" role="dialog" aria-label="Modo de voz">
+    <div class="voice-orb" id="voiceOrb">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" style="color:#58a6ff">
+        <path d="M12 1a4 4 0 0 1 4 4v7a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm-2 17.93A8.001 8.001 0 0 1 4.07 13H6.1a6 6 0 0 0 11.8 0h2.03A8.001 8.001 0 0 1 14 18.93V21h3a1 1 0 1 1 0 2H7a1 1 0 1 1 0-2h3v-2.07z"/>
+      </svg>
+    </div>
+    <div class="voice-state-label" id="voiceStateLabel">A ouvir…</div>
+    <div class="voice-transcript" id="voiceTranscript">Pode falar</div>
+    <button class="voice-stop-btn" id="voiceStopBtn" title="Parar voz" aria-label="Parar modo de voz">■</button>
+    <span class="voice-hint">Diga "pode ir" para parar</span>
+  </div>
 </body>
 </html>

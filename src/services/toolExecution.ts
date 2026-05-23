@@ -252,6 +252,35 @@ async function runUpdateContact(phone?: string, email?: string): Promise<ToolCal
   return { success: true, data: { updated: true, phone, email } }
 }
 
+
+// Resolve datas em português ("hoje", "amanhã") para Date objects
+function resolvePortugueseDate(dateStr: string, timeStr?: string): Date {
+  const now = new Date()
+  const todayBase = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const normalized = (dateStr || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()
+  let base: Date
+  if (normalized === 'hoje' || normalized === 'today') {
+    base = new Date(todayBase)
+  } else if (normalized === 'amanha' || normalized === 'tomorrow' || normalized === 'proximo dia') {
+    base = new Date(todayBase)
+    base.setDate(base.getDate() + 1)
+  } else if (normalized === 'depois de amanha' || normalized === 'depois amanha') {
+    base = new Date(todayBase)
+    base.setDate(base.getDate() + 2)
+  } else {
+    const parsed = new Date(dateStr)
+    base = isNaN(parsed.getTime()) ? new Date(todayBase) : parsed
+  }
+  if (timeStr) {
+    const clean = timeStr.replace(/[^0-9:]/g, '')
+    const parts = clean.split(':')
+    const h = parseInt(parts[0] || '0', 10)
+    const m = parseInt(parts[1] || '0', 10)
+    if (!isNaN(h)) { base.setHours(h, m || 0, 0, 0) }
+  }
+  return base
+}
+
 export class ToolExecutionService {
   async execute(
     toolName: string,
@@ -298,10 +327,14 @@ export class ToolExecutionService {
             start = args.start
             end = args.end
           } else {
-            const date = args.date as string
+            const rawDate = (args.date as string) || ''
+            const rawTime = (args.startTime as string) || (args.time as string) || ''
+            const rawEndTime = (args.endTime as string) || ''
             const duration = typeof args.duration === 'number' ? args.duration : 60
-            const startDate = new Date(date)
-            const endDate = new Date(startDate.getTime() + duration * 60000)
+            const startDate = resolvePortugueseDate(rawDate, rawTime)
+            const endDate = rawEndTime
+              ? resolvePortugueseDate(rawDate, rawEndTime)
+              : new Date(startDate.getTime() + duration * 60000)
             start = startDate.toISOString()
             end = endDate.toISOString()
           }
