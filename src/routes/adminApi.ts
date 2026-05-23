@@ -23,10 +23,12 @@ router.get('/stats', async (_req: Request, res: Response) => {
       prisma.chatMessage.count({ where: { createdAt: { gte: today } } }),
     ])
     const simByStatus = Object.fromEntries(simulations.map(s => [s.status, s._count]))
+    const agenticSites = await prisma.aISite.count({ where: { OR: [{ enableReact: true }, { enableHumanApproval: true }] } })
     return res.json({
       sites, sessions, sessionsToday, messages, messagesToday: messagesDoday,
       simulations: { total: simulations.reduce((a, s) => a + s._count, 0), ...simByStatus },
       totalTokens: (logs._sum.promptTokens || 0) + (logs._sum.completionTokens || 0),
+      agenticSites,
     })
   } catch (err) {
     return res.status(500).json({ error: 'Erro ao carregar estatísticas' })
