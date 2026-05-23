@@ -4,9 +4,8 @@ const prisma = new PrismaClient()
 
 const PLAIN_TEXT_KEYS = new Set([
   'orbit.google_project_id',
-  'orbit.gmail_user',
+  'orbit.google_client_id',
   'orbit.whatsapp_api_url',
-  'orbit.gcal_client_id',
 ])
 
 export function normalizeOrbitKey(key: string): string {

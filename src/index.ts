@@ -12,6 +12,7 @@ import adminApiRouter from './routes/adminApi'
 import orbitRouter from './routes/orbit'
 import orbitVoiceRouter from './routes/orbitVoice'
 import orbitBankingRouter from './routes/orbitBanking'
+import orbitGoogleRouter from './routes/orbitGoogle'
 import { startEvaluationWorker } from './workers/evaluationWorker'
 import { generateToken, verifyToken, requireAdminAuth } from './middleware/adminAuth'
 
@@ -110,6 +111,8 @@ app.get('/widget.js', (_req: Request, res: Response) => {
 // ─── Chat API (public — protected by session context) ────────────────────────
 app.use('/api/chat', chatRouter)
 app.use('/api/orbit', orbitVoiceRouter)
+app.use('/api/orbit/truelayer', orbitBankingRouter)
+app.use('/api/orbit/google', orbitGoogleRouter)
 app.use('/api/simulation', simulationRouter)
 app.use('/api/simulation', autoTrainRouter)
 app.use('/api/simulation', evaluationRouter)

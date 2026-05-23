@@ -2,7 +2,8 @@ import { PrismaClient, Prisma } from '@prisma/client'
 import { Pool } from 'pg'
 import { triggerIFTTT } from './smartHome'
 import { fetchBankBalance, fetchRecentTransactions } from './truelayerBanking'
-import { readEmails, readEmailById, listEmailFolders } from './emailReader'
+import { readEmails as gmailReadEmails, readEmailById as gmailReadById, sendEmail, listGmailLabels } from './gmailService'
+import { listCalendarEvents, createCalendarEvent as createGCalEvent } from './calendarService'
 import type { SessionContext, ToolCallResult } from '../types'
 
 const prisma = new PrismaClient()
@@ -169,6 +170,35 @@ export const TOOL_DEFINITIONS = [
       parameters: { type: 'object', properties: {} },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'sendEmail',
+      description: 'Envia um email pelo Gmail do utilizador',
+      parameters: {
+        type: 'object',
+        properties: {
+          to: { type: 'string', description: 'Endereço de email destinatário' },
+          subject: { type: 'string', description: 'Assunto do email' },
+          body: { type: 'string', description: 'Corpo do email em texto simples' },
+        },
+        required: ['to', 'subject', 'body'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'listCalendarEvents',
+      description: 'Lista os próximos eventos do Google Calendar do utilizador',
+      parameters: {
+        type: 'object',
+        properties: {
+          days: { type: 'number', description: 'Número de dias a frente (default 7)' },
+        },
+      },
+    },
+  },
 ]
 
 async function authorizeVehicleAction(userId: string, vehicleId: number): Promise<boolean> {
@@ -250,7 +280,41 @@ export class ToolExecutionService {
         result = { success: false, error: 'WhatsApp não configurado ainda' }
       } else if (toolName === 'createCalendarEvent') {
         authorized = true
-        result = { success: false, error: 'Google Calendar não configurado ainda' }
+        try {
+          const title = args.title as string
+          let start: string
+          let end: string
+          if (typeof args.start === 'string' && typeof args.end === 'string') {
+            start = args.start
+            end = args.end
+          } else {
+            const date = args.date as string
+            const duration = typeof args.duration === 'number' ? args.duration : 60
+            const startDate = new Date(date)
+            const endDate = new Date(startDate.getTime() + duration * 60000)
+            start = startDate.toISOString()
+            end = endDate.toISOString()
+          }
+          const eventId = await createGCalEvent({
+            title,
+            start,
+            end,
+            description: typeof args.description === 'string' ? args.description : undefined,
+            location: typeof args.location === 'string' ? args.location : undefined,
+          })
+          result = { success: true, data: { eventId, message: `Evento criado com ID: ${eventId}` } }
+        } catch (err) {
+          result = { success: false, error: err instanceof Error ? err.message : 'Erro ao criar evento' }
+        }
+      } else if (toolName === 'listCalendarEvents') {
+        authorized = true
+        try {
+          const days = typeof args.days === 'number' ? args.days : 7
+          const events = await listCalendarEvents(days)
+          result = { success: true, data: { events } }
+        } catch (err) {
+          result = { success: false, error: err instanceof Error ? err.message : 'Erro ao ler calendário' }
+        }
       } else if (toolName === 'listOrbitCapabilities') {
         authorized = true
         result = {
@@ -259,10 +323,10 @@ export class ToolExecutionService {
             capabilities: [
               'Controlar casa inteligente (luzes, aquecedor) via Google Home/IFTTT',
               'Consultar saldo e transacções Revolut (TrueLayer)',
-              'Ler emails Gmail (caixa de entrada, não lidos, conteúdo completo)',
+              'Ler, enviar e pesquisar emails Gmail (OAuth2)',
+              'Ver agenda e criar eventos no Google Calendar',
               'Responder perguntas e gerir contexto de conversa',
               'WhatsApp (em breve)',
-              'Google Calendar (em breve)',
               'Integração com AI Command Center e sites OrbitHub',
             ],
           },
@@ -288,7 +352,7 @@ export class ToolExecutionService {
       } else if (toolName === 'readEmails') {
         authorized = true
         try {
-          const items = await readEmails({
+          const items = await gmailReadEmails({
             folder: typeof args.folder === 'string' ? args.folder : undefined,
             limit: typeof args.limit === 'number' ? args.limit : undefined,
             onlyUnread: typeof args.onlyUnread === 'boolean' ? args.onlyUnread : undefined,
@@ -302,7 +366,7 @@ export class ToolExecutionService {
         authorized = true
         try {
           const id = args.id as string
-          const email = await readEmailById(id)
+          const email = await gmailReadById(id)
           result = email
             ? { success: true, data: email }
             : { success: false, error: 'Email não encontrado' }
@@ -312,10 +376,21 @@ export class ToolExecutionService {
       } else if (toolName === 'listEmailFolders') {
         authorized = true
         try {
-          const folders = await listEmailFolders()
+          const folders = await listGmailLabels()
           result = { success: true, data: { folders } }
         } catch (err) {
           result = { success: false, error: err instanceof Error ? err.message : 'Erro ao listar pastas' }
+        }
+      } else if (toolName === 'sendEmail') {
+        authorized = true
+        try {
+          const to = args.to as string
+          const subject = args.subject as string
+          const body = args.body as string
+          await sendEmail(to, subject, body)
+          result = { success: true, data: { message: `Email enviado para ${to}` } }
+        } catch (err) {
+          result = { success: false, error: err instanceof Error ? err.message : 'Erro ao enviar email' }
         }
       }
     } catch (err) {

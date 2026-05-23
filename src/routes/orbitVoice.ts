@@ -12,7 +12,7 @@ const prisma = new PrismaClient()
 const toolService = new ToolExecutionService()
 
 const ORBIT_DOMAIN = 'orbit.internal'
-const ORBIT_TOOL_NAMES = ['controlSmartHome', 'sendWhatsApp', 'createCalendarEvent', 'listOrbitCapabilities', 'getBankBalance', 'getRecentTransactions', 'readEmails', 'readEmailContent', 'listEmailFolders']
+const ORBIT_TOOL_NAMES = ['controlSmartHome', 'sendWhatsApp', 'createCalendarEvent', 'listCalendarEvents', 'listOrbitCapabilities', 'getBankBalance', 'getRecentTransactions', 'readEmails', 'readEmailContent', 'listEmailFolders', 'sendEmail']
 const WELCOME_SPEECH = 'ORBIT online. O que precisas, Wanderson?'
 const GOODBYE_SPEECH = 'ORBIT a encerrar. Até logo, Wanderson.'
 const EXIT_PHRASES = ['pode ir', 'encerra', 'até logo', 'ate logo', 'obrigado orbit', 'obrigado, orbit']
