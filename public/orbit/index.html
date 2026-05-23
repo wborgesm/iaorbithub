@@ -455,6 +455,18 @@
     <div class="config-body" id="configBody"></div>
   </aside>
 
+  <div id="voice-overlay" aria-modal="true" role="dialog" aria-label="Modo de voz">
+    <div class="orb-wrap">
+      <div class="orb-ring"></div>
+      <div class="orb-ring"></div>
+      <div class="orb-ring"></div>
+      <div class="orb-blob" id="voiceOrb"></div>
+    </div>
+    <div class="voice-state-label" id="voiceStateLabel">A ouvir…</div>
+    <div class="voice-transcript" id="voiceTranscript">Pode falar</div>
+    <button class="voice-stop-btn" id="voiceStopBtn" title="Parar voz" aria-label="Parar modo de voz">&#9632;</button>
+    <span class="voice-hint">Diga "pode ir" para parar</span>
+  </div>
   <script>
     (function () {
       const STORAGE_KEY = 'orbit_chat_session_id'
@@ -1109,17 +1121,5 @@
     })()
   </script>
 
-  <div id="voice-overlay" aria-modal="true" role="dialog" aria-label="Modo de voz">
-    <div class="orb-wrap">
-      <div class="orb-ring"></div>
-      <div class="orb-ring"></div>
-      <div class="orb-ring"></div>
-      <div class="orb-blob" id="voiceOrb"></div>
-    </div>
-    <div class="voice-state-label" id="voiceStateLabel">A ouvir…</div>
-    <div class="voice-transcript" id="voiceTranscript">Pode falar</div>
-    <button class="voice-stop-btn" id="voiceStopBtn" title="Parar voz" aria-label="Parar modo de voz">&#9632;</button>
-    <span class="voice-hint">Diga "pode ir" para parar</span>
-  </div>
 </body>
 </html>
