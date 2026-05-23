@@ -62,6 +62,8 @@ model AISite {
   totalTokens         BigInt    @default(0)
   factsDocument       String?   // O que o sistema realmente oferece — injectado sempre no prompt
   restrictedTopics    String?   // O que NUNCA revelar ao utilizador
+  enableHumanApproval Boolean   @default(false)
+  enableReact         Boolean   @default(false)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
   sessions            ChatSession[]
