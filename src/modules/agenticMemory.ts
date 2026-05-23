@@ -1,6 +1,9 @@
 import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
+import { PrismaClient } from '@prisma/client'
+
+const prisma = new PrismaClient()
 
 const MEMORY_DIR  = path.join(process.cwd(), 'data', 'memory')
 const CORRECTIONS_FILE = path.join(MEMORY_DIR, 'corrections.jsonl')
@@ -32,6 +35,7 @@ export async function appendMemoryEntry(entry: Omit<MemoryEntry, 'id' | 'timesta
     }
     const file = entry.type === 'reasoning' ? REASONING_FILE : CORRECTIONS_FILE
     fs.appendFileSync(file, JSON.stringify(full) + '\n', 'utf8')
+    void saveMemoryVector({ siteId: entry.siteId, sessionId: entry.sessionId, type: entry.type, content: entry.input + '\n' + entry.output, metadata: entry.metadata })
   } catch (err) {
     console.warn('[agenticMemory] Falhou ao guardar:', (err as Error).message)
   }
@@ -90,4 +94,44 @@ export const vectorConfig = {
   endpoint:        process.env.VECTOR_DB_URL ?? null,
   collection:      'agentic_memory',
   embeddingModel:  'text-embedding-3-small',
+}
+
+// Guarda entrada na BD (sem embedding por agora — embedding = null)
+export async function saveMemoryVector(entry: {
+  siteId?: string
+  sessionId?: string
+  type: string
+  content: string
+  metadata?: Record<string, unknown>
+}): Promise<void> {
+  try {
+    await prisma.$executeRaw`
+      INSERT INTO "MemoryVector" ("id","createdAt","siteId","sessionId","type","content","metadata")
+      VALUES (gen_random_uuid()::text, NOW(), ${entry.siteId ?? null}, ${entry.sessionId ?? null},
+              ${entry.type}, ${entry.content}, ${JSON.stringify(entry.metadata ?? {})}::jsonb)
+    `
+  } catch (err) {
+    console.warn('[agenticMemory] saveMemoryVector falhou:', (err as Error).message)
+  }
+}
+
+// Busca textual simples (fallback sem embeddings)
+export async function searchMemory(
+  query: string,
+  siteId?: string,
+  limit = 5,
+): Promise<Array<{ id: string; type: string; content: string; createdAt: Date }>> {
+  try {
+    const results = await prisma.$queryRaw<Array<{ id: string; type: string; content: string; createdAt: Date }>>`
+      SELECT id, type, content, "createdAt"
+      FROM "MemoryVector"
+      WHERE (${siteId ?? null}::text IS NULL OR "siteId" = ${siteId ?? null})
+        AND content ILIKE ${'%' + query + '%'}
+      ORDER BY "createdAt" DESC
+      LIMIT ${limit}
+    `
+    return results
+  } catch {
+    return []
+  }
 }
