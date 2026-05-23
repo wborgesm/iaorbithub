@@ -1,5 +1,6 @@
 import { PrismaClient, Prisma } from '@prisma/client'
 import { Pool } from 'pg'
+import { triggerIFTTT } from './smartHome'
 import type { SessionContext, ToolCallResult } from '../types'
 
 const prisma = new PrismaClient()
@@ -48,6 +49,62 @@ export const TOOL_DEFINITIONS = [
           email: { type: 'string' },
         },
       },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'controlSmartHome',
+      description: 'Controla dispositivos da casa inteligente via Google Home/IFTTT. Liga/desliga luzes, aquecedor, etc.',
+      parameters: {
+        type: 'object',
+        properties: {
+          device: { type: 'string', description: 'Nome do dispositivo (ex: "luzes_sala", "aquecedor", "luzes_quarto")' },
+          action: { type: 'string', enum: ['on', 'off', 'toggle'], description: 'Acção a executar' },
+          value: { type: 'string', description: 'Valor opcional (ex: brilho "50%", temperatura "22")' },
+        },
+        required: ['device', 'action'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'sendWhatsApp',
+      description: 'Envia uma mensagem WhatsApp a um contacto.',
+      parameters: {
+        type: 'object',
+        properties: {
+          to: { type: 'string', description: 'Número de telefone com código de país (ex: +351912345678)' },
+          message: { type: 'string', description: 'Mensagem a enviar' },
+        },
+        required: ['to', 'message'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'createCalendarEvent',
+      description: 'Cria um evento no calendário Google de Wanderson.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Título do evento' },
+          date: { type: 'string', description: 'Data e hora ISO 8601 (ex: 2026-05-23T15:00:00)' },
+          duration: { type: 'number', description: 'Duração em minutos (default 60)' },
+          description: { type: 'string', description: 'Descrição opcional' },
+        },
+        required: ['title', 'date'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'listOrbitCapabilities',
+      description: 'Lista o que o ORBIT pode fazer para ajudar Wanderson no trabalho e na vida.',
+      parameters: { type: 'object', properties: {} },
     },
   },
 ]
@@ -116,6 +173,36 @@ export class ToolExecutionService {
       } else if (toolName === 'updateClientContact') {
         authorized = !!ctx.userId
         result = authorized ? await runUpdateContact(args.phone as string, args.email as string) : { success: false, error: 'Operation unauthorized for this user context.' }
+      } else if (toolName === 'controlSmartHome') {
+        authorized = true
+        const device = args.device as string
+        const action = args.action as string
+        const value = args.value as string | undefined
+        const eventName = `orbit_${device}_${action}`
+        const ok = await triggerIFTTT(eventName, value)
+        result = ok
+          ? { success: true, data: { device, action, value, eventName } }
+          : { success: false, error: 'IFTTT não respondeu. Verifica IFTTT_WEBHOOK_KEY e o applet.' }
+      } else if (toolName === 'sendWhatsApp') {
+        authorized = true
+        result = { success: false, error: 'WhatsApp não configurado ainda' }
+      } else if (toolName === 'createCalendarEvent') {
+        authorized = true
+        result = { success: false, error: 'Google Calendar não configurado ainda' }
+      } else if (toolName === 'listOrbitCapabilities') {
+        authorized = true
+        result = {
+          success: true,
+          data: {
+            capabilities: [
+              'Controlar casa inteligente (luzes, aquecedor) via Google Home/IFTTT',
+              'Responder perguntas e gerir contexto de conversa',
+              'WhatsApp (em breve)',
+              'Google Calendar (em breve)',
+              'Integração com AI Command Center e sites OrbitHub',
+            ],
+          },
+        }
       }
     } catch (err) {
       result = { success: false, error: err instanceof Error ? err.message : 'Tool execution error' }
