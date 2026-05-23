@@ -9,6 +9,7 @@ import simulationRouter from './routes/simulation'
 import autoTrainRouter from './routes/autoTrain'
 import evaluationRouter from './routes/evaluation'
 import adminApiRouter from './routes/adminApi'
+import orbitRouter from './routes/orbit'
 import { startEvaluationWorker } from './workers/evaluationWorker'
 import { generateToken, verifyToken, requireAdminAuth } from './middleware/adminAuth'
 
@@ -107,6 +108,7 @@ app.use('/api/simulation', evaluationRouter)
 
 // ─── Admin panel (requires auth) ─────────────────────────────────────────────
 app.use('/api/admin', requireAdminAuth, adminApiRouter)
+app.use('/orbit', requireAdminAuth, orbitRouter)
 
 // Serve admin static files
 app.use('/admin', requireAdminAuth, express.static(path.join(__dirname, '../public/admin')))

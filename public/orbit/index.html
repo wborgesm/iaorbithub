@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>ORBIT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .orbit-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 800px;
+      width: 100%;
+      margin: 0 auto;
+      min-height: 0;
+    }
+    header {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid #21262d;
+      background: #0d1117;
+    }
+    .orbit-brand {
+      font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, monospace;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+    }
+    .orbit-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #8b949e;
+    }
+    .orbit-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #3fb950;
+      box-shadow: 0 0 8px rgba(63, 185, 80, 0.6);
+    }
+    .orbit-dot.thinking {
+      background: #d29922;
+      box-shadow: 0 0 8px rgba(210, 153, 34, 0.5);
+      animation: pulse 1s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+    }
+    .msg {
+      max-width: 85%;
+      padding: 10px 14px;
+      font-size: 14px;
+      line-height: 1.55;
+      word-break: break-word;
+    }
+    .msg.user {
+      align-self: flex-end;
+      background: #1d4ed8;
+      color: #fff;
+      border-radius: 16px 4px 16px 16px;
+    }
+    .msg.bot {
+      align-self: flex-start;
+      background: #1e2433;
+      color: #e6edf3;
+      border-radius: 4px 16px 16px 16px;
+    }
+    .msg.bot a {
+      color: #58a6ff;
+      text-decoration: underline;
+    }
+    .typing-dots {
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+      padding: 4px 0;
+    }
+    .typing-dots span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #8b949e;
+      animation: bounce 1.2s ease-in-out infinite;
+    }
+    .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-4px); opacity: 1; }
+    }
+    footer {
+      flex-shrink: 0;
+      padding: 12px 16px 16px;
+      border-top: 1px solid #21262d;
+      background: #0d1117;
+    }
+    #form {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    #input {
+      flex: 1;
+      min-height: 44px;
+      max-height: 140px;
+      resize: none;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font: inherit;
+      font-size: 14px;
+      color: #e6edf3;
+      background: #161b22;
+      outline: none;
+    }
+    #input:focus { border-color: #388bfd; }
+    #input:disabled { opacity: 0.5; }
+    #send {
+      flex-shrink: 0;
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 12px;
+      background: #1d4ed8;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #send:disabled { opacity: 0.4; cursor: default; }
+    #send:not(:disabled):hover { background: #2563eb; }
+  </style>
+</head>
+<body>
+  <div class="orbit-wrap">
+    <header>
+      <span class="orbit-brand">ORBIT</span>
+      <div class="orbit-status">
+        <span class="orbit-dot" id="statusDot"></span>
+        <span id="statusText">Online</span>
+      </div>
+    </header>
+    <div id="messages" role="log" aria-live="polite"></div>
+    <footer>
+      <form id="form">
+        <textarea id="input" rows="1" placeholder="Mensagem para o ORBIT…" autocomplete="off"></textarea>
+        <button type="submit" id="send" disabled aria-label="Enviar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z"/>
+          </svg>
+        </button>
+      </form>
+    </footer>
+  </div>
+  <script>
+    (function () {
+      const STORAGE_KEY = 'orbit_chat_session_id'
+      const DOMAIN = 'orbit.internal'
+      const WELCOME = 'ORBIT online. Como posso ajudar, Wanderson?'
+
+      let sessionId = null
+      let sending = false
+
+      const messagesEl = document.getElementById('messages')
+      const inputEl = document.getElementById('input')
+      const sendBtn = document.getElementById('send')
+      const formEl = document.getElementById('form')
+      const statusDot = document.getElementById('statusDot')
+      const statusText = document.getElementById('statusText')
+
+      function setStatus(mode) {
+        if (mode === 'thinking') {
+          statusDot.classList.add('thinking')
+          statusText.textContent = 'A pensar…'
+        } else {
+          statusDot.classList.remove('thinking')
+          statusText.textContent = 'Online'
+        }
+      }
+
+      function renderBotText(text) {
+        const esc = String(text)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+        const md = esc.replace(
+          /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
+          '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>',
+        )
+        const linked = md.replace(
+          /(?<!href=")(https?:\/\/[^\s<>"&]+)/g,
+          '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>',
+        )
+        return linked.replace(/\n/g, '<br>')
+      }
+
+      function scrollBottom() {
+        messagesEl.scrollTop = messagesEl.scrollHeight
+      }
+
+      function addUser(text) {
+        const div = document.createElement('div')
+        div.className = 'msg user'
+        div.textContent = text
+        messagesEl.appendChild(div)
+        scrollBottom()
+      }
+
+      function addBot(htmlOrText, asHtml) {
+        const div = document.createElement('div')
+        div.className = 'msg bot'
+        if (asHtml) div.innerHTML = htmlOrText
+        else div.innerHTML = renderBotText(htmlOrText)
+        messagesEl.appendChild(div)
+        scrollBottom()
+        return div
+      }
+
+      function showTyping() {
+        const div = document.createElement('div')
+        div.className = 'msg bot typing'
+        div.innerHTML =
+          '<span class="typing-dots" aria-hidden="true"><span></span><span></span><span></span></span>'
+        messagesEl.appendChild(div)
+        scrollBottom()
+        return div
+      }
+
+      async function initSession() {
+        const saved = localStorage.getItem(STORAGE_KEY)
+        try {
+          const r = await fetch('/api/chat/session/domain', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ domain: DOMAIN, pageUrl: location.href }),
+          })
+          const data = await r.json()
+          if (!r.ok || !data.sessionId) throw new Error(data.error || 'Sessão inválida')
+          sessionId = data.sessionId
+          localStorage.setItem(STORAGE_KEY, sessionId)
+
+          if (!data.isActive) {
+            addBot('ORBIT está temporariamente indisponível.')
+            inputEl.disabled = true
+            sendBtn.disabled = true
+            return
+          }
+
+          if (!saved || saved !== sessionId) {
+            addBot(WELCOME)
+          }
+          sendBtn.disabled = false
+        } catch (e) {
+          addBot('Não foi possível iniciar a sessão. Confirme que está autenticado em /login.')
+          inputEl.disabled = true
+        }
+      }
+
+      async function sendMessage() {
+        if (sending || !sessionId) return
+        const msg = inputEl.value.trim()
+        if (!msg) return
+
+        sending = true
+        sendBtn.disabled = true
+        inputEl.disabled = true
+        inputEl.value = ''
+        inputEl.style.height = 'auto'
+        addUser(msg)
+        setStatus('thinking')
+        const typingEl = showTyping()
+
+        try {
+          const r = await fetch('/api/chat/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ sessionId, message: msg }),
+          })
+          const data = await r.json()
+          typingEl.remove()
+
+          if (data.offline) {
+            addBot(data.message || 'ORBIT temporariamente indisponível.')
+            inputEl.disabled = true
+          } else if (data.content) {
+            addBot(data.content)
+            inputEl.disabled = false
+            sendBtn.disabled = false
+          } else if (data.error) {
+            addBot('Ocorreu um erro. Tente novamente.')
+            inputEl.disabled = false
+            sendBtn.disabled = false
+          }
+        } catch (e) {
+          typingEl.remove()
+          addBot('Erro de ligação. Verifique a rede e tente de novo.')
+          inputEl.disabled = false
+          sendBtn.disabled = false
+        } finally {
+          sending = false
+          setStatus('online')
+          if (!inputEl.disabled) sendBtn.disabled = false
+          inputEl.focus()
+        }
+      }
+
+      formEl.addEventListener('submit', function (e) {
+        e.preventDefault()
+        sendMessage()
+      })
+
+      inputEl.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault()
+          sendMessage()
+        }
+      })
+
+      inputEl.addEventListener('input', function () {
+        inputEl.style.height = 'auto'
+        inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + 'px'
+      })
+
+      window.addEventListener('load', initSession)
+    })()
+  </script>
+</body>
+</html>
