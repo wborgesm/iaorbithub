@@ -7,6 +7,8 @@ import { requestApproval } from '../modules/humanApproval'
 import { generateReasoning } from '../modules/reactLoop'
 import { getRelevantKnowledge, savePendingKnowledge, detectCategory } from '../services/knowledge'
 import { callLLMAuto } from '../services/llm'
+import { maybeSummarizeSession, getPreviousSummary } from '../modules/sessionSummary'
+import { checkFrustration } from '../modules/frustrationDetector'
 import type { LLMMessage, SessionContext, SupportedProvider } from '../types'
 
 const router = Router()
@@ -53,6 +55,8 @@ router.post('/send', async (req: Request, res: Response) => {
 
     const { sessionId, message } = parsed.data
     const userId = req.headers['x-user-id'] as string | undefined
+    // Memória episódica: resumo de sessões anteriores do mesmo utilizador
+    let prevSummary: string | null = null
     const ctx: SessionContext = { sessionId, userId }
 
     const allowed = await checkRateLimit(`chat:rl:${sessionId}`, 25, 3600)
@@ -68,6 +72,8 @@ router.post('/send', async (req: Request, res: Response) => {
       },
     })
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' })
+
+    if (userId) prevSummary = await getPreviousSummary(userId, session.siteId)
 
     if (!session.site.isActive) {
       console.log(`[chat/send] Site ${session.site.domain} está INACTIVO — pedido interceptado`)
@@ -98,6 +104,10 @@ router.post('/send', async (req: Request, res: Response) => {
     }
     const knowledgeContext = await getRelevantKnowledge(session.siteId, message, (session.site as any).factsDocument, (session.site as any).restrictedTopics)
     let systemPrompt = baseSystemPrompt + knowledgeContext
+
+    if (prevSummary) {
+      systemPrompt += `\n\n## Contexto de visitas anteriores deste utilizador:\n${prevSummary}`
+    }
 
     const primaryProvider = session.site.activeProvider as SupportedProvider
 
@@ -244,6 +254,12 @@ Quando usar uma ferramenta, responda APENAS com o JSON da ferramenta. Após rece
         category: detectCategory(message + ' ' + finalContent),
       })
     }
+
+    void maybeSummarizeSession(sessionId)
+    void checkFrustration(sessionId, session.siteId, [
+      ...historyMessages,
+      { role: 'user', content: message },
+    ])
 
     return res.json({ content: finalContent, sessionId, agentType, offline: false })
   } catch (err) {
