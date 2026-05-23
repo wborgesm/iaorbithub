@@ -778,4 +778,40 @@ router.get('/memory/corrections', async (_req: Request, res: Response) => {
   }
 })
 
+router.get('/memory/metrics', async (_req: Request, res: Response) => {
+  try {
+    const [byType, embeddingStats, recentInsights] = await Promise.all([
+      prisma.$queryRaw<Array<{ type: string; count: bigint }>>`
+        SELECT type, COUNT(*) as count FROM "MemoryVector" GROUP BY type ORDER BY count DESC
+      `,
+      prisma.$queryRaw<Array<{ has_embedding: boolean; count: bigint }>>`
+        SELECT (embedding IS NOT NULL) as has_embedding, COUNT(*) as count
+        FROM "MemoryVector" GROUP BY has_embedding
+      `,
+      prisma.$queryRaw<Array<{ content: string; createdAt: Date; metadata: unknown }>>`
+        SELECT content, "createdAt", metadata FROM "MemoryVector"
+        WHERE type = 'insight'
+          AND "createdAt" > NOW() - INTERVAL '24 hours'
+        ORDER BY "createdAt" DESC LIMIT 20
+      `,
+    ])
+    return res.json({
+      byType:         byType.map(r => ({ type: r.type, count: Number(r.count) })),
+      embeddingStats: embeddingStats.map(r => ({ hasEmbedding: r.has_embedding, count: Number(r.count) })),
+      recentInsights,
+    })
+  } catch (err) {
+    return res.status(500).json({ error: err instanceof Error ? err.message : 'Erro' })
+  }
+})
+
+router.post('/memory/:id/mark-insight', async (req: Request, res: Response) => {
+  try {
+    await prisma.$executeRaw`UPDATE "MemoryVector" SET type = 'insight' WHERE id = ${req.params.id as string}`
+    return res.json({ ok: true })
+  } catch (err) {
+    return res.status(500).json({ error: err instanceof Error ? err.message : 'Erro' })
+  }
+})
+
 export default router
