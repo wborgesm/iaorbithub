@@ -9,6 +9,7 @@ import { getRelevantKnowledge, savePendingKnowledge, detectCategory } from '../s
 import { callLLMAuto } from '../services/llm'
 import { maybeSummarizeSession, getPreviousSummary } from '../modules/sessionSummary'
 import { checkFrustration } from '../modules/frustrationDetector'
+import { searchMemory } from '../modules/agenticMemory'
 import type { LLMMessage, SessionContext, SupportedProvider } from '../types'
 
 const router = Router()
@@ -125,7 +126,6 @@ router.post('/send', async (req: Request, res: Response) => {
 
     // Memória: injeta contexto de interacções passadas relevantes
     if ((session.site as any).enableReact) {
-      const { searchMemory } = await import('../modules/agenticMemory')
       const memories = await searchMemory(message, session.siteId, 3)
       if (memories.length > 0) {
         const memCtx = memories.map(m => `[${m.type}] ${m.content.slice(0, 200)}`).join('\n---\n')

@@ -1,4 +1,5 @@
 import { appendMemoryEntry } from './agenticMemory'
+import { sendAlert } from '../services/emailService'
 
 const SIGNALS = [
   'não funciona','nao funciona','não consigo','nao consigo',
@@ -49,6 +50,12 @@ export async function checkFrustration(
     })
 
     console.warn(`[frustration] score=${score} sessão=${sessionId}`)
+
+    const lastMsgs = messages.slice(-3).map(m => `${m.role}: ${m.content}`).join('\n')
+    void sendAlert(
+      `Frustração detectada — score ${score} (sessão ${sessionId})`,
+      `Site: ${siteId}\nScore: ${score}\n\nÚltimas mensagens:\n${lastMsgs}`,
+    )
   } catch (err) {
     console.warn('[frustration] Falhou:', (err as Error).message)
   }
