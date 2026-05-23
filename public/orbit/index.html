@@ -158,6 +158,34 @@
     }
     #send:disabled { opacity: 0.4; cursor: default; }
     #send:not(:disabled):hover { background: #2563eb; }
+    #btn-mic {
+      flex-shrink: 0;
+      width: 44px;
+      height: 44px;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      background: #161b22;
+      color: #8b949e;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s, background 0.2s, box-shadow 0.2s;
+    }
+    #btn-mic:hover { color: #e6edf3; border-color: #58a6ff; }
+    #btn-mic.voice-listening {
+      color: #3fb950; border-color: #3fb950;
+      box-shadow: 0 0 0 3px rgba(63,185,80,0.2);
+      animation: pulse 1s ease-in-out infinite;
+    }
+    #btn-mic.voice-speaking {
+      color: #58a6ff; border-color: #58a6ff;
+      box-shadow: 0 0 0 3px rgba(88,166,255,0.2);
+      animation: pulse 1s ease-in-out infinite;
+    }
+    #btn-mic.voice-thinking { color: #d29922; border-color: #d29922; }
+    #btn-mic:disabled { opacity: 0.35; cursor: default; }
+
     .header-actions { display: flex; align-items: center; gap: 12px; }
     #btn-settings {
       width: 36px; height: 36px; border: 1px solid #30363d; border-radius: 8px;
@@ -237,7 +265,12 @@
     <footer>
       <form id="form">
         <textarea id="input" rows="1" placeholder="Mensagem para o ORBIT…" autocomplete="off"></textarea>
-        <button type="submit" id="send" disabled aria-label="Enviar">
+        <button type="button" id="btn-mic" title="Ativar voz" aria-label="Microfone" aria-pressed="false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 1a4 4 0 0 1 4 4v7a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm-2 17.93A8.001 8.001 0 0 1 4.07 13H6.1a6 6 0 0 0 11.8 0h2.03A8.001 8.001 0 0 1 14 18.93V21h3a1 1 0 1 1 0 2H7a1 1 0 1 1 0-2h3v-2.07z"/>
+          </svg>
+        </button>
+                <button type="submit" id="send" disabled aria-label="Enviar">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z"/>
           </svg>
@@ -708,6 +741,176 @@
         configPanel.classList.remove('open')
         configOverlay.setAttribute('aria-hidden', 'true')
       }
+
+
+      // ── Conversa de Voz em Tempo Real ────────────────────────────────────────
+      ;(function initVoice() {
+        var micBtn = document.getElementById('btn-mic')
+        var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition
+        if (!SpeechRec) {
+          micBtn.disabled = true
+          micBtn.title = 'Voz nao suportada neste browser (use Chrome)'
+          return
+        }
+        var synth = window.speechSynthesis
+        var voiceActive = false
+        var isSpeaking = false
+        var recognition = null
+        // pre-load voices
+        if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = function() {}
+
+        function setMicState(s) {
+          micBtn.classList.remove('voice-listening', 'voice-speaking', 'voice-thinking')
+          if (s === 'listening') {
+            micBtn.classList.add('voice-listening')
+            micBtn.title = 'A ouvir... (diga "pode ir" para parar)'
+          } else if (s === 'speaking') {
+            micBtn.classList.add('voice-speaking')
+            micBtn.title = 'ORBIT a falar...'
+          } else if (s === 'thinking') {
+            micBtn.classList.add('voice-thinking')
+            micBtn.title = 'A pensar...'
+          } else {
+            micBtn.title = 'Ativar voz'
+          }
+        }
+
+        function stripMd(t) {
+          return t
+            .replace(/<[^>]+>/g, '')
+            .replace(/\*\*/g, '').replace(/\*/g, '')
+            .replace(/#{1,6} /g, '')
+            .replace(/`/g, '')
+        }
+
+        function speakText(text) {
+          return new Promise(function(resolve) {
+            synth.cancel()
+            var u = new SpeechSynthesisUtterance(stripMd(text))
+            u.lang = 'pt-PT'
+            u.rate = 1.05
+            var vs = synth.getVoices()
+            var pv = vs.find(function(v) { return v.lang && v.lang.startsWith('pt') }) || null
+            if (pv) u.voice = pv
+            u.onend = resolve
+            u.onerror = resolve
+            synth.speak(u)
+          })
+        }
+
+        function buildRec() {
+          var rec = new SpeechRec()
+          rec.lang = 'pt-PT'
+          rec.continuous = false
+          rec.interimResults = false
+          rec.maxAlternatives = 1
+
+          rec.onresult = async function(e) {
+            var t = (e.results[0][0].transcript || '').trim()
+            if (!t) {
+              if (voiceActive && !isSpeaking) startListening()
+              return
+            }
+            if (t.toLowerCase().includes('pode ir')) {
+              stopVoice()
+              addBot('Voz desativada. Ate logo!')
+              return
+            }
+            if (sending || !sessionId) {
+              if (voiceActive) setTimeout(startListening, 500)
+              return
+            }
+            setMicState('thinking')
+            setStatus('thinking')
+            sending = true
+            sendBtn.disabled = true
+            inputEl.disabled = true
+            addUser(t)
+            var typEl = showTyping()
+            try {
+              var r = await fetch('/api/chat/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ sessionId: sessionId, message: t })
+              })
+              var data = await r.json()
+              typEl.remove()
+              var reply = data.content || 'Nao consegui processar o pedido.'
+              addBot(reply)
+              isSpeaking = true
+              setMicState('speaking')
+              await speakText(reply)
+              isSpeaking = false
+            } catch(err) {
+              typEl.remove()
+              addBot('Erro de ligacao.')
+              isSpeaking = false
+            } finally {
+              sending = false
+              setStatus('online')
+              inputEl.disabled = false
+              sendBtn.disabled = false
+            }
+            if (voiceActive) startListening()
+          }
+
+          rec.onerror = function(e) {
+            if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+              addBot('Microfone bloqueado. Permite o acesso ao microfone nas definicoes do browser.')
+              stopVoice()
+              return
+            }
+            if (e.error === 'no-speech') {
+              if (voiceActive && !isSpeaking) startListening()
+              return
+            }
+            if (voiceActive && !isSpeaking) setTimeout(startListening, 500)
+          }
+
+          rec.onend = function() {
+            if (voiceActive && !isSpeaking) {
+              setTimeout(function() {
+                if (voiceActive && !isSpeaking) startListening()
+              }, 150)
+            }
+          }
+
+          return rec
+        }
+
+        function startListening() {
+          if (!voiceActive || isSpeaking) return
+          try {
+            if (recognition) { try { recognition.abort() } catch(ex) {} }
+            recognition = buildRec()
+            setMicState('listening')
+            recognition.start()
+          } catch(ex) {
+            setTimeout(function() { if (voiceActive && !isSpeaking) startListening() }, 300)
+          }
+        }
+
+        function stopVoice() {
+          voiceActive = false
+          isSpeaking = false
+          synth.cancel()
+          if (recognition) { try { recognition.abort() } catch(ex) {} recognition = null }
+          setMicState('idle')
+          micBtn.setAttribute('aria-pressed', 'false')
+        }
+
+        micBtn.addEventListener('click', function() {
+          if (voiceActive) {
+            stopVoice()
+          } else {
+            voiceActive = true
+            micBtn.setAttribute('aria-pressed', 'true')
+            addBot('Voz ativada. Pode falar! (diga "pode ir" para parar)')
+            startListening()
+          }
+        })
+      })()
 
       btnSettings.addEventListener('click', openConfigPanel)
       btnCloseConfig.addEventListener('click', closeConfigPanel)
