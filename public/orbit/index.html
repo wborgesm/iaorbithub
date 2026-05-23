@@ -452,8 +452,8 @@
           id: 'google',
           title: 'Google (Gmail + Calendar + Drive)',
           fields: [
-            { key: 'orbit.google_client_id', label: 'Client ID (OAuth)', type: 'text', plain: true, hint: 'Google Cloud → Credenciais OAuth → Aplicação Web. Depois clica Ligar Google.' },
-            { key: 'orbit.google_client_secret', label: 'Client Secret (OAuth)', type: 'password', hint: 'Redirect: https://ia.orbithubos.pt/api/orbit/google/callback' },
+            { key: 'orbit.google_client_id', label: 'Client ID (OAuth)', type: 'text', plain: true, hint: 'Cria em Google Cloud (links abaixo) → OAuth → Aplicação Web.' },
+            { key: 'orbit.google_client_secret', label: 'Client Secret (OAuth)', type: 'password', hint: 'Redirect URI obrigatório: https://ia.orbithubos.pt/api/orbit/google/callback' },
           ],
         },
         {
@@ -513,7 +513,15 @@
               </div>`
             }).join('')}
             ${g.id === 'bank' ? '<div class="bank-actions" id="bank-actions"></div>' : ''}
-            ${g.id === 'google' ? '<div class="bank-actions" id="google-actions"></div>' : ''}
+            ${g.id === 'google' ? `
+            <div class="google-setup" style="font-size:12px;color:#8b949e;margin:8px 0 12px;line-height:1.6">
+              <strong style="color:#e6edf3">APIs necessárias (activar no Cloud):</strong><br>
+              <a href="https://console.cloud.google.com/apis/library/gmail.googleapis.com" target="_blank" rel="noopener">Gmail API</a> ·
+              <a href="https://console.cloud.google.com/apis/library/calendar-json.googleapis.com" target="_blank" rel="noopener">Calendar API</a><br>
+              <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" rel="noopener">Ecrã de consentimento OAuth</a> ·
+              <a href="https://console.cloud.google.com/apis/credentials/oauthclient" target="_blank" rel="noopener">Criar credenciais OAuth (Web)</a>
+            </div>
+            <div class="bank-actions" id="google-actions"></div>` : ''}
             <button type="button" class="btn-save-group" data-group="${g.id}">Guardar</button>
             <div class="cfg-feedback" data-feedback="${g.id}"></div>
           </section>
