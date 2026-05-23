@@ -740,4 +740,40 @@ router.get('/memory/stats', (_req: Request, res: Response) => {
   return res.json(getMemoryStats())
 })
 
+router.get('/memory/reasoning', async (_req: Request, res: Response) => {
+  try {
+    const fs = await import('fs')
+    const path = await import('path')
+    const file = path.join(__dirname, '../../data/memory/reasoning.jsonl')
+    if (!fs.existsSync(file)) return res.json([])
+    const lines = fs.readFileSync(file, 'utf8').split('\n').filter(Boolean)
+    const entries = lines
+      .map(l => { try { return JSON.parse(l) } catch { return null } })
+      .filter((e): e is Record<string, unknown> => e !== null)
+      .reverse()
+      .slice(0, 50)
+    return res.json(entries)
+  } catch {
+    return res.json([])
+  }
+})
+
+router.get('/memory/corrections', async (_req: Request, res: Response) => {
+  try {
+    const fs = await import('fs')
+    const path = await import('path')
+    const file = path.join(__dirname, '../../data/memory/corrections.jsonl')
+    if (!fs.existsSync(file)) return res.json([])
+    const lines = fs.readFileSync(file, 'utf8').split('\n').filter(Boolean)
+    const entries = lines
+      .map(l => { try { return JSON.parse(l) } catch { return null } })
+      .filter((e): e is Record<string, unknown> => e !== null)
+      .reverse()
+      .slice(0, 50)
+    return res.json(entries)
+  } catch {
+    return res.json([])
+  }
+})
+
 export default router

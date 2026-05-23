@@ -111,6 +111,8 @@ input:checked ~ .toggle-label{color:#22c55e}
 
 .kn-tab{border-radius:8px!important}
 .kn-tab.active{background:#3b82f6!important;color:#fff!important;border-color:#3b82f6!important}
+.memory-tab{border-radius:8px!important}
+.memory-tab.active{background:#3b82f6!important;color:#fff!important;border-color:#3b82f6!important}
 .kn-row-pending{border-left:3px solid #f59e0b}
 .kn-row-approved{border-left:3px solid #22c55e}
 .kn-row-global{border-left:3px solid #a78bfa}
@@ -294,6 +296,10 @@ input:checked ~ .toggle-label{color:#22c55e}
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         Aprovações <span id="approvals-badge" style="display:none;background:#ef4444;color:#fff;border-radius:9999px;padding:1px 6px;font-size:10px;margin-left:4px">0</span>
       </button>
+    <button class="nav-item" onclick="show('memory')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
+      Memória IA
+    </button>
       <button class="nav-item" onclick="show('providers')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z"/></svg>
       Providers IA
@@ -738,6 +744,19 @@ input:checked ~ .toggle-label{color:#22c55e}
         <div id="approvals-list" style="margin-top:16px"></div>
       </div>
     </div>
+    <div class="section" id="section-memory">
+      <div class="section-header"><h2>Memória IA</h2>
+        <button class="btn btn-ghost btn-sm" onclick="loadMemory()">Actualizar</button>
+      </div>
+      <div id="memory-content" style="padding:16px">
+        <div id="memory-stats" style="color:#8b949e;font-size:13px;margin-bottom:16px">A carregar…</div>
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+          <button class="btn btn-sm memory-tab active" id="memory-tab-reasoning" onclick="switchMemoryTab('reasoning')">Raciocínios</button>
+          <button class="btn btn-sm memory-tab" id="memory-tab-corrections" onclick="switchMemoryTab('corrections')">Correções</button>
+        </div>
+        <div id="memory-list"></div>
+      </div>
+    </div>
 
     <div class="section" id="section-providers">
       <div class="table-container">
@@ -1049,7 +1068,7 @@ input:checked ~ .toggle-label{color:#22c55e}
 </div>
 
 <script>
-const titles = {overview:'Dashboard',sites:'Sites',scenarios:'Simulador de Treino',autotrain:'Auto-Treino IA vs IA',simulations:'Simulações',chat:'Testar Chat',knowledge:'Conhecimento IA',approvals:'Aprovações — Kill Switch',providers:'Providers IA',logs:'Logs LLM',conversations:'Conversas',analytics:'Analytics',health:'Saúde do Sistema',users:'Utilizadores'}
+const titles = {overview:'Dashboard',sites:'Sites',scenarios:'Simulador de Treino',autotrain:'Auto-Treino IA vs IA',simulations:'Simulações',chat:'Testar Chat',knowledge:'Conhecimento IA',approvals:'Aprovações — Kill Switch',memory:'Memória IA',providers:'Providers IA',logs:'Logs LLM',conversations:'Conversas',analytics:'Analytics',health:'Saúde do Sistema',users:'Utilizadores'}
 let chatSessionId = null, simPage = 1, logsPage = 1
 
 function show(section) {
@@ -1069,6 +1088,7 @@ const load = {
   chat: loadChatConfig,
   knowledge: loadKnowledge,
   approvals: loadApprovals,
+  memory: loadMemory,
   providers: loadProviders,
   logs: () => loadLogs(1),
   conversations: () => loadConversations(1),
@@ -1507,6 +1527,44 @@ async function approveAction(id, approved) {
   const r = await api('/approvals/' + id + (approved ? '/approve' : '/reject'), {method:'POST'})
   if (r?.error) { alert('Erro: ' + r.error); return }
   loadApprovals()
+}
+
+// ── Memória IA ───────────────────────────────────────────────────────────────
+let _memoryTab = 'reasoning'
+function switchMemoryTab(tab) {
+  _memoryTab = tab
+  document.querySelectorAll('.memory-tab').forEach(b => b.classList.remove('active'))
+  document.getElementById('memory-tab-' + tab)?.classList.add('active')
+  loadMemoryEntries()
+}
+async function loadMemory() {
+  const stats = await api('/memory/stats')
+  const el = document.getElementById('memory-stats')
+  if (stats) el.textContent = `${stats.reasoningLogs ?? 0} raciocínios | ${stats.corrections ?? 0} correções`
+  await loadMemoryEntries()
+}
+async function loadMemoryEntries() {
+  const list = document.getElementById('memory-list')
+  if (!list) return
+  list.innerHTML = '<div class="loading"><div class="spinner"></div></div>'
+  const path = _memoryTab === 'reasoning' ? '/memory/reasoning' : '/memory/corrections'
+  const data = await api(path)
+  if (!data) return
+  if (!data.length) {
+    list.innerHTML = '<p style="color:#8b949e;font-size:13px">Sem entradas registadas.</p>'
+    return
+  }
+  list.innerHTML = data.map(e => `
+    <div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:14px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:11px;color:#8b949e">${e.siteId ? 'site ' + e.siteId.slice(0,8) + '…' : '—'}</span>
+        <span style="font-size:11px;color:#8b949e">${e.timestamp ? new Date(e.timestamp).toLocaleString('pt') : ''}</span>
+      </div>
+      <div style="font-size:12px;color:#58a6ff;margin-bottom:6px;font-weight:600">Pergunta</div>
+      <div style="font-size:13px;color:#e6edf3;margin-bottom:10px;white-space:pre-wrap">${escapeHtml(String(e.input || ''))}</div>
+      <div style="font-size:12px;color:#3fb950;margin-bottom:6px;font-weight:600">${_memoryTab === 'reasoning' ? 'Raciocínio' : 'Resposta'}</div>
+      <div style="font-size:13px;color:#c9d1d9;white-space:pre-wrap">${escapeHtml(String(e.output || ''))}</div>
+    </div>`).join('')
 }
 
 async function loadProviders(silent = false) {
