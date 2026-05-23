@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express'
+import orbitBankingRouter from './orbitBanking'
 import { PrismaClient } from '@prisma/client'
 import { callLLMAuto } from '../services/llm'
 import { TOOL_DEFINITIONS, ToolExecutionService } from '../services/toolExecution'
@@ -297,5 +298,8 @@ router.delete('/config/:key', requireAdminAuth, async (req: Request, res: Respon
     return res.status(500).json({ error: err instanceof Error ? err.message : 'Erro' })
   }
 })
+
+// TrueLayer banking sub-routes
+router.use('/truelayer', orbitBankingRouter)
 
 export default router

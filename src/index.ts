@@ -110,7 +110,6 @@ app.get('/widget.js', (_req: Request, res: Response) => {
 // ─── Chat API (public — protected by session context) ────────────────────────
 app.use('/api/chat', chatRouter)
 app.use('/api/orbit', orbitVoiceRouter)
-app.use('/api/orbit/truelayer', orbitBankingRouter)
 app.use('/api/simulation', simulationRouter)
 app.use('/api/simulation', autoTrainRouter)
 app.use('/api/simulation', evaluationRouter)
