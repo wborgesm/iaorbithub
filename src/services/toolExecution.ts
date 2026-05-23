@@ -1,6 +1,7 @@
 import { PrismaClient, Prisma } from '@prisma/client'
 import { Pool } from 'pg'
 import { triggerIFTTT } from './smartHome'
+import { fetchBankBalance, fetchRecentTransactions } from './truelayerBanking'
 import type { SessionContext, ToolCallResult } from '../types'
 
 const prisma = new PrismaClient()
@@ -107,6 +108,28 @@ export const TOOL_DEFINITIONS = [
       parameters: { type: 'object', properties: {} },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'getBankBalance',
+      description: 'Consulta o saldo actual da conta Revolut de Wanderson.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getRecentTransactions',
+      description: 'Lista as transacções recentes da conta Revolut de Wanderson.',
+      parameters: {
+        type: 'object',
+        properties: {
+          days: { type: 'number', description: 'Número de dias a consultar (default: 30)' },
+          limit: { type: 'number', description: 'Máximo de transacções a devolver (default: 20)' },
+        },
+      },
+    },
+  },
 ]
 
 async function authorizeVehicleAction(userId: string, vehicleId: number): Promise<boolean> {
@@ -196,12 +219,31 @@ export class ToolExecutionService {
           data: {
             capabilities: [
               'Controlar casa inteligente (luzes, aquecedor) via Google Home/IFTTT',
+              'Consultar saldo e transacções Revolut (TrueLayer)',
               'Responder perguntas e gerir contexto de conversa',
               'WhatsApp (em breve)',
               'Google Calendar (em breve)',
               'Integração com AI Command Center e sites OrbitHub',
             ],
           },
+        }
+      } else if (toolName === 'getBankBalance') {
+        authorized = true
+        try {
+          const balance = await fetchBankBalance()
+          result = { success: true, data: balance }
+        } catch (err) {
+          result = { success: false, error: err instanceof Error ? err.message : 'Erro ao consultar saldo' }
+        }
+      } else if (toolName === 'getRecentTransactions') {
+        authorized = true
+        try {
+          const days = typeof args.days === 'number' ? args.days : 30
+          const limit = typeof args.limit === 'number' ? args.limit : 20
+          const items = await fetchRecentTransactions(days, limit)
+          result = { success: true, data: { items } }
+        } catch (err) {
+          result = { success: false, error: err instanceof Error ? err.message : 'Erro ao consultar transacções' }
         }
       }
     } catch (err) {

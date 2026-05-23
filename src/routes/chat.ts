@@ -136,7 +136,11 @@ router.post('/send', async (req: Request, res: Response) => {
     const availableTools = agentType === 'SUPORTE' && Array.isArray(session.site.availableTools)
       ? session.site.availableTools as string[]
       : []
-    const tools = TOOL_DEFINITIONS.filter(t => availableTools.includes(t.function.name))
+    const orbitExtraTools = session.site.domain === 'orbit.internal'
+      ? ['controlSmartHome', 'sendWhatsApp', 'createCalendarEvent', 'listOrbitCapabilities', 'getBankBalance', 'getRecentTransactions']
+      : []
+    const mergedToolNames = [...new Set([...availableTools, ...orbitExtraTools])]
+    const tools = TOOL_DEFINITIONS.filter(t => mergedToolNames.includes(t.function.name))
 
     const startTime = Date.now()
     let finalContent = ''
