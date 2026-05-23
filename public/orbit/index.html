@@ -217,6 +217,8 @@
     .cfg-feedback { font-size: 11px; margin-top: 6px; min-height: 16px; }
     .cfg-feedback.ok { color: #3fb950; }
     .cfg-feedback.err { color: #f85149; }
+    .bank-actions { margin-top: 8px; }
+    .bank-actions .btn-save-group + .btn-save-group { margin-top: 8px; }
   </style>
 </head>
 <body>
@@ -352,6 +354,14 @@
           if (!saved || saved !== sessionId) {
             addBot(WELCOME)
           }
+          const bankParam = new URLSearchParams(location.search).get('bank')
+          if (bankParam === 'connected') {
+            addBot('Revolut ligado com sucesso. Podes perguntar "qual é o meu saldo?" ou "quais foram as últimas compras?".')
+            history.replaceState(null, '', location.pathname)
+          } else if (bankParam === 'error') {
+            addBot('Não foi possível ligar o Revolut. Verifica o Client Secret e o Redirect URI no TrueLayer.')
+            history.replaceState(null, '', location.pathname)
+          }
           sendBtn.disabled = false
         } catch (e) {
           addBot('Não foi possível iniciar a sessão. Confirme que está autenticado em /login.')
@@ -463,6 +473,13 @@
             { key: 'orbit.gcal_refresh_token', label: 'Refresh Token', type: 'password' },
           ],
         },
+        {
+          id: 'bank',
+          title: 'Banco',
+          fields: [
+            { key: 'orbit.truelayer_secret', label: 'TrueLayer Client Secret', type: 'password' },
+          ],
+        },
       ]
 
       const configOverlay = document.getElementById('configOverlay')
@@ -495,6 +512,7 @@
                 </div>
               </div>`
             }).join('')}
+            ${g.id === 'bank' ? '<div class="bank-actions" id="bank-actions"></div>' : ''}
             <button type="button" class="btn-save-group" data-group="${g.id}">Guardar</button>
             <div class="cfg-feedback" data-feedback="${g.id}"></div>
           </section>
@@ -505,6 +523,55 @@
         })
         configBody.querySelectorAll('.btn-del').forEach(btn => {
           btn.addEventListener('click', () => deleteConfigKey(btn.dataset.key))
+        })
+        updateBankActions()
+      }
+
+      async function updateBankActions() {
+        const el = document.getElementById('bank-actions')
+        if (!el) return
+        let connected = false
+        try {
+          const r = await fetch('/api/orbit/truelayer/status', { credentials: 'same-origin' })
+          if (r.ok) {
+            const data = await r.json()
+            connected = !!data.connected
+          }
+        } catch { /* ignore */ }
+
+        if (connected) {
+          el.innerHTML = `
+            <p style="color:#3fb950;font-size:13px;margin:8px 0 12px">Revolut ✓ ligado</p>
+            <button type="button" class="btn-save-group" id="btn-bank-balance">Ver saldo</button>
+            <button type="button" class="btn-save-group" style="background:#21262d;margin-top:8px" id="btn-bank-disconnect">Desligar</button>
+            <div id="bank-balance-result" class="cfg-feedback"></div>`
+        } else {
+          el.innerHTML = `<button type="button" class="btn-save-group" id="btn-bank-connect">Ligar Revolut</button>`
+        }
+
+        document.getElementById('btn-bank-connect')?.addEventListener('click', () => {
+          window.location.href = '/api/orbit/truelayer/connect'
+        })
+        document.getElementById('btn-bank-balance')?.addEventListener('click', async () => {
+          const out = document.getElementById('bank-balance-result')
+          if (!out) return
+          out.textContent = 'A consultar…'
+          out.className = 'cfg-feedback'
+          try {
+            const r = await fetch('/api/orbit/truelayer/balance', { credentials: 'same-origin' })
+            const data = await r.json()
+            if (!r.ok) throw new Error(data.error || 'Erro')
+            out.textContent = `Saldo: ${data.available} ${data.currency} (disponível) · ${data.current} ${data.currency} (actual)`
+            out.className = 'cfg-feedback ok'
+          } catch (e) {
+            out.textContent = 'Erro ✗ ' + (e.message || '')
+            out.className = 'cfg-feedback err'
+          }
+        })
+        document.getElementById('btn-bank-disconnect')?.addEventListener('click', async () => {
+          if (!confirm('Desligar conta Revolut?')) return
+          await fetch('/api/orbit/truelayer/disconnect', { method: 'POST', credentials: 'same-origin' })
+          updateBankActions()
         })
       }
 

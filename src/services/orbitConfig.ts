@@ -35,6 +35,20 @@ export async function getOrbitConfig(shortKey: string): Promise<string> {
   )
 }
 
+export async function setOrbitConfig(shortKey: string, value: string): Promise<void> {
+  const fullKey = normalizeOrbitKey(shortKey)
+  await prisma.systemConfig.upsert({
+    where: { key: fullKey },
+    update: { value },
+    create: { key: fullKey, value },
+  })
+}
+
+export async function deleteOrbitConfig(shortKey: string): Promise<void> {
+  const fullKey = normalizeOrbitKey(shortKey)
+  await prisma.systemConfig.delete({ where: { key: fullKey } }).catch(() => {})
+}
+
 export async function listOrbitConfigs(): Promise<Array<{ key: string; value: string; hasValue: boolean; updatedAt: Date }>> {
   const rows = await prisma.systemConfig.findMany({
     where: { key: { startsWith: 'orbit.' } },
