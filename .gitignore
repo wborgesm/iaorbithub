@@ -3,3 +3,8 @@ dist/
 .env
 *.log
 .DS_Store
+data/snapshots/
+data/memory/
+public/admin/index.html.bak
+*.bak
+.cursorrules
