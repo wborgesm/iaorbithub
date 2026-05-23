@@ -149,10 +149,33 @@
   }
 
   // ── UI helpers ────────────────────────────────────────────────────────────────
+  function renderBotText(text) {
+    // 1. Escape HTML to prevent XSS
+    const esc = text
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    // 2. Markdown links [text](url)
+    const md = esc.replace(
+      /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline">$1</a>'
+    )
+    // 3. Bare URLs not already inside href
+    const linked = md.replace(
+      /(?<!href=")(https?:\/\/[^\s<>"&]+)/g,
+      '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline">$1</a>'
+    )
+    // 4. Newlines → <br>
+    return linked.replace(/\n/g, '<br>')
+  }
+
   function addMsg(role, text) {
     const div = document.createElement('div')
     div.className = 'aic-msg ' + role
-    div.textContent = text
+    if (role === 'bot') {
+      div.innerHTML = renderBotText(text)
+    } else {
+      div.textContent = text
+    }
     messages.appendChild(div)
     messages.scrollTop = messages.scrollHeight
     return div
