@@ -1055,27 +1055,37 @@
           })
         }
 
-        function buildRec() {
+        var listenerLock = false
+
+        function startListening() {
+          if (!voiceActive || isSpeaking || listenerLock) return
+          listenerLock = true
+          var old = recognition
+          recognition = null
+          if (old) { try { old.onend = null; old.abort() } catch(ex) {} }
+
           var rec = new SpeechRec()
           rec.lang = 'pt-PT'
           rec.continuous = false
           rec.interimResults = false
           rec.maxAlternatives = 1
+          recognition = rec
 
           rec.onresult = async function(e) {
             var t = (e.results[0][0].transcript || '').trim()
+            listenerLock = false
             if (!t) { if (voiceActive && !isSpeaking) startListening(); return }
 
             if (t.toLowerCase().includes('pode ir')) {
-              stopVoice()
-              addBot('Voz desativada. Ate logo!')
+              stopVoice(); addBot('Voz desativada. Ate logo!'); return
+            }
+
+            if (sending || !sessionId) {
+              if (voiceActive) setTimeout(startListening, 500)
               return
             }
 
-            if (sending || !sessionId) { if (voiceActive) setTimeout(startListening, 500); return }
-
-            setOrbState('thinking')
-            setStatus('thinking')
+            setOrbState('thinking'); setStatus('thinking')
             setTranscript(t, false)
             sending = true; sendBtn.disabled = true; inputEl.disabled = true
             addUser(t)
@@ -1100,13 +1110,16 @@
             } catch(err) {
               typEl.remove(); addBot('Erro de ligacao.'); isSpeaking = false
             } finally {
-              sending = false; setStatus('online'); inputEl.disabled = false; sendBtn.disabled = false
+              sending = false; setStatus('online')
+              inputEl.disabled = false; sendBtn.disabled = false
             }
 
             if (voiceActive) { setTranscript('Pode falar…', false); startListening() }
           }
 
           rec.onerror = function(e) {
+            if (rec !== recognition) return
+            listenerLock = false
             if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
               addBot('Microfone bloqueado. Permite o acesso nas definicoes do browser.')
               stopVoice(); return
@@ -1116,25 +1129,26 @@
           }
 
           rec.onend = function() {
+            if (rec !== recognition) return
+            listenerLock = false
             if (voiceActive && !isSpeaking) {
-              setTimeout(function() { if (voiceActive && !isSpeaking) startListening() }, 150)
+              setTimeout(function() {
+                if (voiceActive && !isSpeaking) startListening()
+              }, 200)
             }
           }
-          return rec
-        }
 
-        function startListening() {
-          if (!voiceActive || isSpeaking) return
           try {
-            if (recognition) { try { recognition.abort() } catch(ex) {} }
-            recognition = buildRec()
             setOrbState('listening')
-            recognition.start()
-          } catch(ex) { setTimeout(function() { if (voiceActive && !isSpeaking) startListening() }, 300) }
+            rec.start()
+          } catch(ex) {
+            listenerLock = false
+            recognition = null
+            setTimeout(function() { if (voiceActive && !isSpeaking) startListening() }, 300)
+          }
         }
-
         function stopVoice() {
-          voiceActive = false; isSpeaking = false; synth.cancel()
+          voiceActive = false; isSpeaking = false; listenerLock = false; synth.cancel()
           if (currentAudio) { currentAudio.pause(); currentAudio = null }
           if (recognition) { try { recognition.abort() } catch(ex) {} recognition = null }
           setOrbState('idle')
