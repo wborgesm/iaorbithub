@@ -1,0 +1,9 @@
+{
+  "lastAnalysis": 1779662031860,
+  "lastSummary": 1779662031860,
+  "seenErrorIds": [
+    "critical_loop",
+    "all_providers_down",
+    "orbit_session_fail"
+  ]
+}

@@ -320,3 +320,78 @@ process.once('SIGINT',  () => void shutdown('SIGINT'))
 - **[BD]** CRÍTICO: Nenhum provider LLM activo na DB
 
 > _Gerado por scripts/orbitMonitor.js — não editar manualmente esta secção_
+
+
+---
+
+## Esclarecimentos de âmbito — 2026-05-24
+
+### E1 — Worker de viagem é GENÉRICO (não só Madrid)
+
+**O que está errado:**
+- `initiativeEngine.ts:107` — `tripCoords()` hardcoded: só reconhece Madrid/Warner
+- `initiativeEngine.ts:149` — `checkCalendarTrips()` filtra por palavras-chave fixas (`madrid`, `warner`, `hotel`, `viagem`)
+- Resultado: viagens a Lisboa, Porto, Londres, etc. não disparam o worker
+
+**O que deve ser:**
+- Qualquer fact com `factType: 'trip'` e `dueDate` → dispara automaticamente (já funciona)
+- Qualquer evento de calendário com localização preenchida → dispara (independente do nome)
+- Geocoding: para clima usar Open-Meteo Geocoding API (gratuita) pelo nome da cidade
+- O guia temático (horários, atrações) deve ser gerado por LLM com base no destino, não hardcoded
+
+**Ficheiros a alterar (Cursor):**
+- `src/workers/initiativeEngine.ts` linha 107 — substituir `tripCoords()` por geocoding via fetch a `https://geocoding-api.open-meteo.com/v1/search?name={cidade}&count=1`
+- `src/workers/initiativeEngine.ts` linha 149 — remover filtro por palavras-chave; usar `ev.location` preenchido OU título com palavras como `voo`, `hotel`, `viagem`, `trip`, `reserva`
+- `src/services/weatherService.ts` — `fetchTripWeather` já aceita lat/lon dinâmico, não precisa mudar
+
+---
+
+### E2 — Telemetria de manutenção é GENÉRICA (não só a moto)
+
+**O que está certo:**
+- `maintenanceMonitor.ts` já é genérico — usa `listMaintenanceAssets(siteId)` sem hardcode
+- `rememberFact` aceita `asset`, `last_metric`, `threshold`, `metric_unit` — funciona para qualquer equipamento
+
+**O que está incompleto:**
+- Não existe ferramenta `updateAssetMetric` — quando o Wanderson diz "fiz mais 300km na moto", o ORBIT cria um NOVO facto em vez de actualizar o existente
+- `saveFact()` em `agenticMemory.ts` faz sempre INSERT — não há upsert por `asset`
+- Resultado: acumulam-se registos duplicados do mesmo asset com métricas diferentes
+
+**Ficheiro a alterar (Cursor):**
+- `src/modules/agenticMemory.ts` — adicionar `upsertMaintenanceFact(siteId, asset, last_metric)` que faz UPDATE do registo existente com aquele `asset` em vez de criar novo
+- `src/services/toolExecution.ts` — adicionar tool `updateAssetMetric`:
+  ```typescript
+  // Schema:
+  { name: 'updateAssetMetric', params: { asset: string, current_value: number, unit?: string } }
+  // Execução: chama upsertMaintenanceFact(); devolve estado actualizado (remaining até threshold)
+  ```
+- `src/modules/orbitContext.ts` regras — adicionar: "Quando o Wanderson reportar uso de um asset (km, horas, ciclos), chama updateAssetMetric antes de responder"
+
+---
+
+### E3 — ORBIT usa infra do admin mas NÃO é configurado nele (regra arquitectural)
+
+**O que está correcto (não mudar):**
+- ORBIT usa os mesmos providers LLM do `ProviderConfig` — partilha de infra é intencional
+- `/orbit` e `/admin` têm rotas separadas com autenticação separada
+- `adminApi.ts` não lê nem escreve chaves `orbit.*` no `SystemConfig`
+
+**Regra a enforçar (nunca quebrar):**
+- Chaves `orbit.*` em `SystemConfig` são EXCLUSIVAS da rota `/orbit` e do `orbitRouter`
+- O painel `/admin` nunca deve expor: Gmail OAuth tokens, WhatsApp session, TrueLayer secret, ElevenLabs key, contactos pessoais, factos da memória pessoal
+- Se um worker ORBIT precisar de config → lê via `getOrbitConfig()`, nunca via endpoint admin
+- Se o painel admin precisar de saber se ORBIT está activo → usa apenas flags booleanos sem dados pessoais (ex: `orbit_wa_connected: true/false`)
+
+**Acção imediata:**
+- Adicionar `orbit.admin_ip_whitelist` à whitelist do painel `/orbit` (feito — IP 94.132.42.166)
+- Quando o sistema estiver estável, migrar whitelist para variável de ambiente `ORBIT_ALLOWED_IPS` em vez de DB (mais seguro — não fica exposto em backups SQL)
+
+---
+
+## Diagnósticos auto — 2026-05-24 22:33
+
+- **[P4]** criticalAlertMonitor falso positivo (grep apanha o próprio log)
+- **[quota]** Todos os providers em cooldown simultâneo → ORBIT indisponível
+- **[chat]** Erro não-429 no endpoint chat/send
+
+> _Gerado por scripts/orbitMonitor.js — não editar manualmente esta secção_

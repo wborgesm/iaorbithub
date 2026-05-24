@@ -1,13 +1,12 @@
 # orbit-cursor-next.md
-**Gerado:** 2026-05-24 21:24 | **Por:** scripts/orbitMonitor.js
+**Gerado:** 2026-05-24 22:33 | **Por:** scripts/orbitMonitor.js
 **Plano completo:** /opt/ai-command-center/orbit-plan.md
 
 ## URGENTE (2 itens — resolver primeiro)
 - [P4] criticalAlertMonitor falso positivo (grep apanha o próprio log)
 - [quota] Todos os providers em cooldown simultâneo → ORBIT indisponível
 
-## Atenção (2 itens)
-- [P5] SIGTERM timeout → SIGKILL (Puppeteer bloqueia saída)
+## Atenção (1 itens)
 - [chat] Erro não-429 no endpoint chat/send
 
 ## Próximos passos do plano (ordem recomendada):
