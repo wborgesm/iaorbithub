@@ -61,16 +61,18 @@ export function isOnCooldown(provider: string): boolean {
 }
 
 // ─── Obter próxima chave disponível para um provider ─────────────────────────
-export async function getNextAvailableKey(provider: string): Promise<{ key: string; keyIdx: number; model: string } | null> {
+export async function getNextAvailableKey(provider: string, ignoreCooldown = false): Promise<{ key: string; keyIdx: number; model: string } | null> {
   const cfg = await getProviderConfig(provider)
   if (!cfg.isEnabled) return null
   const keys = [cfg.apiKey, cfg.apiKey2, cfg.apiKey3].filter(k => k && k.trim().length > 0)
   for (let i = 0; i < keys.length; i++) {
-    if (getKeyCooldownRemaining(provider, i) === 0) {
+    if (ignoreCooldown || getKeyCooldownRemaining(provider, i) === 0) {
       return { key: keys[i], keyIdx: i, model: cfg.model }
     }
   }
-  return null // todas as chaves em cooldown
+  // Se todas estão em cooldown mas ignoreCooldown=true, devolveu a primeira acima
+  // Se chegou aqui com ignoreCooldown=false, todas em cooldown
+  return null
 }
 
 // ─── Provider config ──────────────────────────────────────────────────────────

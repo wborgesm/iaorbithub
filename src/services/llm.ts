@@ -29,8 +29,11 @@ async function callWithKeyRotation(
   provider: SupportedProvider,
   messages: LLMMessage[],
   tools?: object[],
+  useCooldown = false,
 ): Promise<LLMResponse> {
-  const info = await getNextAvailableKey(provider)
+  // ignoreCooldown=true quando useCooldown=false (ORBIT/sites nunca bloqueiam em cooldown de chaves)
+  const ignoreCooldown = !useCooldown
+  const info = await getNextAvailableKey(provider, ignoreCooldown)
   if (!info) throw new Error(`${provider}: sem chave disponível (todas em cooldown ou não configuradas)`)
 
   const model = info.model || DEFAULT_MODELS[provider]
@@ -39,18 +42,22 @@ async function callWithKeyRotation(
     return await callWithKey(provider, info.key, model, messages, tools)
   } catch (e) {
     if (isQuotaError(e)) {
-      markKeyCooldown(provider, info.keyIdx)
-      console.warn(`[llm] ${provider} chave ${info.keyIdx + 1} em cooldown — a tentar próxima chave...`)
+      if (useCooldown) {
+        markKeyCooldown(provider, info.keyIdx)
+        console.warn(`[llm] ${provider} chave ${info.keyIdx + 1} em cooldown — a tentar próxima chave...`)
+      } else {
+        console.warn(`[llm] ${provider} chave ${info.keyIdx + 1} com 429 — a tentar próxima chave (sem marcar cooldown)...`)
+      }
       // Tentar próxima chave disponível
-      const info2 = await getNextAvailableKey(provider)
-      if (info2) {
+      const info2 = await getNextAvailableKey(provider, ignoreCooldown)
+      if (info2 && info2.keyIdx !== info.keyIdx) {
         try {
           return await callWithKey(provider, info2.key, model, messages, tools)
         } catch (e2) {
           if (isQuotaError(e2)) {
-            markKeyCooldown(provider, info2.keyIdx)
-            const info3 = await getNextAvailableKey(provider)
-            if (info3) return await callWithKey(provider, info3.key, model, messages, tools)
+            if (useCooldown) markKeyCooldown(provider, info2.keyIdx)
+            const info3 = await getNextAvailableKey(provider, ignoreCooldown)
+            if (info3 && info3.keyIdx !== info2.keyIdx) return await callWithKey(provider, info3.key, model, messages, tools)
           }
           throw e2
         }
@@ -130,8 +137,9 @@ export async function callLLM(
   provider: SupportedProvider,
   messages: LLMMessage[],
   tools?: object[],
+  useCooldown = false,
 ): Promise<LLMResponse> {
-  return callWithKeyRotation(provider, messages, tools)
+  return callWithKeyRotation(provider, messages, tools, useCooldown)
 }
 
 export async function streamLLM(
@@ -228,13 +236,16 @@ export async function callLLMAuto(
   for (const { provider } of providers) {
     attempted.push(provider)
     try {
-      const result = await callLLM(provider as SupportedProvider, messages, tools)
+      const result = await callLLM(provider as SupportedProvider, messages, tools, useCooldown)
       if (attempted.length > 1) console.info(`[llm-auto] Fallback: usou ${provider} (após: ${attempted.slice(0, -1).join(', ')})`)
       return { ...result, usedProvider: provider as SupportedProvider, attemptedProviders: attempted }
     } catch (e) {
       lastErr = e
       const errStatus = (e as any)?.status ?? (e as any)?.statusCode ?? 0
       const errMsg = e instanceof Error ? e.message : String(e)
+      if (isQuotaError(e) && provider === 'GROQ') {
+        console.warn('[llm-auto] Groq 429/quota — fallback secundário sem interromper sessão')
+      }
       if (useCooldown) {
         // Only mark cooldown for simulation/test calls
         if (isQuotaError(e)) {
