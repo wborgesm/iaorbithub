@@ -98,9 +98,9 @@ input:checked ~ .toggle-label{color:#22c55e}
 .pc-status.on{background:#0e3a1f;color:#4ade80}
 .pc-status.off{background:#1c2333;color:#8b949e}
 .pc-status.nokey{background:#3a2a00;color:#fbbf24}
-.pc-status.cooldown{background:#3a1a00;color:#fb923c;animation:pulse-badge 1.5s ease-in-out infinite}
-.provider-card.cooldown{border-color:#fb923c40;background:#1a0e00}
-@keyframes pulse-badge{0%,100%{opacity:1}50%{opacity:.6}}
+.pc-status.cooldown{background:#1c2333;color:#8b949e}
+.provider-card.cooldown{border-color:#30363d;background:#161b22}
+
 .pc-priority{display:flex;align-items:center;gap:4px;font-size:11px;color:#8b949e}
 .pc-priority-badge{background:#161b22;border:1px solid #30363d;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:700;color:#e6edf3}
 .pc-priority-btns{display:flex;flex-direction:column;gap:1px}
@@ -1611,13 +1611,13 @@ async function loadProviders(silent = false) {
   providers.forEach((p, idx) => {
     const onCooldown = p.cooldownMs > 0
     const minLeft = onCooldown ? Math.ceil(p.cooldownMs / 60000) : 0
-    const statusClass = onCooldown ? 'cooldown' : (!p.isEnabled ? (p.hasKey ? 'off' : 'nokey') : 'on')
+    const statusClass = (onCooldown || p.isEnabled) ? 'on' : (!p.isEnabled ? (p.hasKey ? 'off' : 'nokey') : 'on')
     const statusLabel = onCooldown
-      ? ` Aguardar ${minLeft}min`
+      ? 'Activo'
       : (p.isEnabled ? 'Activo' : (p.hasKey ? 'Inactivo' : 'Sem chave'))
 
     const cardClass = 'provider-card'
-      + (onCooldown ? ' cooldown' : (p.isEnabled ? ' enabled' : (p.hasKey ? '' : ' no-key')))
+      + (p.isEnabled || onCooldown ? ' enabled' : (p.hasKey ? '' : ' no-key'))
 
     const isFirst = idx === 0
     const isLast = idx === providers.length - 1
@@ -1643,7 +1643,7 @@ async function loadProviders(silent = false) {
         </div>
       </div>
       <div class="pc-key" style="display:flex;gap:6px;align-items:center">
-        ${p.keyStatuses ? p.keyStatuses.map((ks, i) => `<span title="Chave ${i+1}${ks.cooldownMs > 0 ? ' — cooldown ' + Math.ceil(ks.cooldownMs/60000) + 'min' : ''}" style="display:inline-flex;align-items:center;gap:3px;font-size:11px;color:${ks.cooldownMs > 0 ? '#f59e0b' : ks.hasKey ? '#22c55e' : '#4b5563'}"><span style="width:7px;height:7px;border-radius:50%;background:${ks.cooldownMs > 0 ? '#f59e0b' : ks.hasKey ? '#22c55e' : '#374151'};display:inline-block"></span>${ks.hasKey ? ks.masked : 'vazia'}</span>`).join('') : (p.hasKey ? p.apiKey : '— sem chave —')}
+        ${p.keyStatuses ? p.keyStatuses.map((ks, i) => `<span title="Chave ${i+1}" style="display:inline-flex;align-items:center;gap:3px;font-size:11px;color:${ks.hasKey ? '#22c55e' : '#4b5563'}"><span style="width:7px;height:7px;border-radius:50%;background:${ks.hasKey ? '#22c55e' : '#374151'};display:inline-block"></span>${ks.hasKey ? ks.masked : 'vazia'}</span>`).join('') : (p.hasKey ? p.apiKey : '— sem chave —')}
       </div>
       <div class="pc-actions">
         <label class="toggle" title="Activar/desactivar">
@@ -1652,7 +1652,7 @@ async function loadProviders(silent = false) {
           <span class="toggle-slider"></span>
         </label>
         <div style="display:flex;gap:6px">
-          ${onCooldown ? `<button class="btn btn-ghost btn-sm" onclick="clearCooldown('${p.provider}')" style="color:#fb923c">Limpar cooldown</button>` : ''}
+
           <button class="btn btn-ghost btn-sm" id="btn-test-${p.provider}" onclick='testProvider("${p.provider}")' ${(!p.isEnabled && !onCooldown) || !p.hasKey ? 'disabled' : ''}>Testar</button>
           <button class="btn btn-ghost btn-sm" onclick='openProviderModal(${JSON.stringify(p)})'>
             ${p.hasKey ? 'Editar' : 'Configurar'}
@@ -1667,14 +1667,7 @@ async function loadProviders(silent = false) {
   el.innerHTML = ''
   el.appendChild(grid)
 
-  // Add info bar if any on cooldown
-  const cooling = providers.filter(p => p.cooldownMs > 0)
-  if (cooling.length) {
-    const bar = document.createElement('div')
-    bar.style = 'margin:0 16px 8px;padding:10px 14px;background:#1a0e00;border:1px solid #fb923c40;border-radius:8px;font-size:12px;color:#fb923c'
-    bar.innerHTML = ` Auto-fallback activo — ${cooling.map(p => `<strong>${p.provider}</strong> em cooldown por ${Math.ceil(p.cooldownMs/60000)}min`).join(', ')}. O sistema usa automaticamente o próximo provider disponível.`
-    el.insertBefore(bar, el.firstChild)
-  }
+  // Cooldown info bar removed — auto-fallback works silently
 
   // Auto-refresh while any provider is on cooldown
   if (_providerRefreshTimer) clearInterval(_providerRefreshTimer)
@@ -2417,7 +2410,7 @@ async function checkProviderAlerts() {
   const badge = document.getElementById('provider-alert-badge')
   if (onCooldown.length) {
     badge.style.display = ''
-    badge.textContent = ` ${onCooldown.length} Provider${onCooldown.length>1?'s':''} em cooldown`
+    // cooldown badge suppressed — auto-fallback is silent
   } else {
     badge.style.display = 'none'
   }
