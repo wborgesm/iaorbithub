@@ -978,6 +978,18 @@
         waPollTimer = setInterval(updateWhatsAppActions, intervalMs || 3000)
       }
 
+      async function waForceRestart() {
+        const el = document.getElementById('wa-actions')
+        if (el) el.innerHTML = '<p style="color:#8b949e;font-size:13px">A forçar reinício… aguarda 5s</p>'
+        waStopPoll()
+        waLastState = null
+        waLastQr = null
+        try { await fetch('/api/orbit/whatsapp/restart', { method: 'POST', credentials: 'same-origin' }) } catch {}
+        await new Promise(r => setTimeout(r, 3000))
+        waStartPoll(2000)
+        updateWhatsAppActions()
+      }
+
       async function updateWhatsAppActions() {
         const el = document.getElementById('wa-actions')
         if (!el) { waStopPoll(); return }
@@ -1036,9 +1048,11 @@
               <p id="wa-qr-timer" style="font-size:12px;color:#d29922;margin:4px 0">
                 QR actualiza automaticamente &#8635;
               </p>
-              <p style="font-size:11px;color:#8b949e;margin:2px 0">&#9888; Usa o teu WhatsApp PESSOAL — não o da empresa</p>`
+              <p style="font-size:11px;color:#8b949e;margin:2px 0">&#9888; Usa o teu WhatsApp PESSOAL — não o da empresa</p>
+              <button type="button" id="btn-wa-force-restart-qr" style="margin-top:10px;background:#21262d;border:1px solid #444;color:#8b949e;font-size:12px;padding:6px 14px;border-radius:6px;cursor:pointer">&#8635; Forçar reinício</button>`
             // Remover badge "NOVO" após 2s
             setTimeout(() => { const b = document.getElementById('wa-qr-badge'); if(b) b.remove() }, 2000)
+            document.getElementById('btn-wa-force-restart-qr')?.addEventListener('click', waForceRestart)
           } else {
             // QR não mudou — só animar o timer para mostrar que está vivo
             const timer = document.getElementById('wa-qr-timer')
@@ -1052,7 +1066,8 @@
           if (!waPollTimer) waStartPoll(2000)
           if (stateChanged) {
             waLastState = data.state
-            el.innerHTML = `<p style="color:#8b949e;font-size:13px">A ligar WhatsApp Web… <span id="wa-dots">.</span></p>`
+            el.innerHTML = `<p style="color:#8b949e;font-size:13px">A ligar WhatsApp Web… <span id="wa-dots">.</span></p>
+              <button type="button" id="btn-wa-force-restart-conn" style="margin-top:10px;background:#21262d;border:1px solid #444;color:#8b949e;font-size:12px;padding:6px 14px;border-radius:6px;cursor:pointer">&#8635; Forçar reinício</button>`
             let dots = 1
             const dotsTimer = setInterval(() => {
               const d = document.getElementById('wa-dots')
@@ -1060,6 +1075,7 @@
               dots = (dots % 3) + 1
               d.textContent = '.'.repeat(dots)
             }, 500)
+            document.getElementById('btn-wa-force-restart-conn')?.addEventListener('click', waForceRestart)
           }
 
         } else {
@@ -1071,7 +1087,8 @@
             const err = data.error ? `<p style="color:#f85149;font-size:12px;margin:6px 0">${data.error}</p>` : ''
             el.innerHTML = `
               ${err}
-              <button type="button" class="btn-save-group" id="btn-wa-connect">Ligar WhatsApp Web</button>`
+              <button type="button" class="btn-save-group" id="btn-wa-connect">Ligar WhatsApp Web</button>
+              <button type="button" id="btn-wa-force-restart-idle" style="margin-top:8px;background:#21262d;border:1px solid #444;color:#8b949e;font-size:12px;padding:6px 14px;border-radius:6px;cursor:pointer;display:block;width:100%">&#8635; Forçar reinício (se travado)</button>`
             document.getElementById('btn-wa-connect')?.addEventListener('click', async () => {
               el.innerHTML = '<p style="color:#8b949e;font-size:13px">A gerar QR…</p>'
               waLastState = null; waLastQr = null
@@ -1079,6 +1096,7 @@
               waStartPoll(2000)
               updateWhatsAppActions()
             })
+            document.getElementById('btn-wa-force-restart-idle')?.addEventListener('click', waForceRestart)
           }
         }
       }
