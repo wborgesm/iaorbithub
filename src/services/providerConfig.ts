@@ -10,22 +10,34 @@ const TTL = 30_000
 // Chave de cooldown: 'GROQ:0', 'GROQ:1', 'GROQ:2' (índice da chave)
 // Provider inteiro em cooldown só quando todas as chaves estão esgotadas
 const keyCooldowns = new Map<string, number>()   // 'PROVIDER:keyIdx' → expiry
+const keyErrors   = new Map<string, { code: number; message: string; ts: number }>()
 const COOLDOWN_MS = 60 * 1000                     // 60 segundos por chave
 
-export function markProviderCooldown(provider: string, ms = COOLDOWN_MS) {
-  // Marca todas as chaves do provider em cooldown (chamado externamente pelo llm.ts)
-  for (let i = 0; i < 3; i++) keyCooldowns.set(`${provider}:${i}`, Date.now() + ms)
-  console.warn(`[provider-cb] ${provider} todas as chaves em cooldown por ${Math.round(ms / 60000)}min`)
+export function markProviderCooldown(provider: string, ms = COOLDOWN_MS, errorCode?: number, errorMsg?: string) {
+  for (let i = 0; i < 3; i++) {
+    const slot = `${provider}:${i}`
+    keyCooldowns.set(slot, Date.now() + ms)
+    if (errorCode !== undefined) keyErrors.set(slot, { code: errorCode, message: errorMsg || '', ts: Date.now() })
+  }
+  console.warn(`[provider-cb] ${provider} todas as chaves em cooldown por ${Math.round(ms / 60000)}min${errorCode ? ' (HTTP ' + errorCode + ')' : ''}`)
 }
 
-export function markKeyCooldown(provider: string, keyIdx: number, ms = COOLDOWN_MS) {
+export function markKeyCooldown(provider: string, keyIdx: number, ms = COOLDOWN_MS, errorCode?: number, errorMsg?: string) {
   const slot = `${provider}:${keyIdx}`
   keyCooldowns.set(slot, Date.now() + ms)
-  console.warn(`[provider-cb] ${provider} chave ${keyIdx + 1} em cooldown por ${Math.round(ms / 60000)}min`)
+  if (errorCode !== undefined) keyErrors.set(slot, { code: errorCode, message: errorMsg || '', ts: Date.now() })
+  console.warn(`[provider-cb] ${provider} chave ${keyIdx + 1} em cooldown por ${Math.round(ms / 60000)}min${errorCode ? ' (HTTP ' + errorCode + ')' : ''}`)
 }
 
 export function clearProviderCooldown(provider: string) {
-  for (let i = 0; i < 3; i++) keyCooldowns.delete(`${provider}:${i}`)
+  for (let i = 0; i < 3; i++) {
+    keyCooldowns.delete(`${provider}:${i}`)
+    keyErrors.delete(`${provider}:${i}`)
+  }
+}
+
+export function getKeyError(provider: string, keyIdx: number): { code: number; message: string; ts: number } | null {
+  return keyErrors.get(`${provider}:${keyIdx}`) ?? null
 }
 
 export function getKeyCooldownRemaining(provider: string, keyIdx: number): number {
@@ -108,11 +120,16 @@ export async function getProvidersStatus() {
   const rows = await prisma.providerConfig.findMany({ orderBy: { priority: 'asc' } })
   return rows.map(r => {
     const keys = [r.apiKey, (r as any).apiKey2 ?? '', (r as any).apiKey3 ?? '']
-    const keyStatuses = keys.map((k, i) => ({
-      hasKey:      k.length > 0,
-      masked:      k ? '••••' + k.slice(-4) : '',
-      cooldownMs:  getKeyCooldownRemaining(r.provider, i),
-    }))
+    const keyStatuses = keys.map((k, i) => {
+      const err = getKeyError(r.provider, i)
+      return {
+        hasKey:     k.length > 0,
+        masked:     k ? '••••' + k.slice(-4) : '',
+        cooldownMs: getKeyCooldownRemaining(r.provider, i),
+        errorCode:  err?.code ?? null,
+        errorMsg:   err?.message?.slice(0, 80) ?? null,
+      }
+    })
     const totalCooldown = getCooldownRemaining(r.provider)
     return {
       provider:      r.provider,

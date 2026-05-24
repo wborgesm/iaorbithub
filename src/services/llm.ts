@@ -228,11 +228,14 @@ export async function callLLMAuto(
       return { ...result, usedProvider: provider as SupportedProvider, attemptedProviders: attempted }
     } catch (e) {
       lastErr = e
+      const errStatus = (e as any)?.status ?? (e as any)?.statusCode ?? 0
+      const errMsg = e instanceof Error ? e.message : String(e)
       if (isQuotaError(e)) {
-        markProviderCooldown(provider)
+        markProviderCooldown(provider, undefined, 429, 'rate limit')
         console.warn(`[llm-auto] ${provider} todas as chaves esgotadas — tentando próximo provider...`)
       } else {
-        console.error(`[llm-auto] ${provider} erro:`, (e as Error).message)
+        markProviderCooldown(provider, undefined, errStatus || 500, errMsg.slice(0, 80))
+        console.error(`[llm-auto] ${provider} erro HTTP ${errStatus}:`, errMsg.slice(0, 100))
       }
     }
   }

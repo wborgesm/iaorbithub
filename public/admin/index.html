@@ -100,6 +100,10 @@ input:checked ~ .toggle-label{color:#22c55e}
 .pc-status.nokey{background:#3a2a00;color:#fbbf24}
 .pc-status.cooldown{background:#1c2333;color:#8b949e}
 .provider-card.cooldown{border-color:#30363d;background:#161b22}
+.key-dot-ok{background:#22c55e}
+.key-dot-cooldown{background:#f59e0b}
+.key-dot-error{background:#ef4444}
+.key-dot-empty{background:#374151}
 
 .pc-priority{display:flex;align-items:center;gap:4px;font-size:11px;color:#8b949e}
 .pc-priority-badge{background:#161b22;border:1px solid #30363d;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:700;color:#e6edf3}
@@ -1633,7 +1637,7 @@ async function loadProviders(silent = false) {
             <button onclick="moveProvider('${p.provider}',+1)" ${isLast ? 'disabled' : ''} title="Baixar prioridade"></button>
           </div>
           <div>
-            <div class="pc-name" style="color:${PROVIDER_COLORS[p.provider]}">${PROVIDER_ICONS[p.provider]} ${p.provider}</div>
+            <div class="pc-name" style="color:${PROVIDER_COLORS[p.provider]}">${PROVIDER_ICONS[p.provider]} ${p.provider}${p.keyStatuses && p.keyStatuses.some(ks => ks.cooldownMs > 0 && ks.errorCode && ks.errorCode !== 429) ? '<span title="Uma chave tem erro — verifica a chave" style="margin-left:6px;background:#ef444420;color:#ef4444;font-size:10px;padding:1px 5px;border-radius:4px;font-weight:600">!</span>' : ''}</div>
             <div class="pc-model">${p.model || 'modelo não configurado'}</div>
           </div>
         </div>
@@ -1643,7 +1647,16 @@ async function loadProviders(silent = false) {
         </div>
       </div>
       <div class="pc-key" style="display:flex;gap:6px;align-items:center">
-        ${p.keyStatuses ? p.keyStatuses.map((ks, i) => `<span title="Chave ${i+1}" style="display:inline-flex;align-items:center;gap:3px;font-size:11px;color:${ks.hasKey ? '#22c55e' : '#4b5563'}"><span style="width:7px;height:7px;border-radius:50%;background:${ks.hasKey ? '#22c55e' : '#374151'};display:inline-block"></span>${ks.hasKey ? ks.masked : 'vazia'}</span>`).join('') : (p.hasKey ? p.apiKey : '— sem chave —')}
+        ${p.keyStatuses ? p.keyStatuses.map((ks, i) => {
+          const isRateLimit = ks.cooldownMs > 0 && ks.errorCode === 429
+          const isError     = ks.cooldownMs > 0 && ks.errorCode && ks.errorCode !== 429
+          const dotClass    = !ks.hasKey ? 'key-dot-empty' : isError ? 'key-dot-error' : isRateLimit ? 'key-dot-cooldown' : 'key-dot-ok'
+          const dotColor    = !ks.hasKey ? '#4b5563' : isError ? '#ef4444' : isRateLimit ? '#f59e0b' : '#22c55e'
+          const hint        = isError ? \`Chave \${i+1} — erro HTTP \${ks.errorCode}\${ks.errorMsg ? ': ' + ks.errorMsg : ''}\`
+                            : isRateLimit ? \`Chave \${i+1} — limite de pedidos (auto-recupera)\`
+                            : \`Chave \${i+1}\${ks.hasKey ? ' — activa' : ' — vazia'}\`
+          return \`<span title="\${hint}" style="display:inline-flex;align-items:center;gap:3px;font-size:11px;color:\${dotColor}"><span class="\${dotClass}" style="width:7px;height:7px;border-radius:50%;display:inline-block"></span>\${ks.hasKey ? ks.masked : 'vazia'}</span>\`
+        }).join('') : (p.hasKey ? p.apiKey : '— sem chave —')}
       </div>
       <div class="pc-actions">
         <label class="toggle" title="Activar/desactivar">
