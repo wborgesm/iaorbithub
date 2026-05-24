@@ -966,53 +966,120 @@
       }
 
       let waPollTimer = null
+      let waLastQr = null
+      let waLastState = null
+
+      function waStopPoll() {
+        if (waPollTimer) { clearInterval(waPollTimer); waPollTimer = null }
+      }
+
+      function waStartPoll(intervalMs) {
+        waStopPoll()
+        waPollTimer = setInterval(updateWhatsAppActions, intervalMs || 3000)
+      }
 
       async function updateWhatsAppActions() {
         const el = document.getElementById('wa-actions')
-        if (!el) return
+        if (!el) { waStopPoll(); return }
+
         let data = { connected: false, state: 'idle', qrDataUrl: null, phone: null, error: null }
         try {
           const r = await fetch('/api/orbit/whatsapp/status', { credentials: 'same-origin' })
           if (r.ok) data = await r.json()
         } catch { /* ignore */ }
 
+        const stateChanged = data.state !== waLastState
+
         if (data.connected) {
-          el.innerHTML = `
-            <p style="color:#3fb950;font-size:13px;margin:8px 0">WhatsApp pessoal ORBIT ✓ ${data.phone ? '+' + data.phone : 'ligado'}</p>
-            <button type="button" class="btn-save-group" style="background:#21262d" id="btn-wa-disconnect">Desligar WhatsApp</button>`
+          waStopPoll()
+          waLastQr = null
+          if (stateChanged) {
+            waLastState = data.state
+            el.innerHTML = `
+              <p style="color:#3fb950;font-size:13px;margin:8px 0">&#10003; WhatsApp pessoal ORBIT ligado${data.phone ? ' — +' + data.phone : ''}</p>
+              <button type="button" class="btn-save-group" id="btn-wa-restart">Reiniciar ligação</button>
+              <button type="button" class="btn-save-group" style="background:#21262d;margin-top:8px" id="btn-wa-disconnect">Desligar (apaga sessão)</button>`
+            document.getElementById('btn-wa-restart')?.addEventListener('click', async () => {
+              el.innerHTML = '<p style="color:#8b949e">A reiniciar…</p>'
+              try { await fetch('/api/orbit/whatsapp/restart', { method: 'POST', credentials: 'same-origin' }) } catch {}
+              waLastState = null; waLastQr = null
+              waStartPoll(2000)
+              updateWhatsAppActions()
+            })
+            document.getElementById('btn-wa-disconnect')?.addEventListener('click', async () => {
+              if (!confirm('Desligar e apagar sessão? Vais precisar de novo QR.')) return
+              waStopPoll()
+              await fetch('/api/orbit/whatsapp/disconnect', { method: 'POST', credentials: 'same-origin' })
+              waLastState = null; waLastQr = null
+              updateWhatsAppActions()
+            })
+          }
+
         } else if (data.qrDataUrl) {
-          el.innerHTML = `
-            <p style="color:#8b949e;font-size:12px;margin:8px 0">Abre WhatsApp no telemóvel → ⋮ → Dispositivos ligados → Ligar dispositivo</p>
-            <img src="${data.qrDataUrl}" alt="QR WhatsApp" style="max-width:220px;border-radius:8px;display:block;margin:8px 0" />
-            <p style="font-size:12px;color:#d29922">À espera do scan…</p>`
+          // QR activo — polling agressivo para nunca mostrar QR expirado
+          if (!waPollTimer) waStartPoll(3000)
+
+          if (data.qrDataUrl !== waLastQr || stateChanged) {
+            waLastQr = data.qrDataUrl
+            waLastState = data.state
+            // Primeira renderização ou QR mudou — recriar bloco
+            el.innerHTML = `
+              <p style="color:#8b949e;font-size:12px;margin:8px 0">
+                Abre WhatsApp → ⋮ → Dispositivos ligados → Ligar dispositivo
+              </p>
+              <div style="position:relative;display:inline-block">
+                <img id="wa-qr-img" src="${data.qrDataUrl}" alt="QR WhatsApp"
+                  style="max-width:220px;border-radius:8px;display:block;margin:8px 0;border:2px solid #238636" />
+                <div id="wa-qr-badge" style="position:absolute;top:6px;right:6px;background:#238636;color:#fff;
+                  font-size:10px;padding:2px 6px;border-radius:4px;font-weight:600">NOVO</div>
+              </div>
+              <p id="wa-qr-timer" style="font-size:12px;color:#d29922;margin:4px 0">
+                QR actualiza automaticamente &#8635;
+              </p>
+              <p style="font-size:11px;color:#8b949e;margin:2px 0">&#9888; Usa o teu WhatsApp PESSOAL — não o da empresa</p>`
+            // Remover badge "NOVO" após 2s
+            setTimeout(() => { const b = document.getElementById('wa-qr-badge'); if(b) b.remove() }, 2000)
+          } else {
+            // QR não mudou — só animar o timer para mostrar que está vivo
+            const timer = document.getElementById('wa-qr-timer')
+            if (timer) {
+              timer.style.opacity = '0.5'
+              setTimeout(() => { if(timer) timer.style.opacity = '1' }, 150)
+            }
+          }
+
         } else if (data.state === 'connecting') {
-          el.innerHTML = `<p style="color:#8b949e;font-size:13px">A ligar WhatsApp Web…</p>`
+          if (!waPollTimer) waStartPoll(2000)
+          if (stateChanged) {
+            waLastState = data.state
+            el.innerHTML = `<p style="color:#8b949e;font-size:13px">A ligar WhatsApp Web… <span id="wa-dots">.</span></p>`
+            let dots = 1
+            const dotsTimer = setInterval(() => {
+              const d = document.getElementById('wa-dots')
+              if (!d) { clearInterval(dotsTimer); return }
+              dots = (dots % 3) + 1
+              d.textContent = '.'.repeat(dots)
+            }, 500)
+          }
+
         } else {
-          const err = data.error ? `<p style="color:#f85149;font-size:12px">${data.error}</p>` : ''
-          el.innerHTML = `
-            ${err}
-            <button type="button" class="btn-save-group" id="btn-wa-connect">Ligar WhatsApp Web</button>`
-        }
-
-        document.getElementById('btn-wa-connect')?.addEventListener('click', async () => {
-          el.innerHTML = '<p style="color:#8b949e">A gerar QR…</p>'
-          try {
-            await fetch('/api/orbit/whatsapp/connect', { method: 'POST', credentials: 'same-origin' })
-          } catch { /* ignore */ }
-          if (waPollTimer) clearInterval(waPollTimer)
-          waPollTimer = setInterval(updateWhatsAppActions, 2500)
-          updateWhatsAppActions()
-        })
-        document.getElementById('btn-wa-disconnect')?.addEventListener('click', async () => {
-          if (!confirm('Desligar WhatsApp Web deste servidor?')) return
-          if (waPollTimer) clearInterval(waPollTimer)
-          await fetch('/api/orbit/whatsapp/disconnect', { method: 'POST', credentials: 'same-origin' })
-          updateWhatsAppActions()
-        })
-
-        if (data.connected && waPollTimer) {
-          clearInterval(waPollTimer)
-          waPollTimer = null
+          // idle ou error — sem polling
+          waStopPoll()
+          waLastQr = null
+          if (stateChanged) {
+            waLastState = data.state
+            const err = data.error ? `<p style="color:#f85149;font-size:12px;margin:6px 0">${data.error}</p>` : ''
+            el.innerHTML = `
+              ${err}
+              <button type="button" class="btn-save-group" id="btn-wa-connect">Ligar WhatsApp Web</button>`
+            document.getElementById('btn-wa-connect')?.addEventListener('click', async () => {
+              el.innerHTML = '<p style="color:#8b949e;font-size:13px">A gerar QR…</p>'
+              waLastState = null; waLastQr = null
+              try { await fetch('/api/orbit/whatsapp/connect', { method: 'POST', credentials: 'same-origin' }) } catch {}
+              waStartPoll(2000)
+              updateWhatsAppActions()
+            })
+          }
         }
       }
 
