@@ -10,11 +10,21 @@ import { callLLMAuto } from '../services/llm'
 import { maybeSummarizeSession, getPreviousSummary } from '../modules/sessionSummary'
 import { checkFrustration } from '../modules/frustrationDetector'
 import { searchMemory } from '../modules/agenticMemory'
+import { injectOrbitFacts } from '../modules/orbitContext'
+import {
+  toolRequiresConfirmation,
+  createPendingConfirmation,
+  consumePendingConfirmation,
+  formatToolResult,
+} from '../modules/orbitConfirmation'
+import { recordHabitApproval } from '../modules/orbitHabits'
 import type { LLMMessage, SessionContext, SupportedProvider } from '../types'
 
 const router = Router()
 const prisma = new PrismaClient()
 const toolService = new ToolExecutionService()
+
+export const ORBIT_SESSION_TTL_MS = 8 * 60 * 60 * 1000
 
 const SUPORTE_PROMPT_TEMPLATE = `Você é um assistente de suporte técnico especializado. Seu objetivo é ajudar clientes a resolver problemas técnicos de forma eficiente e empática.
 - Resolva dúvidas sobre rastreamento de veículos, comandos, alertas e faturação
@@ -47,6 +57,27 @@ const SendMessageSchema = z.object({
   message: z.string().min(1).max(4000),
 })
 
+const ConfirmActionSchema = z.object({
+  confirmationId: z.string(),
+  sessionId: z.string(),
+  approved: z.boolean(),
+})
+
+async function findReusableSession(siteId: string, userId?: string, sessionId?: string) {
+  const cutoff = new Date(Date.now() - ORBIT_SESSION_TTL_MS)
+  if (sessionId) {
+    const byId = await prisma.chatSession.findUnique({ where: { id: sessionId } })
+    if (byId && byId.siteId === siteId && byId.createdAt >= cutoff) return byId
+  }
+  if (userId) {
+    return prisma.chatSession.findFirst({
+      where: { siteId, userId, createdAt: { gte: cutoff } },
+      orderBy: { createdAt: 'desc' },
+    })
+  }
+  return null
+}
+
 router.post('/send', async (req: Request, res: Response) => {
   try {
     const parsed = SendMessageSchema.safeParse(req.body)
@@ -73,6 +104,8 @@ router.post('/send', async (req: Request, res: Response) => {
       },
     })
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada' })
+
+    ctx.siteId = session.siteId
 
     if (userId) prevSummary = await getPreviousSummary(userId, session.siteId)
 
@@ -110,6 +143,8 @@ router.post('/send', async (req: Request, res: Response) => {
       systemPrompt += `\n\n## Contexto de visitas anteriores deste utilizador:\n${prevSummary}`
     }
 
+    systemPrompt = await injectOrbitFacts(systemPrompt, session.siteId, session.site.domain)
+
     const primaryProvider = session.site.activeProvider as SupportedProvider
 
     const historyMessages: LLMMessage[] = session.messages.map(m => ({
@@ -137,13 +172,14 @@ router.post('/send', async (req: Request, res: Response) => {
       ? session.site.availableTools as string[]
       : []
     const orbitExtraTools = session.site.domain === 'orbit.internal'
-      ? ['controlSmartHome', 'sendWhatsApp', 'createCalendarEvent', 'listCalendarEvents', 'listOrbitCapabilities', 'getBankBalance', 'getRecentTransactions', 'readEmails', 'readEmailContent', 'listEmailFolders', 'sendEmail']
+      ? ['controlSmartHome', 'listHomeDevices', 'getHomeDeviceState', 'sendWhatsApp', 'createCalendarEvent', 'listCalendarEvents', 'listOrbitCapabilities', 'getBankBalance', 'getRecentTransactions', 'readEmails', 'readEmailContent', 'listEmailFolders', 'sendEmail', 'rememberFact', 'listFacts']
       : []
     const mergedToolNames = [...new Set([...availableTools, ...orbitExtraTools])]
     const tools = TOOL_DEFINITIONS.filter(t => mergedToolNames.includes(t.function.name))
 
     const startTime = Date.now()
     let finalContent = ''
+    let pendingConfirmation: { id: string; description: string; tool: string } | null = null
     let promptTokens = 0
     let completionTokens = 0
     let usedProvider = primaryProvider
@@ -200,6 +236,22 @@ Quando usar uma ferramenta, responda APENAS com o JSON da ferramenta. Após rece
         if (toolMatch) {
           try {
             const parsed = JSON.parse(toolMatch[0]) as { tool: string; args: Record<string, unknown> }
+            if (await toolRequiresConfirmation(parsed.tool, session.site.domain, parsed.args)) {
+              const pending = createPendingConfirmation({
+                sessionId,
+                siteId: session.siteId,
+                toolName: parsed.tool,
+                args: parsed.args,
+                userMessageId: userMsg.id,
+              })
+              pendingConfirmation = {
+                id: pending.id,
+                description: pending.description,
+                tool: parsed.tool,
+              }
+              finalContent = `Preciso da tua confirmação: ${pending.description}`
+              break
+            }
             // Human-in-the-loop: aguarda aprovação do admin se activo no site
             if ((session.site as any).enableHumanApproval) {
               const approved = await requestApproval(sessionId, session.siteId, parsed.tool, parsed.args)
@@ -267,7 +319,13 @@ Quando usar uma ferramenta, responda APENAS com o JSON da ferramenta. Após rece
       { role: 'user', content: message },
     ])
 
-    return res.json({ content: finalContent, sessionId, agentType, offline: false })
+    return res.json({
+      content: finalContent,
+      sessionId,
+      agentType,
+      offline: false,
+      pendingConfirmation,
+    })
   } catch (err) {
     console.error('[chat/send]', err)
     const e = err as any
@@ -279,6 +337,63 @@ Quando usar uma ferramenta, responda APENAS com o JSON da ferramenta. Após rece
         offline: false,
       })
     }
+    return res.status(500).json({ error: 'Erro interno do servidor' })
+  }
+})
+
+router.post('/confirm', async (req: Request, res: Response) => {
+  try {
+    const parsed = ConfirmActionSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Pedido inválido', details: parsed.error.issues })
+    }
+
+    const { confirmationId, sessionId, approved } = parsed.data
+    const pending = consumePendingConfirmation(confirmationId)
+    if (!pending || pending.sessionId !== sessionId) {
+      return res.status(404).json({ error: 'Confirmação expirada ou inválida' })
+    }
+
+    const session = await prisma.chatSession.findUnique({
+      where: { id: sessionId },
+      include: { site: true },
+    })
+    if (!session) return res.status(404).json({ error: 'Sessão não encontrada' })
+
+    let finalContent: string
+    if (!approved) {
+      finalContent = 'Operação cancelada. Não executei nada.'
+    } else {
+      const ctx: SessionContext = {
+        sessionId,
+        siteId: session.siteId,
+        userId: session.userId ?? undefined,
+      }
+      const toolResult = await toolService.execute(
+        pending.toolName,
+        pending.args,
+        ctx,
+        pending.userMessageId,
+      )
+      finalContent = formatToolResult(pending.toolName, toolResult)
+      const count = await recordHabitApproval(pending.toolName, pending.args)
+      if (count === 3) {
+        finalContent += '\n\n_Nota: esta acção passa a executar sem confirmação quando pedires o mesmo de novo._'
+      }
+    }
+
+    await prisma.chatMessage.create({
+      data: {
+        sessionId,
+        role: 'ASSISTANT',
+        content: finalContent,
+        tokenCount: estimateTokens(finalContent),
+      },
+    })
+
+    return res.json({ content: finalContent, sessionId })
+  } catch (err) {
+    console.error('[chat/confirm]', err)
     return res.status(500).json({ error: 'Erro interno do servidor' })
   }
 })
@@ -310,12 +425,28 @@ export default router
 
 router.post('/session/domain', async (req: Request, res: Response) => {
   try {
-    const { domain, userId, pageUrl } = req.body as { domain: string; userId?: string; pageUrl?: string }
+    const { domain, userId, pageUrl, sessionId: requestedSessionId } = req.body as {
+      domain: string
+      userId?: string
+      pageUrl?: string
+      sessionId?: string
+    }
     if (!domain) return res.status(400).json({ error: 'domain obrigatório' })
 
     const clean = domain.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase()
     const site = await prisma.aISite.findFirst({ where: { domain: clean } })
     if (!site) return res.status(404).json({ error: 'Site não configurado' })
+
+    const reused = await findReusableSession(site.id, userId, requestedSessionId)
+    if (reused) {
+      return res.json({
+        sessionId: reused.id,
+        siteId: site.id,
+        isActive: site.isActive,
+        agentType: site.agentType,
+        reused: true,
+      })
+    }
 
     const session = await prisma.chatSession.create({
       data: { siteId: site.id, userId, visitorIp: req.ip, pageUrl },
@@ -326,6 +457,7 @@ router.post('/session/domain', async (req: Request, res: Response) => {
       siteId: site.id,
       isActive: site.isActive,
       agentType: site.agentType,
+      reused: false,
     })
   } catch (err) {
     console.error('[chat/session/domain]', err)

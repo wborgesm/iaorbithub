@@ -1,11 +1,18 @@
 import { PrismaClient, Prisma } from '@prisma/client'
 import { Pool } from 'pg'
 import { triggerIFTTT } from './smartHome'
+import {
+  isHomeAssistantConfigured,
+  controlHomeAssistantEntity,
+  listControllableDevices,
+  getEntityState,
+} from './homeAssistant'
 import { fetchBankBalance, fetchRecentTransactions } from './truelayerBanking'
 import { isGoogleConnected } from './googleAuth'
 import { readEmails as gmailReadEmails, readEmailById as gmailReadById, sendEmail, listGmailLabels } from './gmailService'
 import { readEmails as imapReadEmails, readEmailById as imapReadById, listEmailFolders as imapListFolders } from './emailReader'
 import { listCalendarEvents, createCalendarEvent as createGCalEvent } from './calendarService'
+import { appendMemoryEntry, listFacts } from '../modules/agenticMemory'
 
 async function gmailViaApi(): Promise<boolean> {
   try {
@@ -68,15 +75,38 @@ export const TOOL_DEFINITIONS = [
     type: 'function',
     function: {
       name: 'controlSmartHome',
-      description: 'Controla dispositivos da casa inteligente via Google Home/IFTTT. Liga/desliga luzes, aquecedor, etc.',
+      description: 'Controla dispositivos da casa via Home Assistant (preferido) ou IFTTT. Usa entity_id (ex: light.sala) ou nome amigável.',
       parameters: {
         type: 'object',
         properties: {
-          device: { type: 'string', description: 'Nome do dispositivo (ex: "luzes_sala", "aquecedor", "luzes_quarto")' },
+          device: { type: 'string', description: 'entity_id HA (light.sala) ou nome do dispositivo' },
+          entity_id: { type: 'string', description: 'Alternativa: entity_id directo do Home Assistant' },
           action: { type: 'string', enum: ['on', 'off', 'toggle'], description: 'Acção a executar' },
-          value: { type: 'string', description: 'Valor opcional (ex: brilho "50%", temperatura "22")' },
+          value: { type: 'string', description: 'Valor opcional (ex: brilho 50%, temperatura 22)' },
         },
-        required: ['device', 'action'],
+        required: ['action'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'listHomeDevices',
+      description: 'Lista dispositivos da casa no Home Assistant (luzes, switches, clima, etc.)',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getHomeDeviceState',
+      description: 'Estado actual de um dispositivo Home Assistant',
+      parameters: {
+        type: 'object',
+        properties: {
+          entity_id: { type: 'string', description: 'entity_id (ex: light.sala)' },
+        },
+        required: ['entity_id'],
       },
     },
   },
@@ -84,7 +114,7 @@ export const TOOL_DEFINITIONS = [
     type: 'function',
     function: {
       name: 'sendWhatsApp',
-      description: 'Envia uma mensagem WhatsApp a um contacto.',
+      description: 'Envia WhatsApp pela conta PESSOAL do Wanderson (ORBIT). Nunca usar WhatsApp empresarial OrbitHub/Autotrack/Rinosat.',
       parameters: {
         type: 'object',
         properties: {
@@ -209,6 +239,33 @@ export const TOOL_DEFINITIONS = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'rememberFact',
+      description: 'Guarda um facto ou preferência pessoal do utilizador para usar no futuro. Usa quando o utilizador partilha informação sobre si próprio, preferências, rotinas, ou qualquer facto relevante.',
+      parameters: {
+        type: 'object',
+        properties: {
+          fact: { type: 'string', description: 'O facto ou preferência a guardar. Ser específico e conciso.' },
+          category: {
+            type: 'string',
+            enum: ['preferencia', 'trabalho', 'pessoal', 'rotina', 'financeiro', 'saude', 'outro'],
+            description: 'Categoria do facto',
+          },
+        },
+        required: ['fact', 'category'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'listFacts',
+      description: 'Lista factos e preferências pessoais guardados sobre o utilizador.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
 ]
 
 async function authorizeVehicleAction(userId: string, vehicleId: number): Promise<boolean> {
@@ -306,17 +363,50 @@ export class ToolExecutionService {
         result = authorized ? await runUpdateContact(args.phone as string, args.email as string) : { success: false, error: 'Operation unauthorized for this user context.' }
       } else if (toolName === 'controlSmartHome') {
         authorized = true
-        const device = args.device as string
-        const action = args.action as string
+        const action = args.action as 'on' | 'off' | 'toggle'
         const value = args.value as string | undefined
-        const eventName = `orbit_${device}_${action}`
-        const ok = await triggerIFTTT(eventName, value)
-        result = ok
-          ? { success: true, data: { device, action, value, eventName } }
-          : { success: false, error: 'IFTTT não respondeu. Verifica IFTTT_WEBHOOK_KEY e o applet.' }
+        const target = (args.entity_id as string) || (args.device as string) || ''
+        if (!target) {
+          result = { success: false, error: 'Indica device ou entity_id' }
+        } else if (await isHomeAssistantConfigured()) {
+          const ha = await controlHomeAssistantEntity(target, action, value)
+          result = ha.ok
+            ? { success: true, data: { device: target, entity_id: ha.entity_id, action, via: 'home_assistant' } }
+            : { success: false, error: ha.error || 'Falha Home Assistant' }
+        } else {
+          const device = (args.device as string) || target.replace(/\./g, '_')
+          const eventName = `orbit_${device}_${action}`
+          const ok = await triggerIFTTT(eventName, value)
+          result = ok
+            ? { success: true, data: { device, action, value, eventName, via: 'ifttt' } }
+            : { success: false, error: 'Configure Home Assistant (URL+token) ou IFTTT webhook key' }
+        }
+      } else if (toolName === 'listHomeDevices') {
+        authorized = true
+        if (!(await isHomeAssistantConfigured())) {
+          result = { success: false, error: 'Home Assistant não configurado' }
+        } else {
+          const devices = await listControllableDevices()
+          result = { success: true, data: { devices } }
+        }
+      } else if (toolName === 'getHomeDeviceState') {
+        authorized = true
+        const entityId = args.entity_id as string
+        if (!(await isHomeAssistantConfigured())) {
+          result = { success: false, error: 'Home Assistant não configurado' }
+        } else {
+          const state = await getEntityState(entityId)
+          result = state
+            ? { success: true, data: state }
+            : { success: false, error: 'Entidade não encontrada' }
+        }
       } else if (toolName === 'sendWhatsApp') {
         authorized = true
-        result = { success: false, error: 'WhatsApp não configurado ainda' }
+        const { sendWhatsAppMessage } = await import('./whatsappService')
+        const wa = await sendWhatsAppMessage(String(args.to || ''), String(args.message || ''))
+        result = wa.ok
+          ? { success: true, data: { message: `WhatsApp enviado para ${args.to}` } }
+          : { success: false, error: wa.error }
       } else if (toolName === 'createCalendarEvent') {
         authorized = true
         try {
@@ -364,12 +454,12 @@ export class ToolExecutionService {
           success: true,
           data: {
             capabilities: [
-              'Controlar casa inteligente (luzes, aquecedor) via Google Home/IFTTT',
+              'Controlar casa via Home Assistant ou IFTTT (listHomeDevices, getHomeDeviceState)',
               'Consultar saldo e transacções Revolut (TrueLayer)',
               'Ler, enviar e pesquisar emails Gmail (OAuth2)',
               'Ver agenda e criar eventos no Google Calendar',
               'Responder perguntas e gerir contexto de conversa',
-              'WhatsApp (em breve)',
+              'WhatsApp pessoal do Wanderson (Web + QR — separado do sistema OrbitHub)',
               'Integração com AI Command Center e sites OrbitHub',
             ],
           },
@@ -442,6 +532,33 @@ export class ToolExecutionService {
         } catch (err) {
           result = { success: false, error: err instanceof Error ? err.message : 'Erro ao enviar email' }
         }
+      } else if (toolName === 'rememberFact') {
+        authorized = true
+        const fact = args.fact as string
+        const category = (args.category as string) || 'outro'
+        const siteId = ctx.siteId
+        if (!siteId) {
+          result = { success: false, error: 'siteId em falta no contexto' }
+        } else {
+          try {
+            await appendMemoryEntry({
+              type: 'preference',
+              sessionId: ctx.sessionId,
+              siteId,
+              input: `[${category}] ${fact}`,
+              output: '',
+              metadata: { category, fact },
+            })
+            result = { success: true, data: { message: `Guardei: "${fact}"` } }
+          } catch (e) {
+            result = { success: false, error: e instanceof Error ? e.message : 'Erro ao guardar' }
+          }
+        }
+      } else if (toolName === 'listFacts') {
+        authorized = true
+        const siteId = ctx.siteId
+        const facts = siteId ? await listFacts(siteId, 30) : []
+        result = { success: true, data: { facts } }
       }
     } catch (err) {
       result = { success: false, error: err instanceof Error ? err.message : 'Tool execution error' }

@@ -7,6 +7,11 @@ const PLAIN_TEXT_KEYS = new Set([
   'orbit.google_client_id',
   'orbit.gmail_user',
   'orbit.whatsapp_api_url',
+  'orbit.home_assistant_url',
+  'orbit.home_assistant_notify',
+  'orbit.trust_level',
+  'orbit.trusted_tools',
+  'orbit.whatsapp_instance',
 ])
 
 export function normalizeOrbitKey(key: string): string {

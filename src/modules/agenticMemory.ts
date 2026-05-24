@@ -17,7 +17,7 @@ function ensureDir() {
 export interface MemoryEntry {
   id: string
   timestamp: string
-  type: 'correction' | 'error' | 'reasoning' | 'insight'
+  type: 'correction' | 'error' | 'reasoning' | 'insight' | 'preference'
   sessionId?: string
   siteId?: string
   input: string
@@ -165,6 +165,32 @@ export async function searchMemory(
       ORDER BY "createdAt" DESC
       LIMIT ${limit}
     `
+  } catch {
+    return []
+  }
+}
+
+export async function listFacts(
+  siteId: string,
+  limit = 20,
+): Promise<Array<{ id: string; content: string; category?: string; createdAt: Date }>> {
+  try {
+    const rows = await prisma.$queryRaw<Array<{ id: string; content: string; metadata: unknown; createdAt: Date }>>`
+      SELECT id, content, metadata, "createdAt"
+      FROM "MemoryVector"
+      WHERE "siteId" = ${siteId} AND type = 'preference'
+      ORDER BY "createdAt" DESC
+      LIMIT ${limit}
+    `
+    return rows.map(r => {
+      const meta = (r.metadata && typeof r.metadata === 'object') ? r.metadata as Record<string, unknown> : {}
+      return {
+        id: r.id,
+        content: r.content,
+        category: typeof meta.category === 'string' ? meta.category : undefined,
+        createdAt: r.createdAt,
+      }
+    })
   } catch {
     return []
   }

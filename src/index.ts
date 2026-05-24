@@ -13,7 +13,12 @@ import orbitRouter from './routes/orbit'
 import orbitVoiceRouter from './routes/orbitVoice'
 import orbitBankingRouter from './routes/orbitBanking'
 import orbitGoogleRouter from './routes/orbitGoogle'
+import orbitHomeAssistantRouter from './routes/orbitHomeAssistant'
+import orbitWhatsAppRouter from './routes/orbitWhatsApp'
+import { resumeWhatsAppWebIfPossible } from './services/whatsappWeb'
 import { startEvaluationWorker } from './workers/evaluationWorker'
+import { startMorningBriefingScheduler } from './workers/morningBriefing'
+import { startProactiveMonitor } from './workers/proactiveMonitor'
 import { generateToken, verifyToken, requireAdminAuth } from './middleware/adminAuth'
 
 const app = express()
@@ -113,6 +118,8 @@ app.use('/api/chat', chatRouter)
 app.use('/api/orbit', orbitVoiceRouter)
 app.use('/api/orbit/truelayer', orbitBankingRouter)
 app.use('/api/orbit/google', orbitGoogleRouter)
+app.use('/api/orbit/homeassistant', orbitHomeAssistantRouter)
+app.use('/api/orbit/whatsapp', orbitWhatsAppRouter)
 app.use('/api/simulation', simulationRouter)
 app.use('/api/simulation', autoTrainRouter)
 app.use('/api/simulation', evaluationRouter)
@@ -131,6 +138,9 @@ app.get('/', (_req: Request, res: Response) => {
 
 // ─── Start ───────────────────────────────────────────────────────────────────
 startEvaluationWorker()
+startMorningBriefingScheduler()
+startProactiveMonitor()
+void resumeWhatsAppWebIfPossible()
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`[ai-command-center] Running on port ${PORT}`)

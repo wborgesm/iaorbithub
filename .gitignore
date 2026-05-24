@@ -5,6 +5,8 @@ dist/
 .DS_Store
 data/snapshots/
 data/memory/
+data/orbit-personal-whatsapp/
+data/whatsapp-web-session/
 public/admin/index.html.bak
 *.bak
 .cursorrules

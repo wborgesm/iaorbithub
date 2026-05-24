@@ -1,6 +1,7 @@
 export interface SessionContext {
   userId?: string
   sessionId: string
+  siteId?: string
   role?: string
 }
 

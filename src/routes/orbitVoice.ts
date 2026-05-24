@@ -4,6 +4,8 @@ import { PrismaClient } from '@prisma/client'
 import { callLLMAuto } from '../services/llm'
 import { TOOL_DEFINITIONS, ToolExecutionService } from '../services/toolExecution'
 import { getOrbitConfig, listOrbitConfigs, normalizeOrbitKey } from '../services/orbitConfig'
+import { injectOrbitFacts } from '../modules/orbitContext'
+import { listAlerts, markAlertRead, markAllAlertsRead, getUnreadCount } from '../modules/orbitAlerts'
 import { requireAdminAuth } from '../middleware/adminAuth'
 import type { LLMMessage, SessionContext, SupportedProvider } from '../types'
 
@@ -12,7 +14,7 @@ const prisma = new PrismaClient()
 const toolService = new ToolExecutionService()
 
 const ORBIT_DOMAIN = 'orbit.internal'
-const ORBIT_TOOL_NAMES = ['controlSmartHome', 'sendWhatsApp', 'createCalendarEvent', 'listCalendarEvents', 'listOrbitCapabilities', 'getBankBalance', 'getRecentTransactions', 'readEmails', 'readEmailContent', 'listEmailFolders', 'sendEmail']
+const ORBIT_TOOL_NAMES = ['controlSmartHome', 'listHomeDevices', 'getHomeDeviceState', 'sendWhatsApp', 'createCalendarEvent', 'listCalendarEvents', 'listOrbitCapabilities', 'getBankBalance', 'getRecentTransactions', 'readEmails', 'readEmailContent', 'listEmailFolders', 'sendEmail', 'rememberFact', 'listFacts']
 const WELCOME_SPEECH = 'ORBIT online. O que precisas, Wanderson?'
 const GOODBYE_SPEECH = 'ORBIT a encerrar. Até logo, Wanderson.'
 const EXIT_PHRASES = ['pode ir', 'encerra', 'até logo', 'ate logo', 'obrigado orbit', 'obrigado, orbit']
@@ -71,7 +73,8 @@ export async function processOrbitVoiceMessage(
     },
   })
 
-  const systemPrompt = site.systemPrompt?.trim() || 'Tu és o ORBIT, assistente pessoal de Wanderson.'
+  let systemPrompt = site.systemPrompt?.trim() || 'Tu és o ORBIT, assistente pessoal de Wanderson.'
+  systemPrompt = await injectOrbitFacts(systemPrompt, site.id, site.domain)
   const historyMessages: LLMMessage[] = session.messages.map(m => ({
     role: m.role === 'ASSISTANT' ? 'assistant' as const : 'user' as const,
     content: m.content,
@@ -82,7 +85,7 @@ export async function processOrbitVoiceMessage(
   const tools = TOOL_DEFINITIONS.filter(t => toolNames.includes(t.function.name))
 
   const primaryProvider = site.activeProvider as SupportedProvider
-  const ctx: SessionContext = { sessionId: sid }
+  const ctx: SessionContext = { sessionId: sid, siteId: site.id }
 
   let finalContent = ''
   let promptTokens = 0
@@ -300,6 +303,29 @@ router.delete('/config/:key', requireAdminAuth, async (req: Request, res: Respon
   }
 })
 
+
+// ── Alertas proactivos ORBIT ─────────────────────────────────────────────────
+router.get('/alerts', requireAdminAuth, async (req: Request, res: Response) => {
+  try {
+    const unreadOnly = req.query.unread === '1'
+    const alerts = await listAlerts(unreadOnly)
+    const unread = await getUnreadCount()
+    return res.json({ alerts, unread })
+  } catch (err) {
+    return res.status(500).json({ error: err instanceof Error ? err.message : 'Erro' })
+  }
+})
+
+router.post('/alerts/read-all', requireAdminAuth, async (_req: Request, res: Response) => {
+  await markAllAlertsRead()
+  return res.json({ ok: true })
+})
+
+router.post('/alerts/:id/read', requireAdminAuth, async (req: Request, res: Response) => {
+  const ok = await markAlertRead(req.params.id as string)
+  if (!ok) return res.status(404).json({ error: 'Alerta não encontrado' })
+  return res.json({ ok: true })
+})
 
 // ── TTS via ElevenLabs ──────────────────────────────────────────────────────
 router.post('/tts', requireAdminAuth, async (req: Request, res: Response) => {

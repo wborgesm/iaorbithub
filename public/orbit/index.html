@@ -248,6 +248,35 @@
     .bank-actions { margin-top: 8px; }
     .bank-actions .btn-save-group + .btn-save-group { margin-top: 8px; }
 
+    /* ── Confirmação de acções ─────────────────────────────────────── */
+    #confirm-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      z-index: 1100;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    #confirm-overlay.open { display: flex; }
+    .confirm-card {
+      width: min(420px, 100%);
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+    }
+    .confirm-card h3 { margin: 0 0 10px; font-size: 16px; color: #e6edf3; }
+    .confirm-card p { margin: 0 0 18px; font-size: 14px; color: #8b949e; line-height: 1.5; }
+    .confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .confirm-actions button {
+      padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid #30363d;
+    }
+    .confirm-no { background: #21262d; color: #e6edf3; }
+    .confirm-yes { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+
     /* ── Voice Live Overlay — estilo Gemini ─────────────────────────── */
     #voice-overlay {
       display: none;
@@ -414,6 +443,31 @@
       bottom: 28px;
       letter-spacing: 0.04em;
     }
+
+    #alerts-bar {
+      display: none;
+      margin: 0 12px 8px;
+      padding: 10px 12px;
+      background: #1c2128;
+      border: 1px solid #30363d;
+      border-left: 3px solid #f85149;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    #alerts-bar.visible { display: block; }
+    #alerts-bar strong { color: #f85149; }
+    #alerts-bar span { color: #8b949e; display: block; margin-top: 4px; font-size: 12px; }
+    .quick-chips {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      padding: 0 16px 10px;
+    }
+    .quick-chips button {
+      font-size: 12px; padding: 6px 12px; border-radius: 999px;
+      border: 1px solid #30363d; background: #161b22; color: #8b949e;
+      cursor: pointer;
+    }
+    .quick-chips button:hover { border-color: #58a6ff; color: #e6edf3; }
   </style>
 </head>
 <body>
@@ -428,7 +482,15 @@
         <button type="button" id="btn-settings" title="Configuração" aria-label="Configuração">⚙</button>
       </div>
     </header>
+    <div id="alerts-bar" role="status" aria-live="polite"></div>
     <div id="messages" role="log" aria-live="polite"></div>
+    <div class="quick-chips" id="quickChips" aria-label="Atalhos rápidos">
+      <button type="button" data-msg="Tens emails importantes não lidos?">📧 Emails</button>
+      <button type="button" data-msg="O que tenho na agenda hoje e amanhã?">📅 Agenda</button>
+      <button type="button" data-msg="Estado da casa — luzes e dispositivos principais">🏠 Casa</button>
+      <button type="button" data-msg="Resumo dos alertas pendentes">🔔 Alertas</button>
+      <button type="button" data-msg="Briefing rápido do que preciso saber agora">⚡ Briefing</button>
+    </div>
     <footer>
       <form id="form">
         <textarea id="input" rows="1" placeholder="Mensagem para o ORBIT…" autocomplete="off"></textarea>
@@ -467,14 +529,32 @@
     <button class="voice-stop-btn" id="voiceStopBtn" title="Parar voz" aria-label="Parar modo de voz">&#9632;</button>
     <span class="voice-hint">Diga "pode ir" para parar</span>
   </div>
+
+  <div id="confirm-overlay" aria-hidden="true" role="dialog" aria-labelledby="confirmTitle">
+    <div class="confirm-card">
+      <h3 id="confirmTitle">Confirmar acção</h3>
+      <p id="confirmDescription"></p>
+      <div class="confirm-actions">
+        <button type="button" class="confirm-no" id="confirmNo">Não</button>
+        <button type="button" class="confirm-yes" id="confirmYes">Sim, executar</button>
+      </div>
+    </div>
+  </div>
   <script>
     (function () {
       const STORAGE_KEY = 'orbit_chat_session_id'
+      const USER_ID = 'wanderson'
       const DOMAIN = 'orbit.internal'
       const WELCOME = 'ORBIT online. Como posso ajudar, Wanderson?'
 
       let sessionId = null
       let sending = false
+      let pendingConfirmId = null
+
+      const confirmOverlay = document.getElementById('confirm-overlay')
+      const confirmDescription = document.getElementById('confirmDescription')
+      const confirmYes = document.getElementById('confirmYes')
+      const confirmNo = document.getElementById('confirmNo')
 
       const messagesEl = document.getElementById('messages')
       const inputEl = document.getElementById('input')
@@ -542,14 +622,67 @@
         return div
       }
 
+      function chatHeaders() {
+        return {
+          'Content-Type': 'application/json',
+          'x-user-id': USER_ID,
+        }
+      }
+
+      function showConfirmModal(pending) {
+        pendingConfirmId = pending.id
+        confirmDescription.textContent = pending.description
+        confirmOverlay.classList.add('open')
+        confirmOverlay.setAttribute('aria-hidden', 'false')
+      }
+
+      function hideConfirmModal() {
+        pendingConfirmId = null
+        confirmOverlay.classList.remove('open')
+        confirmOverlay.setAttribute('aria-hidden', 'true')
+      }
+
+      async function submitConfirmation(approved) {
+        if (!pendingConfirmId || !sessionId) return
+        const id = pendingConfirmId
+        hideConfirmModal()
+        setStatus('thinking')
+        const typingEl = showTyping()
+        try {
+          const r = await fetch('/api/chat/confirm', {
+            method: 'POST',
+            headers: chatHeaders(),
+            credentials: 'same-origin',
+            body: JSON.stringify({ confirmationId: id, sessionId, approved }),
+          })
+          const data = await r.json()
+          typingEl.remove()
+          if (data.content) addBot(data.content)
+          else addBot(approved ? 'Feito.' : 'Cancelado.')
+        } catch (e) {
+          typingEl.remove()
+          addBot('Erro ao confirmar. Tente novamente.')
+        } finally {
+          setStatus('online')
+        }
+      }
+
+      confirmYes.addEventListener('click', () => submitConfirmation(true))
+      confirmNo.addEventListener('click', () => submitConfirmation(false))
+
       async function initSession() {
         const saved = localStorage.getItem(STORAGE_KEY)
         try {
           const r = await fetch('/api/chat/session/domain', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: chatHeaders(),
             credentials: 'same-origin',
-            body: JSON.stringify({ domain: DOMAIN, pageUrl: location.href }),
+            body: JSON.stringify({
+              domain: DOMAIN,
+              userId: USER_ID,
+              pageUrl: location.href,
+              sessionId: saved || undefined,
+            }),
           })
           const data = await r.json()
           if (!r.ok || !data.sessionId) throw new Error(data.error || 'Sessão inválida')
@@ -565,6 +698,8 @@
 
           if (!saved || saved !== sessionId) {
             addBot(WELCOME)
+          } else if (data.reused) {
+            addBot('ORBIT online. Continuamos onde ficámos.')
           }
           const bankParam = new URLSearchParams(location.search).get('bank')
           if (bankParam === 'connected') {
@@ -598,7 +733,7 @@
         try {
           const r = await fetch('/api/chat/send', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: chatHeaders(),
             credentials: 'same-origin',
             body: JSON.stringify({ sessionId, message: msg }),
           })
@@ -608,6 +743,12 @@
           if (data.offline) {
             addBot(data.message || 'ORBIT temporariamente indisponível.')
             inputEl.disabled = true
+          } else if (data.pendingConfirmation) {
+            if (data.content) addBot(data.content)
+            else addBot('Preciso da tua confirmação para continuar.')
+            showConfirmModal(data.pendingConfirmation)
+            inputEl.disabled = false
+            sendBtn.disabled = false
           } else if (data.content) {
             addBot(data.content)
             inputEl.disabled = false
@@ -635,6 +776,14 @@
         sendMessage()
       })
 
+      document.getElementById('quickChips')?.addEventListener('click', function (e) {
+        const btn = e.target.closest('button[data-msg]')
+        if (!btn || sending || !sessionId) return
+        inputEl.value = btn.dataset.msg
+        inputEl.dispatchEvent(new Event('input'))
+        sendMessage()
+      })
+
       inputEl.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault()
@@ -647,7 +796,33 @@
         inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + 'px'
       })
 
-      window.addEventListener('load', initSession)
+      window.addEventListener('load', function () {
+        initSession()
+        loadAlerts()
+        setInterval(loadAlerts, 120000)
+      })
+
+      async function loadAlerts() {
+        const bar = document.getElementById('alerts-bar')
+        if (!bar) return
+        try {
+          const r = await fetch('/api/orbit/alerts', { credentials: 'same-origin' })
+          if (!r.ok) return
+          const data = await r.json()
+          if (!data.unread || data.unread === 0) {
+            bar.classList.remove('visible')
+            return
+          }
+          const first = (data.alerts || []).find(a => !a.read)
+          bar.classList.add('visible')
+          bar.innerHTML = '<strong>' + (data.unread) + ' alerta(s)</strong><span>' + (first ? (first.title + ': ' + first.body.slice(0, 120)) : '') + '</span>'
+          bar.onclick = async function () {
+            if (first) addBot('📌 ' + first.title + '\\n' + first.body)
+            await fetch('/api/orbit/alerts/read-all', { method: 'POST', credentials: 'same-origin' })
+            bar.classList.remove('visible')
+          }
+        } catch { /* ignore */ }
+      }
 
       // ── Configuração ORBIT ─────────────────────────────────────────────────
       const CONFIG_GROUPS = [
@@ -671,6 +846,33 @@
           ],
         },
         {
+          id: 'home',
+          title: 'Home Assistant',
+          fields: [
+            { key: 'orbit.home_assistant_url', label: 'URL', type: 'text', plain: true, hint: 'Recomendado: Nabu Casa (https://xxxx.ui.nabu.casa) — sem IP local. Também DuckDNS ou LAN.' },
+            { key: 'orbit.home_assistant_token', label: 'Token manual (opcional)', type: 'password', hint: 'Alternativa ao botão Ligar: HA → Perfil → Segurança → Long-Lived Token' },
+            { key: 'orbit.home_assistant_notify', label: 'Serviço notify (opcional)', type: 'text', plain: true, hint: 'Ex: notify.mobile_app_iphone — alertas proactivos no telemóvel' },
+          ],
+        },
+        {
+          id: 'orbit_mode',
+          title: 'Comportamento JARVIS',
+          fields: [
+            {
+              key: 'orbit.trust_level',
+              label: 'Modo confiança',
+              type: 'select',
+              plain: true,
+              options: [
+                { value: 'learning', label: 'learning — confirma; aprende hábitos (3× = automático)' },
+                { value: 'trusted', label: 'trusted — casa/calendário/WhatsApp directo; email confirma' },
+                { value: 'jarvis', label: 'jarvis — só email confirma; resto executa já' },
+              ],
+            },
+            { key: 'orbit.trusted_tools', label: 'Ferramentas sempre directas (learning)', type: 'text', plain: true, hint: 'Ex: controlSmartHome,createCalendarEvent — separadas por vírgula' },
+          ],
+        },
+        {
           id: 'gmail',
           title: 'Gmail IMAP (só leitura, alternativa)',
           fields: [
@@ -680,11 +882,8 @@
         },
         {
           id: 'whatsapp',
-          title: 'WhatsApp',
-          fields: [
-            { key: 'orbit.whatsapp_api_url', label: 'WhatsApp API URL', type: 'text', plain: true },
-            { key: 'orbit.whatsapp_api_key', label: 'WhatsApp API Key', type: 'password' },
-          ],
+          title: 'WhatsApp pessoal (só ORBIT / JARVIS)',
+          fields: [],
         },
         {
           id: 'bank',
@@ -714,14 +913,19 @@
               const meta = configByKey[f.key] || {}
               const ph = meta.hasValue && f.type === 'password' ? '••••••••••••' : ''
               const val = meta.hasValue && f.plain ? (meta.value || '') : ''
+              const inputHtml = f.type === 'select' && f.options
+                ? `<select data-key="${f.key}" data-plain="1">${f.options.map(o =>
+                    `<option value="${o.value}"${val === o.value ? ' selected' : ''}>${o.label}</option>`
+                  ).join('')}</select>`
+                : `<input type="${f.type}" data-key="${f.key}" data-plain="${f.plain ? '1' : '0'}"
+                    placeholder="${ph}" value="${f.plain && val && f.type !== 'select' ? val.replace(/"/g, '&quot;') : ''}"
+                    autocomplete="off" />`
               return `
               <div class="cfg-field" data-key="${f.key}">
                 <label>${f.label}</label>
                 ${f.hint ? `<p style="font-size:11px;color:#8b949e;margin-bottom:6px">${f.hint}</p>` : ''}
                 <div class="cfg-field-row">
-                  <input type="${f.type}" data-key="${f.key}" data-plain="${f.plain ? '1' : '0'}"
-                    placeholder="${ph}" value="${f.plain && val ? val.replace(/"/g, '&quot;') : ''}"
-                    autocomplete="off" />
+                  ${inputHtml}
                   <button type="button" class="btn-del" data-key="${f.key}" title="Apagar">🗑</button>
                 </div>
               </div>`
@@ -736,6 +940,14 @@
               <a href="https://console.cloud.google.com/apis/credentials/oauthclient" target="_blank" rel="noopener">Criar credenciais OAuth (Web)</a>
             </div>
             <div class="bank-actions" id="google-actions"></div>` : ''}
+            ${g.id === 'home' ? '<div class="bank-actions" id="ha-actions"></div>' : ''}
+            ${g.id === 'whatsapp' ? `
+            <div style="font-size:12px;color:#f85149;margin:8px 0;line-height:1.5;border:1px solid #30363d;padding:10px;border-radius:8px">
+              <strong>Exclusivo Wanderson</strong> — usa o teu WhatsApp <strong>pessoal</strong> no telemóvel.<br>
+              <span style="color:#8b949e">Não ligues o WhatsApp da OrbitHub, Autotrack ou Rinosat (sistema <code>autotrack-whatsapp</code> no servidor).</span>
+            </div>
+            <p style="font-size:12px;color:#8b949e;margin:8px 0">QR: WhatsApp → ⋮ → Dispositivos ligados → Ligar dispositivo</p>
+            <div class="bank-actions" id="wa-actions"></div>` : ''}
             <button type="button" class="btn-save-group" data-group="${g.id}">Guardar</button>
             <div class="cfg-feedback" data-feedback="${g.id}"></div>
           </section>
@@ -749,6 +961,91 @@
         })
         updateBankActions()
         updateGoogleActions()
+        updateHomeAssistantActions()
+        updateWhatsAppActions()
+      }
+
+      let waPollTimer = null
+
+      async function updateWhatsAppActions() {
+        const el = document.getElementById('wa-actions')
+        if (!el) return
+        let data = { connected: false, state: 'idle', qrDataUrl: null, phone: null, error: null }
+        try {
+          const r = await fetch('/api/orbit/whatsapp/status', { credentials: 'same-origin' })
+          if (r.ok) data = await r.json()
+        } catch { /* ignore */ }
+
+        if (data.connected) {
+          el.innerHTML = `
+            <p style="color:#3fb950;font-size:13px;margin:8px 0">WhatsApp pessoal ORBIT ✓ ${data.phone ? '+' + data.phone : 'ligado'}</p>
+            <button type="button" class="btn-save-group" style="background:#21262d" id="btn-wa-disconnect">Desligar WhatsApp</button>`
+        } else if (data.qrDataUrl) {
+          el.innerHTML = `
+            <p style="color:#8b949e;font-size:12px;margin:8px 0">Abre WhatsApp no telemóvel → ⋮ → Dispositivos ligados → Ligar dispositivo</p>
+            <img src="${data.qrDataUrl}" alt="QR WhatsApp" style="max-width:220px;border-radius:8px;display:block;margin:8px 0" />
+            <p style="font-size:12px;color:#d29922">À espera do scan…</p>`
+        } else if (data.state === 'connecting') {
+          el.innerHTML = `<p style="color:#8b949e;font-size:13px">A ligar WhatsApp Web…</p>`
+        } else {
+          const err = data.error ? `<p style="color:#f85149;font-size:12px">${data.error}</p>` : ''
+          el.innerHTML = `
+            ${err}
+            <button type="button" class="btn-save-group" id="btn-wa-connect">Ligar WhatsApp Web</button>`
+        }
+
+        document.getElementById('btn-wa-connect')?.addEventListener('click', async () => {
+          el.innerHTML = '<p style="color:#8b949e">A gerar QR…</p>'
+          try {
+            await fetch('/api/orbit/whatsapp/connect', { method: 'POST', credentials: 'same-origin' })
+          } catch { /* ignore */ }
+          if (waPollTimer) clearInterval(waPollTimer)
+          waPollTimer = setInterval(updateWhatsAppActions, 2500)
+          updateWhatsAppActions()
+        })
+        document.getElementById('btn-wa-disconnect')?.addEventListener('click', async () => {
+          if (!confirm('Desligar WhatsApp Web deste servidor?')) return
+          if (waPollTimer) clearInterval(waPollTimer)
+          await fetch('/api/orbit/whatsapp/disconnect', { method: 'POST', credentials: 'same-origin' })
+          updateWhatsAppActions()
+        })
+
+        if (data.connected && waPollTimer) {
+          clearInterval(waPollTimer)
+          waPollTimer = null
+        }
+      }
+
+      async function updateHomeAssistantActions() {
+        const el = document.getElementById('ha-actions')
+        if (!el) return
+        let connected = false
+        try {
+          const r = await fetch('/api/orbit/homeassistant/status', { credentials: 'same-origin' })
+          if (r.ok) {
+            const data = await r.json()
+            connected = !!data.connected
+          }
+        } catch { /* ignore */ }
+
+        if (connected) {
+          el.innerHTML = `
+            <p style="color:#3fb950;font-size:13px;margin:8px 0 12px">Home Assistant ✓ ligado</p>
+            <button type="button" class="btn-save-group" style="background:#21262d" id="btn-ha-disconnect">Desligar conta HA</button>`
+        } else {
+          el.innerHTML = `
+            <p style="color:#8b949e;font-size:13px;margin:8px 0 12px">Guarda a URL, depois liga a conta (OAuth — como Google).</p>
+            <button type="button" class="btn-save-group" id="btn-ha-connect">Ligar Home Assistant</button>`
+        }
+
+        document.getElementById('btn-ha-connect')?.addEventListener('click', () => {
+          window.location.href = '/api/orbit/homeassistant/connect'
+        })
+        document.getElementById('btn-ha-disconnect')?.addEventListener('click', async () => {
+          if (!confirm('Desligar OAuth do Home Assistant? O token manual mantém-se se existir.')) return
+          await fetch('/api/orbit/homeassistant/disconnect', { method: 'POST', credentials: 'same-origin' })
+          updateHomeAssistantActions()
+        })
       }
 
       async function updateGoogleActions() {
@@ -856,7 +1153,7 @@
         feedback.className = 'cfg-feedback'
 
         const section = configBody.querySelector(`[data-group="${groupId}"]`)
-        const inputs = section.querySelectorAll('input[data-key]')
+        const inputs = section.querySelectorAll('input[data-key], select[data-key]')
         let saved = 0
         let failed = false
 
@@ -1094,12 +1391,19 @@
             try {
               var r = await fetch('/api/chat/send', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: chatHeaders(),
                 credentials: 'same-origin',
                 body: JSON.stringify({ sessionId: sessionId, message: t })
               })
               var data = await r.json()
               typEl.remove()
+              if (data.pendingConfirmation) {
+                if (data.content) addBot(data.content)
+                showConfirmModal(data.pendingConfirmation)
+                isSpeaking = false
+                if (voiceActive) { setTranscript('Confirme no ecrã', false) }
+                return
+              }
               var reply = data.content || 'Nao consegui processar.'
               addBot(reply)
               isSpeaking = true
@@ -1173,12 +1477,18 @@
       btnCloseConfig.addEventListener('click', closeConfigPanel)
       configOverlay.addEventListener('click', closeConfigPanel)
 
-      const googleParams = new URLSearchParams(window.location.search)
-      if (googleParams.get('google') === 'success') {
+      const urlParams = new URLSearchParams(window.location.search)
+      if (urlParams.get('google') === 'success') {
         alert('Google ligado com sucesso. ORBIT tem acesso a Gmail e Calendar.')
         history.replaceState({}, '', '/orbit')
-      } else if (googleParams.get('google') === 'error') {
-        alert('Erro ao ligar Google: ' + (googleParams.get('msg') || 'Tenta novamente'))
+      } else if (urlParams.get('google') === 'error') {
+        alert('Erro ao ligar Google: ' + (urlParams.get('msg') || 'Tenta novamente'))
+        history.replaceState({}, '', '/orbit')
+      } else if (urlParams.get('ha') === 'success') {
+        alert('Home Assistant ligado com sucesso.')
+        history.replaceState({}, '', '/orbit')
+      } else if (urlParams.get('ha') === 'error') {
+        alert('Erro ao ligar Home Assistant: ' + (urlParams.get('msg') || 'Guarda a URL Nabu Casa e tenta de novo'))
         history.replaceState({}, '', '/orbit')
       }
     })()
