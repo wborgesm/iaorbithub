@@ -402,11 +402,21 @@ export class ToolExecutionService {
         }
       } else if (toolName === 'sendWhatsApp') {
         authorized = true
-        const { sendWhatsAppMessage } = await import('./whatsappService')
-        const wa = await sendWhatsAppMessage(String(args.to || ''), String(args.message || ''))
-        result = wa.ok
-          ? { success: true, data: { message: `WhatsApp enviado para ${args.to}` } }
-          : { success: false, error: wa.error }
+        const rawTo = String(args.to || '').trim()
+        const digits = rawTo.replace(/\D/g, '')
+        // Se não parece número de telefone, pedir ao utilizador
+        if (!rawTo || digits.length < 7) {
+          result = {
+            success: false,
+            error: `Número de telefone inválido ou em falta. Para enviar WhatsApp a este contacto precisas de indicar o número completo com código de país (ex: +351912345678). Qual é o número?`,
+          }
+        } else {
+          const { sendWhatsAppMessage } = await import('./whatsappService')
+          const wa = await sendWhatsAppMessage(rawTo, String(args.message || ''))
+          result = wa.ok
+            ? { success: true, data: { message: `WhatsApp enviado para ${rawTo}` } }
+            : { success: false, error: wa.error }
+        }
       } else if (toolName === 'createCalendarEvent') {
         authorized = true
         try {

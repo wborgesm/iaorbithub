@@ -1,5 +1,7 @@
 import path from 'path'
 import fs from 'fs'
+import { exec } from 'child_process'
+import { promisify } from 'util'
 import QRCode from 'qrcode'
 import { Client, LocalAuth } from 'whatsapp-web.js'
 
@@ -7,6 +9,15 @@ export type WhatsAppWebState = 'idle' | 'qr' | 'connecting' | 'ready' | 'error'
 
 const SESSION_DIR = path.join(process.cwd(), 'data', 'orbit-personal-whatsapp')
 const CLIENT_ID = 'orbit-jarvis-wanderson'
+const execAsync = promisify(exec)
+
+async function killOrphanChrome(): Promise<void> {
+  const marker = `user-data-dir=${SESSION_DIR}`
+  try {
+    await execAsync(`pkill -f "${marker}" || true`)
+    await new Promise(r => setTimeout(r, 1500))
+  } catch { /* ignore */ }
+}
 
 let client: Client | null = null
 let state: WhatsAppWebState = 'idle'
@@ -125,7 +136,7 @@ export async function resumeWhatsAppWebIfPossible(): Promise<void> {
   }
 }
 
-export async function disconnectWhatsAppWeb(): Promise<void> {
+async function destroyClient(logout = false): Promise<void> {
   if (!client) {
     state = 'idle'
     qrDataUrl = null
@@ -133,9 +144,11 @@ export async function disconnectWhatsAppWeb(): Promise<void> {
     starting = null
     return
   }
-  try {
-    await client.logout()
-  } catch { /* ignore */ }
+  if (logout) {
+    try {
+      await client.logout()
+    } catch { /* ignore */ }
+  }
   try {
     await client.destroy()
   } catch { /* ignore */ }
@@ -144,9 +157,22 @@ export async function disconnectWhatsAppWeb(): Promise<void> {
   qrDataUrl = null
   phone = null
   starting = null
+}
+
+/** Desliga e apaga sessão — volta a pedir QR */
+export async function disconnectWhatsAppWeb(): Promise<void> {
+  await destroyClient(true)
   try {
     fs.rmSync(SESSION_DIR, { recursive: true, force: true })
   } catch { /* ignore */ }
+}
+
+/** Reinicia o Chromium/WhatsApp Web — mantém sessão se existir */
+export async function restartWhatsAppWeb(): Promise<void> {
+  console.log('[whatsappWeb:orbit-personal] Reinício pedido')
+  await destroyClient(false)
+  await killOrphanChrome()
+  await startWhatsAppWeb()
 }
 
 function normalizePhone(to: string): string {
