@@ -1,7 +1,7 @@
 # Rinosat -- rinosat.com
-Actualizado: 2026-05-22T19:25:26.317Z
+Actualizado: 2026-05-24T18:26:23.357Z
 
-Conteudo extraido de rinosat.com (Rinosat) em 22/05/2026.
+Conteudo extraido de rinosat.com (Rinosat) em 24/05/2026.
 
 [Pagina: https://rinosat.com]
 Rinosat GPS — Rastreamento veicular e gestão de frotas em Portugal

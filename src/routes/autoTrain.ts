@@ -159,7 +159,7 @@ PRÓXIMOS PASSOS RECOMENDADOS:
 Gera um system prompt MELHORADO que incorpore os insights acima, mantendo a identidade e contexto do agente mas tornando-o mais eficaz e profissional.
 Responde APENAS com o system prompt melhorado (sem explicações, sem JSON, só o texto do prompt).`
 
-  const result = await callLLMAuto([{ role: 'user', content: upgradePrompt }])
+  const result = await callLLMAuto([{ role: 'user', content: upgradePrompt }], undefined, undefined, { useCooldown: true })
   const newPrompt = result.content?.trim() ?? currentPrompt
   const summary = `Score ${evaluation.score}/100 (${evaluation.level}) — ${evaluation.strengths?.[0] ?? ''}. Aplicado automaticamente.`
 
@@ -292,7 +292,7 @@ router.post('/auto-train', async (req: Request, res: Response) => {
     // Round 1: CLIENT starts
     send({ status: 'round', round: 1, total: rounds })
     clientHistory.push({ role: 'user', content: '[INICIO]' })
-    const firstMsg = (await callLLMAuto(clientHistory)).content?.trim() ?? ''
+    const firstMsg = (await callLLMAuto(clientHistory, undefined, undefined, { useCooldown: true })).content?.trim() ?? ''
     clientHistory.push({ role: 'assistant', content: firstMsg })
     agentHistory.push({ role: 'user', content: firstMsg })
     transcript.push({ role: 'CLIENT', content: firstMsg, round: 1 })
@@ -305,7 +305,7 @@ router.post('/auto-train', async (req: Request, res: Response) => {
         await prisma.autoTrainSession.update({ where: { id: session.id }, data: { status: 'STOPPED', transcript: transcript as any } }).catch(() => {})
         res.end(); return
       }
-      const agentMsg = (await callLLMAuto(agentHistory)).content?.trim() ?? ''
+      const agentMsg = (await callLLMAuto(agentHistory, undefined, undefined, { useCooldown: true })).content?.trim() ?? ''
       agentHistory.push({ role: 'assistant', content: agentMsg })
       clientHistory.push({ role: 'user', content: agentMsg })
       transcript.push({ role: 'AGENT', content: agentMsg, round: r })
@@ -313,7 +313,7 @@ router.post('/auto-train', async (req: Request, res: Response) => {
 
       if (r < rounds) {
         send({ status: 'round', round: r + 1, total: rounds })
-        const clientMsg = (await callLLMAuto(clientHistory)).content?.trim() ?? ''
+        const clientMsg = (await callLLMAuto(clientHistory, undefined, undefined, { useCooldown: true })).content?.trim() ?? ''
         clientHistory.push({ role: 'assistant', content: clientMsg })
         agentHistory.push({ role: 'user', content: clientMsg })
         transcript.push({ role: 'CLIENT', content: clientMsg, round: r + 1 })
@@ -322,7 +322,7 @@ router.post('/auto-train', async (req: Request, res: Response) => {
     }
 
     send({ status: 'evaluating' })
-    const rawAnalysis = (await callLLMAuto([{ role: 'user', content: buildAnalysisPrompt(simulationType, site.brand, transcript) }])).content?.trim() ?? ''
+    const rawAnalysis = (await callLLMAuto([{ role: 'user', content: buildAnalysisPrompt(simulationType, site.brand, transcript) }], undefined, undefined, { useCooldown: true })).content?.trim() ?? ''
 
     let evaluation: any = { score: 0, level: 'Iniciante', result: 'FALHA', summary: '', strengths: [], weaknesses: [], coaching: [], nextSteps: [] }
     try { const m = rawAnalysis.match(/\{[\s\S]*\}/); if (m) evaluation = JSON.parse(m[0]) } catch {}
@@ -396,25 +396,25 @@ router.post('/batch-train', async (req: Request, res: Response) => {
         const transcript: Array<{ role: string; content: string; round: number }> = []
 
         clientHistory.push({ role: 'user', content: '[INICIO]' })
-        const firstMsg = (await callLLMAuto(clientHistory)).content?.trim() ?? ''
+        const firstMsg = (await callLLMAuto(clientHistory, undefined, undefined, { useCooldown: true })).content?.trim() ?? ''
         clientHistory.push({ role: 'assistant', content: firstMsg })
         agentHistory.push({ role: 'user', content: firstMsg })
         transcript.push({ role: 'CLIENT', content: firstMsg, round: 1 })
 
         for (let r = 1; r <= roundsPerRun; r++) {
-          const agentMsg = (await callLLMAuto(agentHistory)).content?.trim() ?? ''
+          const agentMsg = (await callLLMAuto(agentHistory, undefined, undefined, { useCooldown: true })).content?.trim() ?? ''
           agentHistory.push({ role: 'assistant', content: agentMsg })
           clientHistory.push({ role: 'user', content: agentMsg })
           transcript.push({ role: 'AGENT', content: agentMsg, round: r })
           if (r < roundsPerRun) {
-            const clientMsg = (await callLLMAuto(clientHistory)).content?.trim() ?? ''
+            const clientMsg = (await callLLMAuto(clientHistory, undefined, undefined, { useCooldown: true })).content?.trim() ?? ''
             clientHistory.push({ role: 'assistant', content: clientMsg })
             agentHistory.push({ role: 'user', content: clientMsg })
             transcript.push({ role: 'CLIENT', content: clientMsg, round: r + 1 })
           }
         }
 
-        const rawEv = (await callLLMAuto([{ role: 'user', content: buildAnalysisPrompt(simulationType, site.brand, transcript) }])).content ?? ''
+        const rawEv = (await callLLMAuto([{ role: 'user', content: buildAnalysisPrompt(simulationType, site.brand, transcript) }], undefined, undefined, { useCooldown: true })).content ?? ''
         let ev: any = { score: 0, result: 'FALHA', weaknesses: [], nextSteps: [] }
         try { const m = rawEv.match(/\{[\s\S]*\}/); if (m) ev = JSON.parse(m[0]) } catch {}
 
@@ -465,7 +465,7 @@ Responde APENAS com JSON válido:
 }`
 
     let diag: any = {}
-    try { const r = await callLLMAuto([{ role: 'user', content: diagPrompt }]); const m = r.content?.match(/\{[\s\S]*\}/); if (m) diag = JSON.parse(m[0]) } catch {}
+    try { const r = await callLLMAuto([{ role: 'user', content: diagPrompt }], undefined, undefined, { useCooldown: true }); const m = r.content?.match(/\{[\s\S]*\}/); if (m) diag = JSON.parse(m[0]) } catch {}
 
     send({
       status: 'batch_done', totalRuns, avgScore,

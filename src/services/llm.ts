@@ -203,10 +203,15 @@ export async function callLLMAuto(
   messages: LLMMessage[],
   preferredProvider?: SupportedProvider,
   tools?: object[],
+  options?: { useCooldown?: boolean },
 ): Promise<LLMAutoResult> {
-  const providers = await getEnabledProviders(true)
+  const useCooldown = options?.useCooldown ?? false
 
-  if (preferredProvider && !isOnCooldown(preferredProvider)) {
+  // For normal use (ORBIT, sites): include all providers regardless of cooldown state
+  // For simulations: skip providers already on cooldown
+  const providers = await getEnabledProviders(useCooldown)
+
+  if (preferredProvider && (!useCooldown || !isOnCooldown(preferredProvider))) {
     const idx = providers.findIndex(p => p.provider === preferredProvider)
     if (idx > 0) { const [pref] = providers.splice(idx, 1); providers.unshift(pref) }
   }
@@ -230,12 +235,18 @@ export async function callLLMAuto(
       lastErr = e
       const errStatus = (e as any)?.status ?? (e as any)?.statusCode ?? 0
       const errMsg = e instanceof Error ? e.message : String(e)
-      if (isQuotaError(e)) {
-        markProviderCooldown(provider, undefined, 429, 'rate limit')
-        console.warn(`[llm-auto] ${provider} todas as chaves esgotadas — tentando próximo provider...`)
+      if (useCooldown) {
+        // Only mark cooldown for simulation/test calls
+        if (isQuotaError(e)) {
+          markProviderCooldown(provider, undefined, 429, 'rate limit')
+          console.warn(`[llm-auto] ${provider} todas as chaves esgotadas — tentando próximo provider...`)
+        } else {
+          markProviderCooldown(provider, undefined, errStatus || 500, errMsg.slice(0, 80))
+          console.error(`[llm-auto] ${provider} erro HTTP ${errStatus}:`, errMsg.slice(0, 100))
+        }
       } else {
-        markProviderCooldown(provider, undefined, errStatus || 500, errMsg.slice(0, 80))
-        console.error(`[llm-auto] ${provider} erro HTTP ${errStatus}:`, errMsg.slice(0, 100))
+        // Normal use: just log and try next provider immediately, no cooldown
+        console.warn(`[llm-auto] ${provider} falhou (${errStatus || 'err'}) — tentando próximo imediatamente...`)
       }
     }
   }

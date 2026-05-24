@@ -190,7 +190,7 @@ router.post('/admin-advance', async (req: Request, res: Response) => {
       { role: 'user', content: message },
     ]
 
-    const result = await callLLMAuto(llmMessages)
+    const result = await callLLMAuto(llmMessages, undefined, undefined, { useCooldown: true })
     const reply = result.content ?? ''
 
     await prisma.simulationMessage.create({
@@ -300,7 +300,7 @@ router.post('/auto-train', async (req: Request, res: Response) => {
 
       // Client AI speaks
       const clientMsgs = buildClientMessages()
-      const clientResult = await callLLMAuto(clientMsgs)
+      const clientResult = await callLLMAuto(clientMsgs, undefined, undefined, { useCooldown: true })
       const clientMsg = (clientResult.content ?? '').trim()
       history.push({ role: 'client', content: clientMsg })
       send({ round: r, role: 'CLIENT', content: clientMsg })
@@ -309,7 +309,7 @@ router.post('/auto-train', async (req: Request, res: Response) => {
 
       // Agent AI responds
       const agentMsgs = buildAgentMessages(clientMsg)
-      const agentResult = await callLLMAuto(agentMsgs)
+      const agentResult = await callLLMAuto(agentMsgs, undefined, undefined, { useCooldown: true })
       const agentMsg = (agentResult.content ?? '').trim()
       history.push({ role: 'agent', content: agentMsg })
       send({ round: r, role: 'AGENT', content: agentMsg })
@@ -355,7 +355,7 @@ Responde EXCLUSIVAMENTE em JSON válido com esta estrutura exacta:
       { role: 'user', content: evalPrompt }
     ]
 
-    const evalResult = await callLLMAuto(evalMsgs)
+    const evalResult = await callLLMAuto(evalMsgs, undefined, undefined, { useCooldown: true })
     let evaluation: any = {}
     try {
       const jsonMatch = (evalResult.content ?? '').match(/\{[\s\S]*\}/)
@@ -457,13 +457,13 @@ router.post('/batch-train', async (req: Request, res: Response) => {
       }
 
       for (let r = 1; r <= roundsPerRun; r++) {
-        const clientResult = await callLLMAuto(buildClientMsgs())
+        const clientResult = await callLLMAuto(buildClientMsgs(), undefined, undefined, { useCooldown: true })
         const clientMsg = (clientResult.content ?? '').trim()
         history.push({ role: 'client', content: clientMsg })
 
         await sleep(1500) // avoid rate limit between client/agent calls
 
-        const agentResult = await callLLMAuto(buildAgentMsgs(clientMsg))
+        const agentResult = await callLLMAuto(buildAgentMsgs(clientMsg), undefined, undefined, { useCooldown: true })
         const agentMsg = (agentResult.content ?? '').trim()
         history.push({ role: 'agent', content: agentMsg })
       }
@@ -497,7 +497,7 @@ Responde EXCLUSIVAMENTE em JSON:
       const evalResult = await callLLMAuto([
         { role: 'system', content: 'Coach de IA especializado em análise de atendimento. Responde apenas em JSON válido.' },
         { role: 'user', content: evalPrompt }
-      ])
+      ], undefined, undefined, { useCooldown: true })
 
       let evalData: any = {}
       try {
@@ -598,7 +598,7 @@ Responde em JSON:
   const finalResult = await callLLMAuto([
     { role: 'system', content: 'Especialista sénior em treino de agentes de IA comercial. Responde apenas em JSON válido.' },
     { role: 'user', content: finalPrompt }
-  ]).catch(() => ({ content: '{}' }))
+  ], undefined, undefined, { useCooldown: true }).catch(() => ({ content: '{}' }))
 
   let finalAnalysis: any = {}
   try {

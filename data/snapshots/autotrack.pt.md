@@ -1,7 +1,7 @@
 # Autotrack -- autotrack.pt
-Actualizado: 2026-05-22T19:25:16.271Z
+Actualizado: 2026-05-24T18:26:11.513Z
 
-Conteudo extraido de autotrack.pt (Autotrack) em 22/05/2026.
+Conteudo extraido de autotrack.pt (Autotrack) em 24/05/2026.
 
 [Ficheiro: app/admin/chatbot/page.tsx]
 geminiDailyLimit: number;

@@ -1,7 +1,7 @@
 # OrbitHub OS -- orbithubos.pt
-Actualizado: 2026-05-22T19:26:15.662Z
+Actualizado: 2026-05-24T18:26:13.582Z
 
-Conteudo extraido de orbithubos.pt (OrbitHub OS) em 22/05/2026.
+Conteudo extraido de orbithubos.pt (OrbitHub OS) em 24/05/2026.
 
 Sistema de gestão completo para oficinas mecânicas e centros automotivos, com foco em rastreamento GPS, gestão financeira e integração com WhatsApp.
 ## 🚀 Funcionalidades Principais

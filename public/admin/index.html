@@ -1652,10 +1652,10 @@ async function loadProviders(silent = false) {
           const isError     = ks.cooldownMs > 0 && ks.errorCode && ks.errorCode !== 429
           const dotClass    = !ks.hasKey ? 'key-dot-empty' : isError ? 'key-dot-error' : isRateLimit ? 'key-dot-cooldown' : 'key-dot-ok'
           const dotColor    = !ks.hasKey ? '#4b5563' : isError ? '#ef4444' : isRateLimit ? '#f59e0b' : '#22c55e'
-          const hint        = isError ? \`Chave \${i+1} — erro HTTP \${ks.errorCode}\${ks.errorMsg ? ': ' + ks.errorMsg : ''}\`
-                            : isRateLimit ? \`Chave \${i+1} — limite de pedidos (auto-recupera)\`
-                            : \`Chave \${i+1}\${ks.hasKey ? ' — activa' : ' — vazia'}\`
-          return \`<span title="\${hint}" style="display:inline-flex;align-items:center;gap:3px;font-size:11px;color:\${dotColor}"><span class="\${dotClass}" style="width:7px;height:7px;border-radius:50%;display:inline-block"></span>\${ks.hasKey ? ks.masked : 'vazia'}</span>\`
+          const hint        = isError ? `Chave ${i+1} — erro HTTP ${ks.errorCode}${ks.errorMsg ? ': ' + ks.errorMsg : ''}`
+                            : isRateLimit ? `Chave ${i+1} — limite de pedidos (auto-recupera)`
+                            : `Chave ${i+1}${ks.hasKey ? ' — activa' : ' — vazia'}`
+          return `<span title="${hint}" style="display:inline-flex;align-items:center;gap:3px;font-size:11px;color:${dotColor}"><span class="${dotClass}" style="width:7px;height:7px;border-radius:50%;display:inline-block"></span>${ks.hasKey ? ks.masked : 'vazia'}</span>`
         }).join('') : (p.hasKey ? p.apiKey : '— sem chave —')}
       </div>
       <div class="pc-actions">
