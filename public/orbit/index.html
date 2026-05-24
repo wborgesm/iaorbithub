@@ -220,8 +220,33 @@
     }
     .config-group h3 {
       font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
-      color: #8b949e; margin-bottom: 12px;
+      color: #8b949e; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
     }
+    .cfg-status-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; font-weight: 600; letter-spacing: 0;
+      text-transform: none; padding: 2px 7px; border-radius: 20px;
+    }
+    .cfg-status-badge.ok    { background: #23863620; color: #3fb950; border: 1px solid #23863640; }
+    .cfg-status-badge.warn  { background: #9e6a0320; color: #d29922; border: 1px solid #9e6a0340; }
+    .cfg-status-badge.off   { background: #21262d;   color: #484f58; border: 1px solid #30363d; }
+    .cfg-status-badge.error { background: #f8514920; color: #f85149; border: 1px solid #f8514940; }
+    .orbit-status-strip {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 8px; margin-bottom: 18px; padding: 12px;
+      background: #0d1117; border: 1px solid #21262d; border-radius: 10px;
+    }
+    .orbit-status-item {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 12px; color: #8b949e;
+    }
+    .orbit-status-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .orbit-status-dot.ok    { background: #3fb950; box-shadow: 0 0 6px #3fb95060; }
+    .orbit-status-dot.warn  { background: #d29922; }
+    .orbit-status-dot.off   { background: #484f58; }
+    .orbit-status-dot.error { background: #f85149; box-shadow: 0 0 6px #f8514960; }
     .cfg-field { margin-bottom: 12px; }
     .cfg-field label { display: block; font-size: 12px; color: #8b949e; margin-bottom: 4px; }
     .cfg-field input {
@@ -906,9 +931,15 @@
       }
 
       function renderConfigPanel() {
-        configBody.innerHTML = CONFIG_GROUPS.map(g => `
+        // Status strip placeholder — filled by updateStatusStrip()
+        const stripHtml = '<div id="orbit-status-strip" class="orbit-status-strip">' +
+          ['Google','WhatsApp','Home Assistant','Banco','ElevenLabs','IFTTT'].map(s =>
+            `<div class="orbit-status-item"><span class="orbit-status-dot off"></span><span>${s}</span></div>`
+          ).join('') + '</div>'
+
+        configBody.innerHTML = stripHtml + CONFIG_GROUPS.map(g => `
           <section class="config-group" data-group="${g.id}">
-            <h3>${g.title}</h3>
+            <h3>${g.title} <span class="cfg-status-badge off" id="status-badge-${g.id}"></span></h3>
             ${g.fields.map(f => {
               const meta = configByKey[f.key] || {}
               const ph = meta.hasValue && f.type === 'password' ? '••••••••••••' : ''
@@ -963,6 +994,68 @@
         updateGoogleActions()
         updateHomeAssistantActions()
         updateWhatsAppActions()
+        updateStatusStrip()
+      }
+
+      async function updateStatusStrip() {
+        const strip = document.getElementById('orbit-status-strip')
+        if (!strip) return
+
+        // Fetch all statuses in parallel
+        const [gRes, waRes, haRes, bankRes] = await Promise.allSettled([
+          fetch('/api/orbit/google/status',      { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null),
+          fetch('/api/orbit/whatsapp/status',     { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null),
+          fetch('/api/orbit/homeassistant/status',{ credentials: 'same-origin' }).then(r => r.ok ? r.json() : null),
+          fetch('/api/orbit/truelayer/status',    { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null),
+        ])
+
+        const google  = gRes.status    === 'fulfilled' && gRes.value?.connected
+        const wa      = waRes.status   === 'fulfilled' && waRes.value?.connected
+        const ha      = haRes.status   === 'fulfilled' && haRes.value?.connected
+        const bank    = bankRes.status === 'fulfilled' && bankRes.value?.connected
+        const el      = !!(configByKey['orbit.elevenlabs_key']?.hasValue)
+        const ifttt   = !!(configByKey['orbit.ifttt_key']?.hasValue)
+
+        const items = [
+          { label: 'Google',         state: google  ? 'ok' : 'off',  detail: google  ? 'Gmail + Calendar' : 'Não ligado' },
+          { label: 'WhatsApp',       state: wa      ? 'ok' : 'off',  detail: wa      ? 'Ligado' : 'Não ligado' },
+          { label: 'Home Assistant', state: ha      ? 'ok' : 'off',  detail: ha      ? 'Ligado' : 'Não ligado' },
+          { label: 'Banco',          state: bank    ? 'ok' : 'off',  detail: bank    ? 'Revolut ligado' : 'Não ligado' },
+          { label: 'ElevenLabs',     state: el      ? 'ok' : 'off',  detail: el      ? 'Chave configurada' : 'Sem chave' },
+          { label: 'IFTTT',          state: ifttt   ? 'ok' : 'off',  detail: ifttt   ? 'Chave configurada' : 'Sem chave' },
+        ]
+
+        strip.innerHTML = items.map(item => `
+          <div class="orbit-status-item" title="${item.detail}">
+            <span class="orbit-status-dot ${item.state}"></span>
+            <span style="color:${item.state === 'ok' ? '#e6edf3' : '#484f58'}">${item.label}</span>
+            ${item.state === 'ok' ? '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#3fb950" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+          </div>`).join('')
+
+        // Update section badges
+        const badgeMap = {
+          google:    google  ? 'ok' : 'off',
+          whatsapp:  wa      ? 'ok' : 'off',
+          home:      ha      ? 'ok' : 'off',
+          bank:      bank    ? 'ok' : 'off',
+          voice:     el      ? 'ok' : 'warn',
+        }
+        const labelMap = {
+          google:   google  ? 'Ligado' : '',
+          whatsapp: wa      ? 'Ligado' : '',
+          home:     ha      ? 'Ligado' : '',
+          bank:     bank    ? 'Ligado' : '',
+          voice:    el      ? 'ElevenLabs ✓' : '',
+        }
+        Object.entries(badgeMap).forEach(([id, state]) => {
+          const badge = document.getElementById('status-badge-' + id)
+          if (!badge) return
+          const lbl = labelMap[id]
+          if (!lbl) { badge.style.display = 'none'; return }
+          badge.style.display = 'inline-flex'
+          badge.className = 'cfg-status-badge ' + state
+          badge.textContent = lbl
+        })
       }
 
       let waPollTimer = null
