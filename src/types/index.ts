@@ -35,4 +35,4 @@ export interface LLMResponse {
   model: string
 }
 
-export type SupportedProvider = 'GEMINI' | 'OPENAI' | 'CLAUDE' | 'DEEPSEEK' | 'GROQ' | 'OPENROUTER' | 'COHERE' | 'HUGGINGFACE'
+export type SupportedProvider = 'GEMINI' | 'OPENAI' | 'CLAUDE' | 'DEEPSEEK' | 'GROQ' | 'OPENROUTER' | 'COHERE' | 'HUGGINGFACE' | 'LOCAL_OLLAMA' | 'LOCAL_OLLAMA_FAST' | 'LOCAL_DOLPHIN'

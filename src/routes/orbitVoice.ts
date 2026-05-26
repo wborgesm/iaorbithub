@@ -7,6 +7,11 @@ import { getOrbitConfig, listOrbitConfigs, normalizeOrbitKey } from '../services
 import { injectOrbitFacts } from '../modules/orbitContext'
 import { listAlerts, markAlertRead, markAllAlertsRead, getUnreadCount } from '../modules/orbitAlerts'
 import { requireAdminAuth } from '../middleware/adminAuth'
+import {
+  parseSourceDevice,
+  resolveAudioRoute,
+  buildRoutedVoiceResponse,
+} from '../modules/audioDeviceRouting'
 import type { LLMMessage, SessionContext, SupportedProvider } from '../types'
 
 const router = Router()
@@ -14,7 +19,7 @@ const prisma = new PrismaClient()
 const toolService = new ToolExecutionService()
 
 const ORBIT_DOMAIN = 'orbit.internal'
-const ORBIT_TOOL_NAMES = ['controlSmartHome', 'listHomeDevices', 'getHomeDeviceState', 'sendWhatsApp', 'createCalendarEvent', 'listCalendarEvents', 'listOrbitCapabilities', 'getBankBalance', 'getRecentTransactions', 'readEmails', 'readEmailContent', 'listEmailFolders', 'sendEmail', 'rememberFact', 'listFacts']
+const ORBIT_TOOL_NAMES = ['controlSmartHome', 'listHomeDevices', 'getHomeDeviceState', 'sendWhatsApp', 'readWhatsAppMessages', 'createCalendarEvent', 'listCalendarEvents', 'listOrbitCapabilities', 'getBankBalance', 'getRecentTransactions', 'readEmails', 'readEmailContent', 'listEmailFolders', 'sendEmail', 'rememberFact', 'listFacts', 'cleanGpsHistory']
 const WELCOME_SPEECH = 'ORBIT online. O que precisas, Wanderson?'
 const GOODBYE_SPEECH = 'ORBIT a encerrar. Até logo, Wanderson.'
 const EXIT_PHRASES = ['pode ir', 'encerra', 'até logo', 'ate logo', 'obrigado orbit', 'obrigado, orbit']
@@ -200,9 +205,12 @@ function buildGoogleResponse(
   speech: string,
   orbitSessionId: string,
   endConversation: boolean,
+  sourceDevice?: string,
 ) {
+  const sessionParams: Record<string, string> = { orbitSessionId }
+  if (sourceDevice) sessionParams.source_device = sourceDevice
   const response: Record<string, unknown> = {
-    session: { id: googleSessionId, params: { orbitSessionId } },
+    session: { id: googleSessionId, params: sessionParams },
     prompt: {
       override: false,
       firstSimple: { speech, text: speech },
@@ -225,13 +233,26 @@ router.post('/voice', async (req: Request, res: Response) => {
   if (!message) return res.status(400).json({ error: 'message obrigatório' })
 
   const sessionId = typeof req.body?.sessionId === 'string' ? req.body.sessionId : undefined
+  const sourceDevice = parseSourceDevice(req)
+  const route = resolveAudioRoute(sourceDevice)
   const result = await processOrbitVoiceMessage(message, sessionId)
   if (!result) return res.status(503).json({ error: 'ORBIT indisponível' })
 
-  return res.json(result)
+  const payload = await buildRoutedVoiceResponse(result.reply, result.sessionId, route)
+  return res.json(payload)
 })
 
 router.post('/google-action', async (req: Request, res: Response) => {
+  const expectedSecret = process.env.ORBIT_GOOGLE_ACTION_SECRET
+    || await getOrbitConfig('google_action_secret').catch(() => null)
+  if (expectedSecret) {
+    const incoming = (req.headers['x-orbit-secret'] as string)
+      || String((req.body as Record<string, unknown>)?.orbitSecret || '')
+    if (incoming !== expectedSecret) {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+  }
+
   const body = req.body as Record<string, unknown>
   const handler = body.handler as { name?: string } | undefined
   const googleSession = body.session as { id?: string; params?: Record<string, unknown> } | undefined
@@ -239,17 +260,21 @@ router.post('/google-action', async (req: Request, res: Response) => {
   const orbitSessionId = typeof googleSession?.params?.orbitSessionId === 'string'
     ? googleSession.params.orbitSessionId
     : undefined
+  const sourceDevice = typeof googleSession?.params?.source_device === 'string'
+    ? googleSession.params.source_device.trim()
+    : 'siri_iphone'
+  const route = resolveAudioRoute(sourceDevice)
 
   const text = extractGoogleText(body)
   const isMain = handler?.name === 'actions.handler.MAIN' || !text
 
   if (isMain) {
     const sid = await resolveOrbitSession(orbitSessionId)
-    return res.json(buildGoogleResponse(googleSessionId, WELCOME_SPEECH, sid || '', false))
+    return res.json(buildGoogleResponse(googleSessionId, WELCOME_SPEECH, sid || '', false, sourceDevice))
   }
 
   if (isExitPhrase(text)) {
-    return res.json(buildGoogleResponse(googleSessionId, GOODBYE_SPEECH, orbitSessionId || '', true))
+    return res.json(buildGoogleResponse(googleSessionId, GOODBYE_SPEECH, orbitSessionId || '', true, sourceDevice))
   }
 
   const result = await processOrbitVoiceMessage(text, orbitSessionId)
@@ -259,10 +284,15 @@ router.post('/google-action', async (req: Request, res: Response) => {
       'ORBIT com dificuldades técnicas. Tenta de novo daqui a pouco.',
       orbitSessionId || '',
       false,
+      sourceDevice,
     ))
   }
 
-  return res.json(buildGoogleResponse(googleSessionId, result.reply, result.sessionId, false))
+  if (route.deliverViaApiOnly) {
+    return res.json(buildGoogleResponse(googleSessionId, result.reply, result.sessionId, false, sourceDevice))
+  }
+
+  return res.json(buildGoogleResponse(googleSessionId, result.reply, result.sessionId, false, sourceDevice))
 })
 
 router.get('/config', requireAdminAuth, async (_req: Request, res: Response) => {

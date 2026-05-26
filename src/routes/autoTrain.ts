@@ -501,4 +501,31 @@ Responde APENAS com JSON válido:
   }
 })
 
+// DELETE /api/simulation/auto-train/sessions/:id — apaga uma sessão
+router.delete('/auto-train/sessions/:id', async (req: Request, res: Response) => {
+  try {
+    await prisma.autoTrainSession.delete({ where: { id: String(req.params.id) } })
+    return res.json({ deleted: true })
+  } catch (err) {
+    return res.status(500).json({ error: 'Erro ao apagar sessão' })
+  }
+})
+
+// DELETE /api/simulation/auto-train/sessions — apaga todas (com filtros opcionais)
+router.delete('/auto-train/sessions', async (req: Request, res: Response) => {
+  try {
+    const siteId = typeof req.query.siteId === 'string' ? req.query.siteId : undefined
+    const simType = typeof req.query.simType === 'string' ? req.query.simType : undefined
+    const result = await prisma.autoTrainSession.deleteMany({
+      where: {
+        ...(siteId ? { siteId } : {}),
+        ...(simType ? { simType: simType as any } : {}),
+      }
+    })
+    return res.json({ deleted: result.count })
+  } catch (err) {
+    return res.status(500).json({ error: 'Erro ao apagar sessões' })
+  }
+})
+
 export default router

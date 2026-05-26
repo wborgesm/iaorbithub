@@ -11,8 +11,11 @@ const DEFAULT_MODELS: Record<SupportedProvider, string> = {
   DEEPSEEK:     'deepseek-chat',
   GROQ:         'llama-3.3-70b-versatile',
   OPENROUTER:   'meta-llama/llama-3.3-70b-instruct:free',
-  COHERE:       'command-r-plus',
+  COHERE:       'command-r-plus-08-2024',
   HUGGINGFACE:  'mistralai/Mistral-7B-Instruct-v0.3',
+  LOCAL_OLLAMA: 'llama3.2:3b',
+  LOCAL_OLLAMA_FAST: 'llama3.2:1b',
+  LOCAL_DOLPHIN: 'dolphin-llama3:8b',
 }
 
 function buildOpenAIClient(provider: SupportedProvider, key: string): OpenAI {
@@ -21,6 +24,7 @@ function buildOpenAIClient(provider: SupportedProvider, key: string): OpenAI {
   if (provider === 'OPENROUTER')  return new OpenAI({ apiKey: key, baseURL: 'https://openrouter.ai/api/v1', defaultHeaders: { 'HTTP-Referer': 'https://ia.orbithubos.pt', 'X-Title': 'AI Command Center' } })
   if (provider === 'COHERE')      return new OpenAI({ apiKey: key, baseURL: 'https://api.cohere.com/compatibility/v1' })
   if (provider === 'HUGGINGFACE') return new OpenAI({ apiKey: key, baseURL: 'https://api-inference.huggingface.co/v1' })
+  if (provider === 'LOCAL_OLLAMA' || provider === 'LOCAL_OLLAMA_FAST' || provider === 'LOCAL_DOLPHIN') return new OpenAI({ apiKey: 'ollama', baseURL: 'http://127.0.0.1:11434/v1', timeout: 120000, maxRetries: 0 })
   return new OpenAI({ apiKey: key })
 }
 
@@ -31,6 +35,12 @@ async function callWithKeyRotation(
   tools?: object[],
   useCooldown = false,
 ): Promise<LLMResponse> {
+  // LOCAL_* providers (Ollama) não precisam de key management
+  if (provider.startsWith('LOCAL_')) {
+    const model = DEFAULT_MODELS[provider]
+    return await callWithKey(provider, 'ollama', model, messages, tools)
+  }
+
   // ignoreCooldown=true quando useCooldown=false (ORBIT/sites nunca bloqueiam em cooldown de chaves)
   const ignoreCooldown = !useCooldown
   const info = await getNextAvailableKey(provider, ignoreCooldown)
@@ -48,16 +58,16 @@ async function callWithKeyRotation(
       } else {
         console.warn(`[llm] ${provider} chave ${info.keyIdx + 1} com 429 — a tentar próxima chave (sem marcar cooldown)...`)
       }
-      // Tentar próxima chave disponível
-      const info2 = await getNextAvailableKey(provider, ignoreCooldown)
-      if (info2 && info2.keyIdx !== info.keyIdx) {
+      // Tentar próxima chave disponível (afterIdx garante progressão mesmo com ignoreCooldown=true)
+      const info2 = await getNextAvailableKey(provider, ignoreCooldown, info.keyIdx)
+      if (info2) {
         try {
           return await callWithKey(provider, info2.key, model, messages, tools)
         } catch (e2) {
           if (isQuotaError(e2)) {
             if (useCooldown) markKeyCooldown(provider, info2.keyIdx)
-            const info3 = await getNextAvailableKey(provider, ignoreCooldown)
-            if (info3 && info3.keyIdx !== info2.keyIdx) return await callWithKey(provider, info3.key, model, messages, tools)
+            const info3 = await getNextAvailableKey(provider, ignoreCooldown, info2.keyIdx)
+            if (info3) return await callWithKey(provider, info3.key, model, messages, tools)
           }
           throw e2
         }
@@ -147,10 +157,12 @@ export async function streamLLM(
   messages: LLMMessage[],
   onChunk: (token: string) => void,
 ): Promise<{ content: string; promptTokens: number; completionTokens: number; model: string }> {
-  const info = await getNextAvailableKey(provider)
-  if (!info) throw new Error(`${provider}: sem chave disponível`)
-  const model = info.model || DEFAULT_MODELS[provider]
-  const key = info.key
+  // LOCAL_* providers (Ollama) não precisam de key management
+  const isLocal = provider.startsWith('LOCAL_')
+  const info = isLocal ? null : await getNextAvailableKey(provider)
+  if (!isLocal && !info) throw new Error(`${provider}: sem chave disponível`)
+  const model = (info?.model) || DEFAULT_MODELS[provider]
+  const key = isLocal ? 'ollama' : info!.key
 
   if (provider === 'CLAUDE') {
     const anthropic = new Anthropic({ apiKey: key })
@@ -214,6 +226,17 @@ export async function callLLMAuto(
   options?: { useCooldown?: boolean },
 ): Promise<LLMAutoResult> {
   const useCooldown = options?.useCooldown ?? false
+
+  // LOCAL_* providers (Ollama) bypass the ProviderConfig table entirely
+  if (preferredProvider && preferredProvider.startsWith('LOCAL_')) {
+    try {
+      const result = await callLLM(preferredProvider, messages, tools, false)
+      return { ...result, usedProvider: preferredProvider, attemptedProviders: [preferredProvider] }
+    } catch (e) {
+      console.warn(`[llm-auto] ${preferredProvider} falhou — fallback para cloud: ${e instanceof Error ? e.message : e}`)
+      // fall through to cloud providers
+    }
+  }
 
   // For normal use (ORBIT, sites): include all providers regardless of cooldown state
   // For simulations: skip providers already on cooldown

@@ -6,6 +6,9 @@ const SCOPES = [
   'https://www.googleapis.com/auth/calendar',
   'https://www.googleapis.com/auth/drive.readonly',
   'https://www.googleapis.com/auth/contacts.readonly',
+  'https://www.googleapis.com/auth/fitness.activity.read',
+  'https://www.googleapis.com/auth/fitness.sleep.read',
+  'https://www.googleapis.com/auth/fitness.heart_rate.read',
 ]
 
 export const REDIRECT_URI = 'https://ia.orbithubos.pt/api/orbit/google/callback'
@@ -65,4 +68,17 @@ export async function exchangeCode(code: string): Promise<void> {
 export async function isGoogleConnected(): Promise<boolean> {
   const token = await getOrbitConfig('google_refresh_token')
   return !!token
+}
+
+/** Devolve um access_token válido (refresca se necessário). Null se não ligado. */
+export async function getValidAccessToken(): Promise<string | null> {
+  try {
+    const refresh = await getOrbitConfig('google_refresh_token')
+    if (!refresh) return null
+    const client = await getOAuth2Client()
+    const { token } = await client.getAccessToken()
+    return token || null
+  } catch {
+    return null
+  }
 }

@@ -105,8 +105,10 @@ export async function saveMemoryVector(entry: {
   content: string
   metadata?: Record<string, unknown>
 }): Promise<void> {
+  const safeContent = (entry.content ?? '').trim()
+  if (!safeContent) return
   try {
-    const embedding = await generateEmbedding(entry.content)
+    const embedding = await generateEmbedding(safeContent)
     if (embedding) {
       const vec = `[${embedding.join(',')}]`
       await prisma.$executeRaw`
@@ -115,7 +117,7 @@ export async function saveMemoryVector(entry: {
         VALUES (
           gen_random_uuid()::text, NOW(),
           ${entry.siteId ?? null}, ${entry.sessionId ?? null},
-          ${entry.type}, ${entry.content},
+          ${entry.type}, ${safeContent},
           ${vec}::vector,
           ${JSON.stringify(entry.metadata ?? {})}::jsonb
         )
@@ -127,7 +129,7 @@ export async function saveMemoryVector(entry: {
         VALUES (
           gen_random_uuid()::text, NOW(),
           ${entry.siteId ?? null}, ${entry.sessionId ?? null},
-          ${entry.type}, ${entry.content},
+          ${entry.type}, ${safeContent},
           ${JSON.stringify(entry.metadata ?? {})}::jsonb
         )
       `
@@ -173,7 +175,15 @@ export async function searchMemory(
 export async function listFacts(
   siteId: string,
   limit = 20,
-): Promise<Array<{ id: string; content: string; category?: string; createdAt: Date }>> {
+): Promise<Array<{
+  id: string
+  content: string
+  category?: string
+  dueDate?: string
+  priority?: string
+  factType?: string
+  createdAt: Date
+}>> {
   try {
     const rows = await prisma.$queryRaw<Array<{ id: string; content: string; metadata: unknown; createdAt: Date }>>`
       SELECT id, content, metadata, "createdAt"
@@ -188,9 +198,140 @@ export async function listFacts(
         id: r.id,
         content: r.content,
         category: typeof meta.category === 'string' ? meta.category : undefined,
+        dueDate: typeof meta.dueDate === 'string' ? meta.dueDate : undefined,
+        priority: typeof meta.priority === 'string' ? meta.priority : undefined,
+        factType: typeof meta.factType === 'string' ? meta.factType : undefined,
         createdAt: r.createdAt,
       }
     })
+  } catch {
+    return []
+  }
+}
+
+export async function saveFact(input: {
+  siteId: string
+  sessionId?: string
+  fact: string
+  category: string
+  dueDate?: string
+  priority?: string
+  factType?: string
+  asset?: string
+  last_metric?: number
+  threshold?: number
+  metric_unit?: string
+  phone?: string
+}): Promise<void> {
+  const metadata: Record<string, unknown> = {
+    category: input.category,
+    fact: input.fact,
+    dueDate: input.dueDate || null,
+    priority: input.priority || 'medium',
+    factType: input.factType || 'preference',
+    asset: input.asset || null,
+    last_metric: typeof input.last_metric === 'number' ? input.last_metric : null,
+    threshold: typeof input.threshold === 'number' ? input.threshold : null,
+    metric_unit: input.metric_unit || 'km',
+    phone: input.phone || null,
+  }
+  await saveMemoryVector({
+    siteId: input.siteId,
+    sessionId: input.sessionId,
+    type: 'preference',
+    content: input.fact,
+    metadata,
+  })
+}
+
+/** Factos com dueDate nos próximos N dias */
+export async function listUpcomingFacts(
+  siteId: string,
+  withinDays = 14,
+): Promise<Array<{ id: string; content: string; dueDate: string; priority?: string; factType?: string }>> {
+  try {
+    const rows = await prisma.$queryRaw<Array<{ id: string; content: string; metadata: unknown }>>`
+      SELECT id, content, metadata
+      FROM "MemoryVector"
+      WHERE "siteId" = ${siteId} AND type = 'preference'
+        AND metadata->>'dueDate' IS NOT NULL
+        AND metadata->>'dueDate' != ''
+      ORDER BY metadata->>'dueDate' ASC
+    `
+    const now = new Date()
+    const end = new Date(now.getTime() + withinDays * 86400000)
+    const out: Array<{ id: string; content: string; dueDate: string; priority?: string; factType?: string }> = []
+    for (const r of rows) {
+      const meta = (r.metadata && typeof r.metadata === 'object') ? r.metadata as Record<string, unknown> : {}
+      const dueDate = typeof meta.dueDate === 'string' ? meta.dueDate : ''
+      if (!dueDate) continue
+      const d = new Date(dueDate + 'T12:00:00')
+      if (isNaN(d.getTime()) || d < now || d > end) continue
+      out.push({
+        id: r.id,
+        content: r.content,
+        dueDate,
+        priority: typeof meta.priority === 'string' ? meta.priority : undefined,
+        factType: typeof meta.factType === 'string' ? meta.factType : undefined,
+      })
+    }
+    return out
+  } catch {
+    return []
+  }
+}
+
+/** Procura número de telefone de um contacto guardado por nome */
+export async function resolveContactPhone(siteId: string, name: string): Promise<string | null> {
+  try {
+    const rows = await prisma.$queryRaw<Array<{ content: string; metadata: unknown }>>`
+      SELECT content, metadata FROM "MemoryVector"
+      WHERE "siteId" = ${siteId} AND type = 'preference'
+        AND (metadata->>'factType' = 'contact' OR metadata->>'category' = 'pessoal')
+        AND LOWER(content) LIKE ${`%${name.toLowerCase()}%`}
+      ORDER BY "createdAt" DESC LIMIT 5
+    `
+    for (const r of rows) {
+      const meta = (r.metadata && typeof r.metadata === 'object') ? r.metadata as Record<string, unknown> : {}
+      const phone = typeof meta.phone === 'string' ? meta.phone.trim() : ''
+      if (phone && phone.replace(/\D/g, '').length >= 7) return phone
+    }
+    return null
+  } catch { return null }
+}
+
+export async function listMaintenanceAssets(siteId: string): Promise<Array<{
+  id: string
+  content: string
+  asset: string
+  lastMetric: number
+  threshold: number
+  unit: string
+}>> {
+  try {
+    const rows = await prisma.$queryRaw<Array<{ id: string; content: string; metadata: unknown }>>`
+      SELECT id, content, metadata FROM "MemoryVector"
+      WHERE "siteId" = ${siteId} AND type = 'preference'
+        AND metadata->>'asset' IS NOT NULL
+        AND metadata->>'threshold' IS NOT NULL
+    `
+    const out: Array<{ id: string; content: string; asset: string; lastMetric: number; threshold: number; unit: string }> = []
+    for (const r of rows) {
+      const meta = (r.metadata && typeof r.metadata === 'object') ? r.metadata as Record<string, unknown> : {}
+      const asset = typeof meta.asset === 'string' ? meta.asset : ''
+      const threshold = typeof meta.threshold === 'number' ? meta.threshold : parseFloat(String(meta.threshold || '0'))
+      const lastMetric = typeof meta.last_metric === 'number' ? meta.last_metric : parseFloat(String(meta.last_metric || '0'))
+      if (!asset || !threshold) continue
+      out.push({
+        id: r.id,
+        content: r.content,
+        asset,
+        lastMetric: lastMetric || 0,
+        threshold,
+        unit: typeof meta.metric_unit === 'string' ? meta.metric_unit : 'km',
+      })
+    }
+    return out
   } catch {
     return []
   }

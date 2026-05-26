@@ -815,3 +815,137 @@ router.post('/memory/:id/mark-insight', async (req: Request, res: Response) => {
 })
 
 export default router
+
+// ── Capacidades / Ferramentas ─────────────────────────────────────────────────
+router.get('/capabilities', (_req: Request, res: Response) => {
+  const caps = [
+    { category: 'GPS & Segurança', name: 'detectGpsAnomaly', label: 'Detectar anomalia GPS', description: 'Detecta instalações falsas, sinal perdido, jammer provável', example: 'detecta anomalias GPS hoje' },
+    { category: 'GPS & Segurança', name: 'analyzeGsmCoverage', label: 'Analisar cobertura GSM', description: 'Distingue zona sem sinal vs jammer numa posição', example: 'analisa cobertura GSM do dispositivo 3' },
+    { category: 'GPS & Segurança', name: 'getSuspicionScore', label: 'Score de suspeita', description: 'Score 0-100 por dispositivo: horário, velocidade, alarmes', example: 'qual o score de suspeita do dispositivo 1?' },
+    { category: 'GPS & Segurança', name: 'ghostReplay', label: 'Replay de evento', description: 'Reconstrói rota, velocidade, ignição de evento passado', example: 'reconstrói o percurso do dispositivo 2 ontem' },
+    { category: 'GPS & Segurança', name: 'analyzeRelationships', label: 'Grafo de relações', description: 'Detecta padrões de falha em lote por dispositivo/cliente', example: 'mostra relações do dispositivo 5' },
+    { category: 'GPS & Segurança', name: 'inferIntent', label: 'Inferir intenção', description: 'Ocultação, vigilância, entrega ou fuga?', example: 'qual a intenção do movimento do dispositivo 3?' },
+    { category: 'GPS & Segurança', name: 'detectTemporalAnomaly', label: 'Anomalia temporal', description: 'Movimento sem ignição, sequências impossíveis', example: 'detecta anomalias temporais nas últimas 6h' },
+    { category: 'GPS & Segurança', name: 'checkDeviceBaseline', label: 'Baseline do dispositivo', description: 'Compara métricas actuais com histórico individual', example: 'verifica baseline do dispositivo 1' },
+    { category: 'GPS & Segurança', name: 'getSixthSense', label: 'Sexto sentido', description: 'Micro-sinais: GSM drops, oscilações de tensão, GPS jumps', example: 'activa o sexto sentido para o dispositivo 2' },
+    { category: 'GPS & Segurança', name: 'getSilenceEvents', label: 'Eventos de silêncio', description: 'Coisas que deviam ter acontecido mas não aconteceram', example: 'mostra eventos de silêncio de hoje' },
+    { category: 'GPS & Segurança', name: 'detectTemporalEchoes', label: 'Padrões recorrentes', description: 'Falhas/alarmes que se repetem sempre na mesma hora', example: 'detecta padrões recorrentes das últimas 4 semanas' },
+    { category: 'GPS & Segurança', name: 'getTheftRiskForecast', label: 'Previsão de roubo', description: 'Risco de roubo nas próximas 24-48h por dispositivo', example: 'qual o risco de roubo amanhã?' },
+    { category: 'GPS & Segurança', name: 'getActiveIncidents', label: 'Incidentes activos', description: 'Lista incidentes activos agrupados anti-caos', example: 'mostra incidentes activos agora' },
+    { category: 'GPS & Segurança', name: 'runPostIncidentAnalysis', label: 'Análise pós-incidente', description: 'RCA: reconstrói cadeia causal de uma falha', example: 'analisa o incidente de ontem às 14h' },
+    { category: 'GPS & Segurança', name: 'analyzeDeviceHealth', label: 'Saúde do dispositivo', description: 'Tensão, RSSI, satélites, temperatura', example: 'diagnóstico de hardware do dispositivo 4' },
+    { category: 'GPS & Segurança', name: 'generateEvidenceReport', label: 'Relatório de evidências', description: 'PDF para polícia/cliente: timeline, rota, alarmes', example: 'gera relatório de evidências para o dispositivo 1 às 13h de ontem' },
+    { category: 'GPS & Segurança', name: 'generateNarrative', label: 'Narrativa de eventos', description: 'Transforma dados técnicos em narrativa para cliente/polícia', example: 'gera narrativa do dispositivo 2 para a polícia' },
+    { category: 'GPS & Segurança', name: 'getBehaviorProfile', label: 'Perfil comportamental', description: 'Perfil aprendido de um veículo ao longo do tempo', example: 'mostra o perfil do dispositivo 1' },
+    { category: 'GPS & Segurança', name: 'getWeatherCorrelation', label: 'Correlação clima/falhas', description: 'Liga condições meteorológicas a falhas de GPS', example: 'correlaciona clima com falhas esta semana' },
+    { category: 'GPS & Segurança', name: 'synthesizeIntelligence', label: 'Síntese multi-domínio', description: 'GPS + financeiro + reputação numa só análise', example: 'síntese completa do cliente X' },
+    { category: 'Negócio & Receita', name: 'getClientReputation', label: 'Reputação de cliente', description: 'Faturas, inactividade, suporte — perfil de risco', example: 'perfil de risco do cliente joao@exemplo.pt' },
+    { category: 'Negócio & Receita', name: 'getPredictions', label: 'Previsões churn/falha', description: 'Churn de clientes e risco de falha de dispositivos', example: 'quais clientes estão em risco de churn?' },
+    { category: 'Negócio & Receita', name: 'getLeadIntelligence', label: 'Inteligência de leads', description: 'Leads classificados: URGENTE/QUENTE/MORNO/FRIO', example: 'mostra leads urgentes de hoje' },
+    { category: 'Negócio & Receita', name: 'revenueAutopilot', label: 'Revenue autopilot', description: 'Cruza anúncios, leads e receita — detecta campanhas lucrativas', example: 'liga o revenue autopilot' },
+    { category: 'Negócio & Receita', name: 'revenueForecast', label: 'Previsão de receita', description: 'Receita prevista para 30-90 dias com base no histórico', example: 'prevê a receita dos próximos 60 dias' },
+    { category: 'Negócio & Receita', name: 'funnelAnalysis', label: 'Análise de funil', description: 'Onde exactamente perdes dinheiro no funil', example: 'analisa o funil de vendas' },
+    { category: 'Negócio & Receita', name: 'growthSimulate', label: 'Simulação de crescimento', description: 'ROI esperado se investir X/dia numa campanha', example: 'se investir 20€/dia na campanha A qual o ROI?' },
+    { category: 'Negócio & Receita', name: 'opportunityAlert', label: 'Alertas de oportunidade', description: 'Dinheiro caído no chão: leads sem resposta, faturas em atraso', example: 'mostra oportunidades de hoje' },
+    { category: 'Negócio & Receita', name: 'ceoDecision', label: 'Decisão CEO', description: '3 directivas estratégicas síntese de tudo', example: 'o que devo focar hoje como CEO?' },
+    { category: 'Negócio & Receita', name: 'dailyOS', label: 'OS Diário', description: 'Plano de execução do dia em 6 acções', example: 'dá-me o plano do dia' },
+    { category: 'Negócio & Receita', name: 'quickSummary', label: 'Resumo 60 segundos', description: 'Crítico vs ok vs decisão necessária', example: 'resumo rápido do negócio' },
+    { category: 'Negócio & Receita', name: 'dailyDecision', label: 'Decisor de prioridade', description: 'Vale a pena fazer isto agora?', example: 'vale a pena fazer X agora?' },
+    { category: 'Negócio & Receita', name: 'focusBlocks', label: 'Blocos de foco', description: 'Divide o dia em blocos de 90 min de trabalho focado', example: 'organiza o resto do meu dia' },
+    { category: 'Negócio & Receita', name: 'getOperationalCosts', label: 'Custos operacionais', description: 'Tokens LLM e faturas em atraso', example: 'qual o custo operacional desta semana?' },
+    { category: 'Negócio & Receita', name: 'simulateDecision', label: 'Simular decisão', description: 'Impacto de bloquear veículo / alertar cliente antes de executar', example: 'simula bloquear o veículo 3' },
+    { category: 'Negócio & Receita', name: 'getOptimalTiming', label: 'Momento óptimo', description: 'Quando é o melhor momento para agir', example: 'quando devo contactar o cliente X?' },
+    { category: 'Marketing & Publicidade', name: 'generateCopy', label: 'Gerar copy', description: 'Anúncios, WhatsApp, hooks TikTok, email — para Rinosat', example: 'gera 3 hooks TikTok sobre GPS' },
+    { category: 'Marketing & Publicidade', name: 'generateAdaptiveCopy', label: 'Copy adaptado', description: 'Adaptado ao perfil: emocional, racional, empresa, jovem', example: 'gera copy WhatsApp para cliente emocional' },
+    { category: 'Marketing & Publicidade', name: 'generateVideoScript', label: 'Roteiro de vídeo', description: 'Script completo com hook, problema, prova, CTA', example: 'cria roteiro de 30s para TikTok' },
+    { category: 'Marketing & Publicidade', name: 'getMarketingDashboard', label: 'Dashboard marketing', description: 'Meta + Google + TikTok + Instagram + leads numa vista', example: 'mostra o dashboard de marketing desta semana' },
+    { category: 'Marketing & Publicidade', name: 'getMetaCampaigns', label: 'Campanhas Meta', description: 'Performance: gasto, CTR, CPC, leads, CPL', example: 'mostra campanhas Meta dos últimos 7 dias' },
+    { category: 'Marketing & Publicidade', name: 'controlMetaCampaign', label: 'Controlar Meta', description: 'Pausa, activa ou ajusta orçamento de campanha', example: 'pausa a campanha X do Meta' },
+    { category: 'Marketing & Publicidade', name: 'getGoogleAdsPerformance', label: 'Google Ads', description: 'CTR, CPC, conversões, keywords desperdiçadoras', example: 'performance Google Ads este mês' },
+    { category: 'Marketing & Publicidade', name: 'getTikTokPerformance', label: 'TikTok Ads', description: 'Retenção 2s/6s, CTR, hooks fracos ou fortes', example: 'mostra performance TikTok desta semana' },
+    { category: 'Marketing & Publicidade', name: 'analyzeInstagramComments', label: 'Comentários Instagram', description: 'Classifica comentários: lead, suporte, spam — sugere respostas', example: 'analisa comentários Instagram dos últimos posts' },
+    { category: 'Marketing & Publicidade', name: 'getInstagramPerformance', label: 'Performance Instagram', description: 'Alcance, engagement, likes, comentários, saves', example: 'performance dos últimos 10 posts Instagram' },
+    { category: 'Marketing & Publicidade', name: 'getCompetitorIntelligence', label: 'Inteligência concorrentes', description: 'Anúncios de concorrentes GPS em Portugal via Meta Ad Library', example: 'o que estão a fazer os concorrentes de GPS?' },
+    { category: 'Marketing & Publicidade', name: 'saveHook', label: 'Guardar hook', description: 'Guarda hook/headline/CTA na biblioteca de criativos', example: 'guarda este hook: GPS que avisa antes do roubo' },
+    { category: 'Marketing & Publicidade', name: 'getHooks', label: 'Buscar criativos', description: 'Biblioteca de hooks, headlines, CTAs guardados', example: 'mostra os melhores hooks TikTok' },
+    { category: 'Marketing & Publicidade', name: 'smartFollowup', label: 'Follow-up inteligente', description: 'Detecta leads sem contacto e gera mensagem personalizada', example: 'quais leads precisam de follow-up?' },
+    { category: 'Marketing & Publicidade', name: 'marketReaction', label: 'Reacção de mercado', description: 'Mudanças de velocidade de leads e conversão — reacções táticas', example: 'o mercado está a mudar? como reagir?' },
+    { category: 'Marketing & Publicidade', name: 'generateContentFromEvent', label: 'Conteúdo de evento GPS', description: 'Transforma evento real em post social / anúncio', example: 'transforma o percurso de ontem num post Instagram' },
+    { category: 'Marketing & Publicidade', name: 'sendLeadReactivation', label: 'Reactivar lead frio', description: 'Envia próxima mensagem da sequência de reactivação', example: 'reactiva o lead frio do João' },
+    { category: 'Marketing & Publicidade', name: 'dailyFollowups', label: 'Follow-ups do dia', description: 'Leads quentes + faturas em atraso com mensagem concreta', example: 'follow-ups que geram dinheiro hoje' },
+    { category: 'Memória & Contexto', name: 'rememberEpisode', label: 'Guardar episódio', description: 'Guarda evento importante com embeddings na memória longa', example: 'lembra este incidente: [descrição]' },
+    { category: 'Memória & Contexto', name: 'recallEpisode', label: 'Recordar episódios', description: 'Busca eventos similares à situação actual', example: 'já aconteceu algo parecido com isto antes?' },
+    { category: 'Memória & Contexto', name: 'universalSearch', label: 'Pesquisa universal', description: 'Clientes, dispositivos, tarefas, contactos, memória — tudo', example: 'procura tudo sobre João Silva' },
+    { category: 'Memória & Contexto', name: 'getMyLatencyProfile', label: 'Perfil de actividade', description: 'Padrão de actividade e resposta do Wanderson. Detecta sobrecarga.', example: 'como está o meu nível de stress hoje?' },
+    { category: 'Pessoal & Motos', name: 'logMaintenance', label: 'Registar manutenção', description: 'Moto: troca de óleo, correia, filtro, etc.', example: 'regista troca de óleo da moto 1 nos 15000km' },
+    { category: 'Pessoal & Motos', name: 'getMaintenanceStatus', label: 'Estado das motos', description: 'Revisões próximas, custos, histórico', example: 'quando é a próxima revisão das motos?' },
+    { category: 'Sistema & Auto-melhoria', name: 'selfEdit', label: 'Auto-editar código', description: 'ORBIT edita o próprio código-fonte, compila e reinicia', example: 'corrige o bug no ficheiro X' },
+    { category: 'Sistema & Auto-melhoria', name: 'selfDebug', label: 'Auto-diagnóstico', description: 'Analisa o que falhou na última resposta e corrige', example: 'houve um erro na resposta anterior, corrige' },
+    { category: 'Sistema & Auto-melhoria', name: 'readSourceFile', label: 'Ler código-fonte', description: 'Lê ficheiro de código do ORBIT para analisar', example: 'lê o ficheiro src/routes/chat.ts' },
+    { category: 'Sistema & Auto-melhoria', name: 'analyzeSystemLogs', label: 'Analisar logs do sistema', description: 'Logs com IA: causa raiz, padrões, sugestões', example: 'analisa os logs do ai-command-center da última hora' },
+    { category: 'Sistema & Auto-melhoria', name: 'createMission', label: 'Criar missão', description: 'Quebra objectivo em 4-8 tarefas concretas e regista', example: 'cria missão: aumentar conversões 20%' },
+    { category: 'Sistema & Auto-melhoria', name: 'setPersonality', label: 'Mudar personalidade', description: 'padrao / tecnico / executivo / suporte / operador / copiloto', example: 'muda para modo executivo' },
+    { category: 'Sistema & Auto-melhoria', name: 'setCrisisMode', label: 'Modo crise', description: 'Respostas mais curtas e directas em situação crítica', example: 'activa modo crise' },
+    { category: 'Sistema & Auto-melhoria', name: 'getAuditLog', label: 'Black Box', description: 'Histórico de todas as acções e eventos do ORBIT', example: 'mostra o log das últimas 2 horas' },
+    { category: 'Integrações', name: 'getWhatsAppIntelligence', label: 'Inteligência WhatsApp', description: 'Resumo semanal pessoal+negócio: conversas activas, pendentes', example: 'o que está pendente no WhatsApp?' },
+    { category: 'Integrações', name: 'getDroneTelemetry', label: 'Telemetria drone', description: 'GPS, altitude, bateria em tempo real', example: 'como está o drone agora?' },
+    { category: 'Integrações', name: 'analyzeScreen', label: 'Analisar ecrã', description: 'Analisa o ecrã actual do MacBook ou iPhone', example: 'analisa o que está no meu ecrã agora' },
+  ]
+  const grouped: Record<string, typeof caps> = {}
+  for (const c of caps) {
+    if (!grouped[c.category]) grouped[c.category] = []
+    grouped[c.category].push(c)
+  }
+  return res.json({ total: caps.length, groups: grouped })
+})
+
+// ── Auto-melhoria / Reflexão ─────────────────────────────────────────────────
+router.get('/reflection', async (_req: Request, res: Response) => {
+  try {
+    const [stats, lastReflection, lastAt] = await Promise.all([
+      prisma.orbitAuditLog.groupBy({
+        by: ['outcome'],
+        where: { outcome: { not: null }, createdAt: { gte: new Date(Date.now() - 30 * 86400000) } },
+        _count: { outcome: true },
+      }),
+      prisma.systemConfig.findUnique({ where: { key: 'orbit.last_reflection_output' } }),
+      prisma.systemConfig.findUnique({ where: { key: 'orbit.last_reflection_at' } }),
+    ])
+    const statMap: Record<string, number> = {}
+    for (const s of stats) if (s.outcome) statMap[s.outcome] = s._count.outcome
+    const recentLogs = await prisma.orbitAuditLog.findMany({
+      where: { outcome: { not: null }, createdAt: { gte: new Date(Date.now() - 7 * 86400000) } },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+      select: { id: true, createdAt: true, action: true, outcome: true, feedback: true, source: true },
+    })
+    return res.json({
+      stats: {
+        correct: statMap['correct'] || 0,
+        missed: statMap['missed'] || 0,
+        false_positive: statMap['false_positive'] || 0,
+        ignored: statMap['ignored'] || 0,
+        total: Object.values(statMap).reduce((a, b) => a + b, 0),
+      },
+      lastReflectionAt: lastAt?.value || null,
+      lastReflectionOutput: lastReflection?.value || null,
+      recentLogs,
+    })
+  } catch (err) {
+    return res.status(500).json({ error: err instanceof Error ? err.message : 'Erro' })
+  }
+})
+
+router.post('/reflection/trigger', async (_req: Request, res: Response) => {
+  try {
+    const mod = await import('../workers/reflectionWorker') as { runWeeklyReflectionNow?: () => Promise<void> }
+    if (typeof mod.runWeeklyReflectionNow === 'function') {
+      void mod.runWeeklyReflectionNow()
+      return res.json({ ok: true, message: 'Reflexão iniciada em background' })
+    }
+    return res.status(501).json({ error: 'runWeeklyReflectionNow não exportada — exporta a função no worker' })
+  } catch (err) {
+    return res.status(500).json({ error: err instanceof Error ? err.message : 'Erro' })
+  }
+})
+

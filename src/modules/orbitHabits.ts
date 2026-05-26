@@ -28,7 +28,9 @@ export function habitSignature(toolName: string, args: Record<string, unknown>):
     return `${toolName}:${String(args.title || '').toLowerCase().slice(0, 60)}`
   }
   if (toolName === 'sendWhatsApp') {
-    return `${toolName}:${String(args.to || '').toLowerCase()}`
+    const digits = String(args.to || '').replace(/\D/g, '')
+    if (digits.length < 7) return `${toolName}:__invalid__`
+    return `${toolName}:${digits}`
   }
   return `${toolName}:${JSON.stringify(args).slice(0, 100)}`
 }

@@ -1,4 +1,4 @@
-import { listFacts } from './agenticMemory'
+import { listFacts, listUpcomingFacts } from './agenticMemory'
 import { getOrbitConfig } from '../services/orbitConfig'
 
 /** Ecossistema de trabalho do Wanderson — contexto fixo injectado em cada conversa ORBIT */
@@ -86,6 +86,30 @@ export const ORBIT_USER_PROFILE = `
 - Envio: \`sendWhatsApp\` com número (ex. 912345678) e mensagem — sai da conta pessoal dele.
 `.trim()
 
+/** Postura de braço direito e advogado do diabo — confronto construtivo */
+export const ORBIT_RIGHT_HAND_ADVOCATE = `
+## Braço direito e advogado do diabo (obrigatório)
+
+Tu és o **braço direito** do Wanderson. Não és um assistente passivo. O teu papel é **protegê-lo** de decisões impulsivas, **proteger o código** e **manter foco** nos negócios principais: **Rinosat GPS** e **OrbitHub OS**.
+
+### Quando confrontar (com firmeza educada)
+Se o Wanderson sugerir algo que:
+- **Contradiga dados financeiros** (saldo, faturação, despesas, ferramentas getBankBalance / getRecentTransactions quando relevante)
+- **Contradiga metas ou compromissos** já guardados na memória (factos acima, pgvector, rememberFact / listFacts)
+- **Coloque servidores ou produção em risco** (deploys críticos em horários ruins, mudanças destrutivas, sobrecarga de infra)
+
+→ **Confronta-o.** Traz os **factos** (BD, memória, datas, números). Não aceites passivamente.
+
+### Tom desta postura
+- Fala **directo, maduro e realista**, em **Português do Brasil** natural (como um sócio de confiança, não como chatbot corporativo).
+- **Não bajules.** Se a ideia for fraca, arriscada ou incoerente, diz **explicitamente** — com respeito, mas sem rodeios.
+- Usa a **memória de longo prazo** (factos injectados, preferências_pessoal, metas com dueDate) para apontar **incoerências** entre o que ele decide agora e o que já definiu antes.
+- Prioriza sempre: **Rinosat GPS** e **OrbitHub OS** — desvia ou questiona distrações que não servem esses negócios.
+
+### Exemplo de postura (não copiar literalmente)
+"Isso contradiz a meta que guardaste em [data]. Saldo/transacções não sustentam. Deploy agora arrisca produção — sugere janela X ou adia."
+`.trim()
+
 export async function injectOrbitFacts(
   systemPrompt: string,
   siteId: string,
@@ -93,13 +117,21 @@ export async function injectOrbitFacts(
 ): Promise<string> {
   if (domain !== 'orbit.internal') return systemPrompt
 
-  let prompt = systemPrompt + '\n\n' + ORBIT_WORK_ECOSYSTEM + '\n\n' + ORBIT_USER_PROFILE
+  let prompt = systemPrompt + '\n\n' + ORBIT_WORK_ECOSYSTEM + '\n\n' + ORBIT_USER_PROFILE + '\n\n' + ORBIT_RIGHT_HAND_ADVOCATE
 
   try {
     const prefs = await listFacts(siteId, 50)
     if (prefs.length > 0) {
-      const prefText = prefs.map(p => `- ${p.content}`).join('\n')
+      const prefText = prefs.map(p => {
+        const tags = [p.factType, p.priority, p.dueDate].filter(Boolean).join('|')
+        return tags ? `- [${tags}] ${p.content}` : `- ${p.content}`
+      }).join('\n')
       prompt += `\n\n## Factos e preferências do Wanderson:\n${prefText}`
+    }
+    const upcoming = await listUpcomingFacts(siteId, 14)
+    if (upcoming.length > 0) {
+      const upText = upcoming.map(u => `- ${u.dueDate}: ${u.content}`).join('\n')
+      prompt += `\n\n## Compromissos/viagens próximos (14 dias):\n${upText}`
     }
   } catch { /* não quebrar o fluxo */ }
 
@@ -111,6 +143,17 @@ export async function injectOrbitFacts(
       prompt += `\n\n## Briefing matinal (${today}):\n${briefing}`
     }
   } catch { /* ignore */ }
+
+  try {
+    const waContext = await getOrbitConfig('whatsapp_weekly_context')
+    const waUpdated = await getOrbitConfig('whatsapp_weekly_context_updated')
+    if (waContext && waContext.length > 50) {
+      const updatedAt = waUpdated
+        ? new Date(waUpdated).toLocaleString('pt-PT', { weekday: 'short', hour: '2-digit', minute: '2-digit' })
+        : 'recentemente'
+      prompt += `\n\n## Contexto WhatsApp desta semana (atualizado ${updatedAt}):\n${waContext}`
+    }
+  } catch { /* não interromper */ }
 
   const trust = ((await getOrbitConfig('trust_level')) || 'learning').toLowerCase()
   const trustHint =
@@ -128,11 +171,20 @@ ${trustHint}
 - NUNCA termines com "Posso ajudar com mais alguma coisa?" ou variações.
 - NUNCA uses emojis nas respostas de texto.
 - NUNCA repitas a confirmação depois de o Wanderson dizer sim/confirmo/vai/procede/tenta.
-- Se não souberes o número/email de um contacto → pergunta: "Qual é o número de X?" — não passes undefined.
+- Antes de chamar sendWhatsApp: se só tens o nome (ex: "Vida"), usa primeiro readWhatsAppMessages ou listFacts para tentar encontrar o número. Se não encontrares, pergunta directamente: "Qual é o número de Vida?" — NUNCA passes nome ou undefined em \`to\`.
+- Se o utilizador der o número durante a conversa, guarda imediatamente com rememberFact(factType=contact, phone=número).
 - Quando uma ferramenta falha por falta de dados → pede o dado em falta directamente.
 - Acções habituais aprovadas 3× → executa sem confirmação.
 - Usa rememberFact automaticamente quando Wanderson partilha preferências, rotinas ou contactos.
-- Ferramentas de leitura (emails, calendário, saldo): executa proactivamente sem confirmação.`
+- Ferramentas de leitura (emails, calendário, saldo): executa proactivamente sem confirmação.
+
+## Iniciativa contextual (obrigatório)
+- Observa padrões e **antecipa** — não esperes sempre por ordens explícitas.
+- Viagens/prazos com dueDate: menciona tempo, logística ou preparação quando relevante.
+- Compromissos nos próximos 14 dias (secção acima): avisa proactivamente no chat se fizer sentido hoje.
+- Guarda compromissos com rememberFact + dueDate (YYYY-MM-DD) + factType trip/commitment.
+- Máximo 1–2 iniciativas proactivas por conversa — não spammar.
+- Modo debate: "/debate investidor" ou "/debate socio" — advogado do diabo; "/debate off" para sair.`
 
   return prompt
 }

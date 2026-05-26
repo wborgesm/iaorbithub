@@ -1,6 +1,8 @@
 import crypto from 'crypto'
 import { getOrbitConfig, setOrbitConfig } from '../services/orbitConfig'
 import { notifyHomeAssistant } from '../services/homeAssistant'
+import { sendTelegramNotification } from '../services/telegramNotify'
+import { isFocusModeActive, queueNonVipMessage } from './focusMode'
 
 export interface OrbitAlert {
   id: string
@@ -34,7 +36,20 @@ export async function pushAlert(input: {
   title: string
   body: string
   notifyHA?: boolean
+  notifyTelegram?: boolean
+  vip?: boolean
 }): Promise<OrbitAlert> {
+  if (isFocusModeActive() && !input.vip && input.type !== 'system') {
+    queueNonVipMessage('orbit-panel', `${input.title}: ${input.body}`)
+    return {
+      id: crypto.randomUUID(),
+      type: input.type,
+      title: input.title,
+      body: input.body,
+      createdAt: new Date().toISOString(),
+      read: true,
+    }
+  }
   const alerts = await loadAlerts()
   const dup = alerts.find(a => !a.read && a.title === input.title && a.body === input.body)
   if (dup) return dup
@@ -52,6 +67,10 @@ export async function pushAlert(input: {
 
   if (input.notifyHA !== false) {
     void notifyHomeAssistant(`ORBIT: ${input.title}`, input.body)
+  }
+
+  if (input.notifyTelegram) {
+    void sendTelegramNotification(`ORBIT: ${input.title}\n${input.body}`)
   }
 
   console.log(`[orbitAlerts] ${input.type}: ${input.title}`)

@@ -1,5 +1,6 @@
 import { appendMemoryEntry } from './agenticMemory'
 import { sendAlert } from '../services/emailService'
+import { PrismaClient } from '@prisma/client'
 
 const SIGNALS = [
   'não funciona','nao funciona','não consigo','nao consigo',
@@ -8,6 +9,48 @@ const SIGNALS = [
   'péssimo','pessimo','horrivel','horrível','inaceitável','inaceitavel',
   "doesn't work",'not working',
 ]
+
+// Auto-anotação OrbitAuditLog (módulo 42 — desbloqueio do reflectionWorker)
+const GRATITUDE_SIGNALS = [
+  'obrigado','obrigada','obg','perfeito','perfeita','boa','excelente',
+  'óptimo','optimo','fixe','thanks','thank you','great','top',
+  'maravilha','espectacular','espetacular','muito bom','bom trabalho',
+]
+
+const _annotPrisma = new PrismaClient()
+
+async function autoAnnotateLatestAuditLog(
+  sessionId: string,
+  outcome: 'missed' | 'correct',
+  reason: string,
+): Promise<void> {
+  try {
+    const log = await _annotPrisma.orbitAuditLog.findFirst({
+      where: { sessionId, outcome: null },
+      orderBy: { createdAt: 'desc' },
+    })
+    if (!log) return
+    await _annotPrisma.orbitAuditLog.update({
+      where: { id: log.id },
+      data: {
+        outcome,
+        feedback: reason,
+        reviewedAt: new Date(),
+      },
+    })
+  } catch (err) {
+    console.warn('[frustration] auto-annotate falhou:', (err as Error).message)
+  }
+}
+
+function detectGratitude(text: string): boolean {
+  const lower = text.toLowerCase()
+  return GRATITUDE_SIGNALS.some(g => {
+    if (g.includes(' ')) return lower.includes(g)
+    const re = new RegExp(`(^|[^a-záéíóúâêôãõç])${g}([^a-záéíóúâêôãõç]|$)`, 'i')
+    return re.test(lower)
+  })
+}
 
 export function scoreFrustration(messages: Array<{ role: string; content: string }>): number {
   const userMsgs = messages.filter(m => m.role === 'USER' || m.role === 'user')
@@ -38,6 +81,14 @@ export async function checkFrustration(
 ): Promise<void> {
   try {
     const score = scoreFrustration(messages)
+
+    // Auto-anotação de gratidão — sempre que a última mensagem do user agradeça,
+    // marca a acção anterior do ORBIT como 'correct'. Corre independentemente do score.
+    const lastUserMsg = [...messages].reverse().find(m => (m.role || '').toLowerCase() === 'user')
+    if (lastUserMsg && detectGratitude(lastUserMsg.content || '')) {
+      void autoAnnotateLatestAuditLog(sessionId, 'correct', 'auto: gratitude detected')
+    }
+
     if (score < 3) return
 
     void appendMemoryEntry({
@@ -48,6 +99,9 @@ export async function checkFrustration(
       output: messages.slice(-3).map(m => `${m.role}: ${m.content}`).join('\n'),
       metadata: { score, alertedAt: new Date().toISOString() },
     })
+
+    // Auto-anota a acção mais recente do ORBIT nesta sessão como 'missed'.
+    void autoAnnotateLatestAuditLog(sessionId, 'missed', `auto: frustration score ${score}`)
 
     console.warn(`[frustration] score=${score} sessão=${sessionId}`)
 

@@ -61,22 +61,23 @@ export function isOnCooldown(provider: string): boolean {
 }
 
 // ─── Obter próxima chave disponível para um provider ─────────────────────────
-export async function getNextAvailableKey(provider: string, ignoreCooldown = false): Promise<{ key: string; keyIdx: number; model: string } | null> {
+export async function getNextAvailableKey(provider: string, ignoreCooldown = false, afterIdx = -1): Promise<{ key: string; keyIdx: number; model: string } | null> {
   const cfg = await getProviderConfig(provider)
   if (!cfg.isEnabled) return null
   const keys = [cfg.apiKey, cfg.apiKey2, cfg.apiKey3].filter(k => k && k.trim().length > 0)
   for (let i = 0; i < keys.length; i++) {
+    if (i <= afterIdx) continue
     if (ignoreCooldown || getKeyCooldownRemaining(provider, i) === 0) {
       return { key: keys[i], keyIdx: i, model: cfg.model }
     }
   }
-  // Se todas estão em cooldown mas ignoreCooldown=true, devolveu a primeira acima
-  // Se chegou aqui com ignoreCooldown=false, todas em cooldown
   return null
 }
 
 // ─── Provider config ──────────────────────────────────────────────────────────
 export async function getProviderConfig(provider: string) {
+  if (provider === 'LOCAL_OLLAMA') return { apiKey: 'ollama', apiKey2: '', apiKey3: '', isEnabled: true, model: 'llama3.2:3b', priority: 50, ts: Date.now() }
+  if (provider === 'LOCAL_OLLAMA_FAST') return { apiKey: 'ollama', apiKey2: '', apiKey3: '', isEnabled: true, model: 'llama3.2:1b', priority: 10, ts: Date.now() }
   const now = Date.now()
   const hit = cache.get(provider)
   if (hit && now - hit.ts < TTL) return hit
@@ -108,13 +109,22 @@ export async function getProviderConfig(provider: string) {
 
 // Returns all enabled providers ordered by priority, excluding those where all keys are on cooldown
 export async function getEnabledProviders(skipCooldown = true): Promise<Array<{ provider: string; apiKey: string; model: string; priority: number }>> {
+  // LOCAL_OLLAMA — provider local, sempre disponível se Ollama estiver activo
+  const ollamaCheck = await fetch('http://127.0.0.1:11434/api/tags', { signal: AbortSignal.timeout(1000) }).catch(() => null)
   const rows = await prisma.providerConfig.findMany({
     where: { isEnabled: true },
     orderBy: { priority: 'asc' },
   })
-  return rows
+  const result = rows
     .filter(r => r.apiKey && (!skipCooldown || !isOnCooldown(r.provider)))
     .map(r => ({ provider: r.provider, apiKey: r.apiKey, model: r.model, priority: r.priority }))
+  if (ollamaCheck?.ok && !isOnCooldown('LOCAL_OLLAMA_FAST')) {
+    result.push({ provider: 'LOCAL_OLLAMA_FAST', apiKey: 'ollama', model: 'llama3.2:1b', priority: 10 })
+  }
+  if (ollamaCheck?.ok && !isOnCooldown('LOCAL_OLLAMA')) {
+    result.push({ provider: 'LOCAL_OLLAMA', apiKey: 'ollama', model: 'llama3.2:3b', priority: 50 })
+  }
+  return result
 }
 
 // Status snapshot for admin API

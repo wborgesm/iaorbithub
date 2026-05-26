@@ -6,1671 +6,1089 @@
   <title>ORBIT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
   <style>
+    :root {
+      --color-background-primary:   #ffffff;
+      --color-background-secondary: #f4f4f5;
+      --color-background-tertiary:  #e8e8ea;
+      --color-text-primary:   #0a0a0a;
+      --color-text-secondary: #555560;
+      --color-text-tertiary:  #9999a8;
+      --color-border-primary:   rgba(0,0,0,.18);
+      --color-border-secondary: rgba(0,0,0,.10);
+      --color-border-tertiary:  rgba(0,0,0,.07);
+      --color-background-info: #e8f0fe;
+      --color-text-info: #1a73e8;
+      --accent: #1dbb7d;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; }
-    body {
-      font-family: 'Inter', system-ui, sans-serif;
-      background: #0d1117;
-      color: #e6edf3;
-      display: flex;
-      flex-direction: column;
+    html, body { height: 100%; background: #d8d8da; display: flex; align-items: center; justify-content: center; font-family: 'DM Sans', sans-serif; }
+    @media (max-width: 500px) { body { background: #fff; } }
+
+    /* ── Shell ───────────────────────────────────────────────────── */
+    .shell {
+      background: var(--color-background-tertiary);
+      border: 0.5px solid var(--color-border-tertiary);
+      border-radius: 20px;
       overflow: hidden;
-    }
-    .orbit-wrap {
-      flex: 1;
+      width: min(480px, 100vw);
+      height: min(680px, 100vh);
       display: flex;
       flex-direction: column;
-      max-width: 800px;
-      width: 100%;
-      margin: 0 auto;
-      min-height: 0;
+      box-shadow: 0 24px 60px rgba(0,0,0,.15), 0 4px 12px rgba(0,0,0,.08);
+      position: relative;
     }
-    header {
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 16px;
-      border-bottom: 1px solid #21262d;
-      background: #0d1117;
+    @media (max-width: 500px) { .shell { border-radius: 0; height: 100dvh; } }
+
+    /* ── Top bar ─────────────────────────────────────────────────── */
+    .top-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 18px; border-bottom: 0.5px solid var(--color-border-tertiary);
+      background: var(--color-background-primary); flex-shrink: 0;
     }
-    .orbit-brand {
-      font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, monospace;
-      font-size: 15px;
-      font-weight: 600;
-      letter-spacing: 0.12em;
+    .top-bar-left { display: flex; align-items: center; gap: 10px; }
+    .live-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent); animation: pulse-live 2s infinite;
     }
-    .orbit-status {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      color: #8b949e;
-    }
-    .orbit-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #3fb950;
-      box-shadow: 0 0 8px rgba(63, 185, 80, 0.6);
-    }
-    .orbit-dot.thinking {
-      background: #d29922;
-      box-shadow: 0 0 8px rgba(210, 153, 34, 0.5);
-      animation: pulse 1s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
+    .live-dot.thinking { background: #f59e0b; }
+    @keyframes pulse-live {
+      0%,100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.5; transform: scale(0.85); }
     }
-    #messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      min-height: 0;
+    .top-bar-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); letter-spacing: .02em; }
+    .top-bar-subtitle { font-size: 11px; color: var(--color-text-tertiary); font-family: 'Space Mono', monospace; }
+    .top-bar-right { display: flex; align-items: center; gap: 6px; }
+    .icon-btn {
+      width: 32px; height: 32px; border-radius: 8px;
+      border: 0.5px solid var(--color-border-tertiary);
+      background: var(--color-background-secondary);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--color-text-secondary); font-size: 15px;
+      transition: background .15s, color .15s;
     }
-    .msg {
-      max-width: 85%;
-      padding: 10px 14px;
-      font-size: 14px;
-      line-height: 1.55;
+    .icon-btn:hover { background: var(--color-background-tertiary); color: var(--color-text-primary); }
+    .mode-tabs {
+      display: flex; gap: 2px;
+      background: var(--color-background-secondary);
+      border-radius: 8px; padding: 2px;
+    }
+    .mode-tab {
+      font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 500;
+      padding: 4px 10px; border-radius: 6px; border: none; cursor: pointer;
+      color: var(--color-text-tertiary); background: transparent;
+      letter-spacing: .03em; transition: all .15s;
+    }
+    .mode-tab.active {
+      background: var(--color-background-primary); color: var(--color-text-primary);
+      border: 0.5px solid var(--color-border-tertiary);
+    }
+
+    /* ── Text mode ───────────────────────────────────────────────── */
+    .text-mode { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+    .text-mode.hidden { display: none; }
+
+    /* Alerts bar */
+    #alerts-bar { display: none; margin: 10px 16px 0; padding: 8px 12px; background: #fef2f2; border: 0.5px solid #fca5a5; border-radius: 10px; font-size: 12px; cursor: pointer; flex-shrink: 0; }
+    #alerts-bar.visible { display: block; }
+    #alerts-bar strong { color: #dc2626; }
+    #alerts-bar span { color: var(--color-text-secondary); display: block; margin-top: 2px; font-size: 11px; }
+    #voice-transcript-strip { display: none; margin: 6px 16px 0; padding: 6px 10px; background: #eff6ff; border: 0.5px solid #93c5fd; border-radius: 8px; font-size: 11px; color: #1d4ed8; font-family: 'Space Mono', monospace; flex-shrink: 0; }
+
+    /* Messages */
+    .messages {
+      flex: 1; overflow-y: auto; padding: 18px 18px;
+      display: flex; flex-direction: column; gap: 14px; scroll-behavior: smooth;
+    }
+    .messages::-webkit-scrollbar { width: 4px; }
+    .messages::-webkit-scrollbar-track { background: transparent; }
+    .messages::-webkit-scrollbar-thumb { background: var(--color-border-secondary); border-radius: 2px; }
+
+    .msg-row { display: flex; gap: 10px; align-items: flex-end; animation: fadeUp .25s ease; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .msg-row.user { flex-direction: row-reverse; }
+
+    .avatar {
+      width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 500;
+    }
+    .avatar-ai { background: #0a0a0a; color: #fff; font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: -.5px; }
+    .avatar-user { background: var(--color-background-info); color: var(--color-text-info); font-weight: 500; }
+
+    .bubble {
+      max-width: 78%; padding: 10px 14px; border-radius: 14px;
+      font-size: 14px; line-height: 1.55; color: var(--color-text-primary);
       word-break: break-word;
     }
-    .msg.user {
-      align-self: flex-end;
-      background: #1d4ed8;
-      color: #fff;
-      border-radius: 16px 4px 16px 16px;
-    }
-    .msg.bot {
-      align-self: flex-start;
-      background: #1e2433;
-      color: #e6edf3;
-      border-radius: 4px 16px 16px 16px;
-    }
-    .msg.bot a {
-      color: #58a6ff;
-      text-decoration: underline;
-    }
-    .typing-dots {
-      display: inline-flex;
-      gap: 4px;
-      align-items: center;
-      padding: 4px 0;
-    }
-    .typing-dots span {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: #8b949e;
-      animation: bounce 1.2s ease-in-out infinite;
-    }
-    .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
-    .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
-    @keyframes bounce {
-      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-      30% { transform: translateY(-4px); opacity: 1; }
-    }
-    footer {
-      flex-shrink: 0;
-      padding: 12px 16px 16px;
-      border-top: 1px solid #21262d;
-      background: #0d1117;
-    }
-    #form {
-      display: flex;
-      gap: 10px;
-      align-items: flex-end;
-    }
-    #input {
-      flex: 1;
-      min-height: 44px;
-      max-height: 140px;
-      resize: none;
-      border: 1px solid #30363d;
-      border-radius: 12px;
-      padding: 10px 14px;
-      font: inherit;
-      font-size: 14px;
-      color: #e6edf3;
-      background: #161b22;
-      outline: none;
-    }
-    #input:focus { border-color: #388bfd; }
-    #input:disabled { opacity: 0.5; }
-    #send {
-      flex-shrink: 0;
-      width: 44px;
-      height: 44px;
-      border: none;
-      border-radius: 12px;
-      background: #1d4ed8;
-      color: #fff;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    #send:disabled { opacity: 0.4; cursor: default; }
-    #send:not(:disabled):hover { background: #2563eb; }
-    #btn-mic {
-      flex-shrink: 0;
-      width: 44px;
-      height: 44px;
-      border: 1px solid #30363d;
-      border-radius: 12px;
-      background: #161b22;
-      color: #8b949e;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: color 0.2s, background 0.2s, box-shadow 0.2s;
-    }
-    #btn-mic:hover { color: #e6edf3; border-color: #58a6ff; }
-    #btn-mic.voice-listening {
-      color: #3fb950; border-color: #3fb950;
-      box-shadow: 0 0 0 3px rgba(63,185,80,0.2);
-      animation: pulse 1s ease-in-out infinite;
-    }
-    #btn-mic.voice-speaking {
-      color: #58a6ff; border-color: #58a6ff;
-      box-shadow: 0 0 0 3px rgba(88,166,255,0.2);
-      animation: pulse 1s ease-in-out infinite;
-    }
-    #btn-mic.voice-thinking { color: #d29922; border-color: #d29922; }
-    #btn-mic:disabled { opacity: 0.35; cursor: default; }
+    .bubble a { color: #1a73e8; text-decoration: underline; }
+    .bubble-ai { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-bottom-left-radius: 4px; }
+    .bubble-user { background: #0a0a0a; color: #f5f5f5; border-bottom-right-radius: 4px; }
+    .bubble-tool { font-size: 12px; color: var(--color-text-tertiary); display: flex; align-items: center; gap: 5px; }
+    .bubble-meta { font-size: 10px; color: var(--color-text-tertiary); font-family: 'Space Mono', monospace; margin-top: 4px; letter-spacing: .02em; }
+    .msg-row.user .bubble-meta { text-align: right; }
 
-    .header-actions { display: flex; align-items: center; gap: 12px; }
-    #btn-settings {
-      width: 36px; height: 36px; border: 1px solid #30363d; border-radius: 8px;
-      background: #161b22; color: #8b949e; font-size: 18px; cursor: pointer;
+    /* Feedback */
+    .msg-feedback { display: inline-flex; gap: 6px; margin-top: 5px; }
+    .msg-feedback button { background: none; border: none; cursor: pointer; font-size: 13px; opacity: .35; transition: opacity .15s; padding: 0; }
+    .msg-feedback button:hover:not(:disabled) { opacity: 1; }
+    .msg-feedback button:disabled { opacity: .18; cursor: default; }
+
+    /* Typing */
+    .typing-row { display: none; }
+    .typing-indicator {
+      display: flex; align-items: center; gap: 4px; padding: 10px 14px;
+      background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary);
+      border-radius: 14px; border-bottom-left-radius: 4px; width: fit-content;
+    }
+    .typing-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--color-text-tertiary); animation: bounce 1.2s infinite; }
+    .typing-dot:nth-child(2) { animation-delay: .2s; }
+    .typing-dot:nth-child(3) { animation-delay: .4s; }
+    @keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
+
+    /* Quick chips */
+    .quick-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 18px 0; flex-shrink: 0; }
+    .quick-chips button {
+      font-size: 12px; font-family: 'DM Sans', sans-serif; padding: 5px 12px;
+      border-radius: 999px; border: 0.5px solid var(--color-border-secondary);
+      background: var(--color-background-primary); color: var(--color-text-secondary);
+      cursor: pointer; transition: all .15s;
+    }
+    .quick-chips button:hover { border-color: var(--color-border-primary); color: var(--color-text-primary); }
+
+    /* Input */
+    .input-area { padding: 12px 16px 14px; border-top: 0.5px solid var(--color-border-tertiary); background: var(--color-background-primary); flex-shrink: 0; }
+    .input-row {
+      display: flex; align-items: flex-end; gap: 8px;
+      background: var(--color-background-secondary);
+      border: 0.5px solid var(--color-border-secondary);
+      border-radius: 14px; padding: 8px 8px 8px 14px; transition: border-color .2s;
+    }
+    .input-row:focus-within { border-color: var(--color-border-primary); }
+    .text-input {
+      flex: 1; background: transparent; border: none; outline: none;
+      font-family: 'DM Sans', sans-serif; font-size: 14px;
+      color: var(--color-text-primary); resize: none; line-height: 1.5;
+      max-height: 100px; min-height: 22px;
+    }
+    .text-input::placeholder { color: var(--color-text-tertiary); }
+    .input-tools { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .tool-btn {
+      width: 30px; height: 30px; border-radius: 8px; border: none;
+      background: transparent; color: var(--color-text-tertiary); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-size: 15px; transition: color .15s, background .15s;
+    }
+    .tool-btn:hover { color: var(--color-text-primary); background: var(--color-background-tertiary); }
+    .tool-btn.listening { color: #dc2626; background: #fee2e2; animation: pulse-mic 1s infinite; }
+    @keyframes pulse-mic { 0%,100% { box-shadow: 0 0 0 0 rgba(220,38,38,.3); } 50% { box-shadow: 0 0 0 4px rgba(220,38,38,0); } }
+    .send-btn {
+      width: 34px; height: 34px; border-radius: 10px; border: none;
+      background: #0a0a0a; color: #fff; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
+      font-size: 15px; flex-shrink: 0; transition: opacity .15s, transform .1s;
     }
-    #btn-settings:hover { color: #e6edf3; border-color: #388bfd; }
-    .config-overlay {
-      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 100;
+    .send-btn:hover { opacity: .8; }
+    .send-btn:active { transform: scale(.94); }
+    .send-btn:disabled { opacity: .3; cursor: default; }
+
+    /* ── Voice mode ──────────────────────────────────────────────── */
+    .voice-mode { display: none; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 22px; padding: 36px 20px; }
+    .voice-mode.active { display: flex; }
+
+    .orb-container { position: relative; width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; }
+    .orb-ring { position: absolute; border-radius: 50%; border: 1px solid var(--color-border-tertiary); animation: expandRing 2.5s ease-out infinite; }
+    .orb-ring:nth-child(2) { animation-delay: .8s; }
+    .orb-ring:nth-child(3) { animation-delay: 1.6s; }
+    @keyframes expandRing { 0% { width: 60px; height: 60px; opacity: .6; } 100% { width: 120px; height: 120px; opacity: 0; } }
+    .orb-ring.active { border-color: var(--accent); animation: expandRing-active 1.8s ease-out infinite; }
+    .orb-ring.active:nth-child(2) { animation-delay: .6s; }
+    .orb-ring.active:nth-child(3) { animation-delay: 1.2s; }
+    @keyframes expandRing-active { 0% { width: 60px; height: 60px; opacity: .7; } 100% { width: 130px; height: 130px; opacity: 0; } }
+    .orb-core {
+      width: 56px; height: 56px; border-radius: 50%; background: #0a0a0a;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; color: #fff; z-index: 1; cursor: pointer;
+      transition: background .3s, transform .2s;
     }
-    .config-overlay.open { display: block; }
-    .config-panel {
-      position: fixed; top: 0; right: 0; width: min(420px, 100vw); height: 100%;
-      background: #0d1117; border-left: 1px solid #21262d; z-index: 101;
-      transform: translateX(100%); transition: transform .25s ease;
-      display: flex; flex-direction: column; overflow: hidden;
+    .orb-core:hover { transform: scale(1.06); }
+    .orb-core.active { background: var(--accent); }
+    .orb-core.speaking { background: #1a73e8; }
+
+    .voice-status { font-size: 11px; color: var(--color-text-tertiary); font-family: 'Space Mono', monospace; letter-spacing: .1em; text-transform: uppercase; }
+    .v-transcript { font-size: 15px; color: var(--color-text-primary); font-weight: 300; text-align: center; max-width: 340px; line-height: 1.6; min-height: 48px; }
+
+    .waveform-row { width: 100%; max-width: 300px; }
+    .waveform {
+      display: flex; align-items: center; gap: 2px; height: 36px;
+      background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary);
+      border-radius: 12px; padding: 0 12px;
     }
-    .config-panel.open { transform: translateX(0); }
-    .config-panel header {
-      padding: 16px; border-bottom: 1px solid #21262d;
+    .wave-bar { width: 3px; border-radius: 2px; background: var(--color-text-tertiary); animation: wave .8s ease-in-out infinite; flex-shrink: 0; }
+    @keyframes wave { 0%,100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
+
+    /* ── Bottom HUD ──────────────────────────────────────────────── */
+    .bottom-hud {
       display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 18px 12px; border-top: 0.5px solid var(--color-border-tertiary); flex-shrink: 0;
+      background: var(--color-background-primary);
     }
-    .config-panel header h2 { font-size: 15px; font-weight: 600; }
-    #btn-close-config {
-      background: none; border: none; color: #8b949e; font-size: 22px; cursor: pointer; line-height: 1;
-    }
-    #btn-close-config:hover { color: #e6edf3; }
+    .hud-info { font-size: 10px; font-family: 'Space Mono', monospace; color: var(--color-text-tertiary); display: flex; align-items: center; gap: 10px; }
+    .hud-dot { width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
+    .hud-dot.ok { background: var(--accent); }
+    .hud-dot.off { background: var(--color-border-secondary); }
+    .hud-tag { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: 4px; padding: 2px 6px; font-size: 10px; font-family: 'Space Mono', monospace; color: var(--color-text-tertiary); }
+
+    /* ── Config panel ────────────────────────────────────────────── */
+    .config-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 100; }
+    .config-overlay.open { display: block; }
+    .config-panel { position: fixed; top: 0; right: 0; width: min(400px,100vw); height: 100%; background: #fff; border-left: 0.5px solid var(--color-border-tertiary); z-index: 101; transform: translateX(100%); transition: transform .25s ease; display: flex; flex-direction: column; overflow: hidden; }
+    .config-panel.open { transform: translateX(0); }
+    .config-panel header { padding: 16px; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; justify-content: space-between; }
+    .config-panel header h2 { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+    #btn-close-config { background: none; border: none; color: var(--color-text-tertiary); font-size: 20px; cursor: pointer; }
+    #btn-close-config:hover { color: var(--color-text-primary); }
     .config-body { flex: 1; overflow-y: auto; padding: 16px; }
-    .config-group {
-      margin-bottom: 20px; padding: 14px; background: #161b22;
-      border: 1px solid #21262d; border-radius: 10px;
-    }
-    .config-group h3 {
-      font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
-      color: #8b949e; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
-    }
-    .cfg-status-badge {
-      display: inline-flex; align-items: center; gap: 4px;
-      font-size: 10px; font-weight: 600; letter-spacing: 0;
-      text-transform: none; padding: 2px 7px; border-radius: 20px;
-    }
-    .cfg-status-badge.ok    { background: #23863620; color: #3fb950; border: 1px solid #23863640; }
-    .cfg-status-badge.warn  { background: #9e6a0320; color: #d29922; border: 1px solid #9e6a0340; }
-    .cfg-status-badge.off   { background: #21262d;   color: #484f58; border: 1px solid #30363d; }
-    .cfg-status-badge.error { background: #f8514920; color: #f85149; border: 1px solid #f8514940; }
-    .orbit-status-strip {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-      gap: 8px; margin-bottom: 18px; padding: 12px;
-      background: #0d1117; border: 1px solid #21262d; border-radius: 10px;
-    }
-    .orbit-status-item {
-      display: flex; align-items: center; gap: 7px;
-      font-size: 12px; color: #8b949e;
-    }
-    .orbit-status-dot {
-      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-    }
-    .orbit-status-dot.ok    { background: #3fb950; box-shadow: 0 0 6px #3fb95060; }
-    .orbit-status-dot.warn  { background: #d29922; }
-    .orbit-status-dot.off   { background: #484f58; }
-    .orbit-status-dot.error { background: #f85149; box-shadow: 0 0 6px #f8514960; }
-    .cfg-field { margin-bottom: 12px; }
-    .cfg-field label { display: block; font-size: 12px; color: #8b949e; margin-bottom: 4px; }
-    .cfg-field input {
-      width: 100%; padding: 8px 10px; font-size: 13px;
-      background: #0d1117; border: 1px solid #30363d; border-radius: 8px; color: #e6edf3;
-    }
-    .cfg-field input:focus { border-color: #388bfd; outline: none; }
+    .config-group { margin-bottom: 18px; padding: 14px; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: 12px; }
+    .config-group h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--color-text-tertiary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .cfg-status-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 500; letter-spacing: 0; text-transform: none; padding: 2px 6px; border-radius: 20px; }
+    .cfg-status-badge.ok { background: #dcfce7; color: #16a34a; border: 0.5px solid #bbf7d0; }
+    .cfg-status-badge.off { background: var(--color-background-tertiary); color: var(--color-text-tertiary); border: 0.5px solid var(--color-border-secondary); }
+    .orbit-status-strip { display: grid; grid-template-columns: repeat(auto-fill,minmax(110px,1fr)); gap: 6px; margin-bottom: 16px; padding: 10px; background: #fff; border: 0.5px solid var(--color-border-tertiary); border-radius: 10px; }
+    .orbit-status-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--color-text-secondary); }
+    .orbit-status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .orbit-status-dot.ok { background: var(--accent); box-shadow: 0 0 4px rgba(29,187,125,.4); }
+    .orbit-status-dot.off { background: var(--color-border-secondary); }
+    .cfg-field { margin-bottom: 10px; }
+    .cfg-field label { display: block; font-size: 12px; color: var(--color-text-secondary); margin-bottom: 4px; }
+    .cfg-field input, .cfg-field select { width: 100%; padding: 8px 10px; font-size: 13px; background: #fff; border: 0.5px solid var(--color-border-secondary); border-radius: 8px; color: var(--color-text-primary); font-family: 'DM Sans', sans-serif; }
+    .cfg-field input:focus, .cfg-field select:focus { border-color: var(--color-border-primary); outline: none; }
     .cfg-field-row { display: flex; gap: 6px; align-items: center; }
     .cfg-field-row input { flex: 1; }
-    .btn-del {
-      flex-shrink: 0; width: 32px; height: 32px; border: 1px solid #30363d;
-      border-radius: 8px; background: #0d1117; color: #f85149; cursor: pointer; font-size: 14px;
-    }
-    .btn-del:hover { border-color: #f85149; }
-    .btn-save-group {
-      width: 100%; margin-top: 4px; padding: 8px; font-size: 13px; font-weight: 500;
-      border: none; border-radius: 8px; background: #1d4ed8; color: #fff; cursor: pointer;
-    }
-    .btn-save-group:hover { background: #2563eb; }
-    .btn-save-group:disabled { opacity: .5; cursor: default; }
-    .cfg-feedback { font-size: 11px; margin-top: 6px; min-height: 16px; }
-    .cfg-feedback.ok { color: #3fb950; }
-    .cfg-feedback.err { color: #f85149; }
+    .btn-del { flex-shrink: 0; width: 30px; height: 30px; border: 0.5px solid var(--color-border-secondary); border-radius: 8px; background: #fff; color: #dc2626; cursor: pointer; font-size: 13px; }
+    .btn-del:hover { border-color: #dc2626; }
+    .btn-save-group { width: 100%; margin-top: 4px; padding: 8px; font-size: 13px; font-weight: 500; border: none; border-radius: 8px; background: #0a0a0a; color: #fff; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+    .btn-save-group:hover { opacity: .85; }
+    .btn-save-group:disabled { opacity: .4; cursor: default; }
+    .cfg-feedback { font-size: 11px; margin-top: 5px; min-height: 14px; }
+    .cfg-feedback.ok { color: #16a34a; }
+    .cfg-feedback.err { color: #dc2626; }
     .bank-actions { margin-top: 8px; }
-    .bank-actions .btn-save-group + .btn-save-group { margin-top: 8px; }
+    .bank-actions .btn-save-group + .btn-save-group { margin-top: 6px; }
 
-    /* ── Confirmação de acções ─────────────────────────────────────── */
-    #confirm-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.65);
-      z-index: 1100;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-    }
+    /* ── Confirm overlay ─────────────────────────────────────────── */
+    #confirm-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 1100; align-items: center; justify-content: center; padding: 16px; }
     #confirm-overlay.open { display: flex; }
-    .confirm-card {
-      width: min(420px, 100%);
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
-    }
-    .confirm-card h3 { margin: 0 0 10px; font-size: 16px; color: #e6edf3; }
-    .confirm-card p { margin: 0 0 18px; font-size: 14px; color: #8b949e; line-height: 1.5; }
-    .confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
-    .confirm-actions button {
-      padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid #30363d;
-    }
-    .confirm-no { background: #21262d; color: #e6edf3; }
-    .confirm-yes { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
-
-    /* ── Voice Live Overlay — estilo Gemini ─────────────────────────── */
-    #voice-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: #060a0f;
-      z-index: 1000;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 40px;
-    }
-    #voice-overlay.active { display: flex; }
-
-    /* Blob container */
-    .orb-wrap {
-      position: relative;
-      width: 220px;
-      height: 220px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* Ondas concêntricas */
-    .orb-ring {
-      position: absolute;
-      border-radius: 50%;
-      border: 1px solid;
-      opacity: 0;
-      pointer-events: none;
-    }
-    /* listening rings — verde */
-    #voice-overlay.listening .orb-ring {
-      border-color: rgba(74,222,128,0.4);
-      animation: ring-out-green 2.2s ease-out infinite;
-    }
-    #voice-overlay.listening .orb-ring:nth-child(2) { animation-delay: 0.7s; }
-    #voice-overlay.listening .orb-ring:nth-child(3) { animation-delay: 1.4s; }
-    /* speaking rings — azul */
-    #voice-overlay.speaking .orb-ring {
-      border-color: rgba(96,165,250,0.5);
-      animation: ring-out-blue 1.6s ease-out infinite;
-    }
-    #voice-overlay.speaking .orb-ring:nth-child(2) { animation-delay: 0.5s; }
-    #voice-overlay.speaking .orb-ring:nth-child(3) { animation-delay: 1s; }
-
-    @keyframes ring-out-green {
-      0%   { width: 100px; height: 100px; opacity: 0.7; }
-      100% { width: 210px; height: 210px; opacity: 0; }
-    }
-    @keyframes ring-out-blue {
-      0%   { width: 100px; height: 100px; opacity: 0.8; }
-      100% { width: 220px; height: 220px; opacity: 0; }
-    }
-
-    /* O blob orgânico */
-    .orb-blob {
-      width: 110px;
-      height: 110px;
-      position: relative;
-      z-index: 1;
-      border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-      transition: background 0.6s;
-    }
-
-    /* Estado idle */
-    .orb-blob {
-      background: radial-gradient(circle at 38% 38%, #1e3a5f, #0a1628);
-      box-shadow: 0 0 30px rgba(30,58,95,0.6);
-      animation: blob-idle 8s ease-in-out infinite;
-    }
-    /* Estado listening — verde */
-    #voice-overlay.listening .orb-blob {
-      background: radial-gradient(circle at 38% 38%, #16a34a, #052e16 70%);
-      box-shadow: 0 0 40px rgba(22,163,74,0.5), 0 0 80px rgba(22,163,74,0.2);
-      animation: blob-listen 3s ease-in-out infinite;
-    }
-    /* Estado speaking — azul brilhante */
-    #voice-overlay.speaking .orb-blob {
-      background: radial-gradient(circle at 38% 38%, #3b82f6, #1e3a8a 60%, #0c1a4a);
-      box-shadow: 0 0 50px rgba(59,130,246,0.6), 0 0 100px rgba(59,130,246,0.25);
-      animation: blob-speak 1.8s ease-in-out infinite;
-    }
-    /* Estado thinking — roxo/cinza */
-    #voice-overlay.thinking .orb-blob {
-      background: radial-gradient(circle at 38% 38%, #7c3aed, #2e1065 60%, #0d0720);
-      box-shadow: 0 0 30px rgba(124,58,237,0.4);
-      animation: blob-think 5s ease-in-out infinite;
-    }
-
-    @keyframes blob-idle {
-      0%,100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; transform: scale(1) rotate(0deg); }
-      25%      { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; transform: scale(1.03) rotate(8deg); }
-      50%      { border-radius: 50% 60% 30% 60% / 30% 60% 70% 40%; transform: scale(0.97) rotate(-4deg); }
-      75%      { border-radius: 40% 60% 50% 40% / 60% 30% 60% 40%; transform: scale(1.02) rotate(6deg); }
-    }
-    @keyframes blob-listen {
-      0%,100% { border-radius: 60% 40% 70% 30% / 40% 60% 40% 60%; transform: scale(1) rotate(0deg); }
-      20%     { border-radius: 40% 60% 30% 70% / 60% 40% 60% 40%; transform: scale(1.07) rotate(10deg); }
-      50%     { border-radius: 70% 30% 60% 40% / 30% 70% 40% 60%; transform: scale(0.94) rotate(-8deg); }
-      80%     { border-radius: 30% 70% 40% 60% / 70% 30% 60% 40%; transform: scale(1.05) rotate(12deg); }
-    }
-    @keyframes blob-speak {
-      0%,100% { border-radius: 60% 40% 70% 30% / 50% 70% 30% 50%; transform: scale(1.12) rotate(0deg); }
-      25%     { border-radius: 30% 70% 40% 60% / 70% 30% 60% 40%; transform: scale(0.9) rotate(-15deg); }
-      50%     { border-radius: 70% 30% 60% 40% / 30% 60% 40% 70%; transform: scale(1.18) rotate(10deg); }
-      75%     { border-radius: 40% 60% 30% 70% / 60% 40% 70% 30%; transform: scale(0.88) rotate(-8deg); }
-    }
-    @keyframes blob-think {
-      0%,100% { border-radius: 50% 50% 50% 50% / 50% 50% 50% 50%; transform: scale(1) rotate(0deg); }
-      50%     { border-radius: 55% 45% 48% 52% / 52% 48% 55% 45%; transform: scale(0.96) rotate(180deg); }
-    }
-
-    /* Texto de estado */
-    .voice-state-label {
-      font-size: 13px;
-      color: #6b7280;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      min-height: 18px;
-      text-align: center;
-    }
-    #voice-overlay.listening .voice-state-label { color: #4ade80; }
-    #voice-overlay.speaking  .voice-state-label { color: #60a5fa; }
-    #voice-overlay.thinking  .voice-state-label { color: #a78bfa; }
-
-    /* Transcript */
-    .voice-transcript {
-      font-size: 17px;
-      color: #e6edf3;
-      max-width: 440px;
-      text-align: center;
-      min-height: 52px;
-      line-height: 1.6;
-      padding: 0 32px;
-    }
-    .voice-transcript.faded { color: #6b7280; font-size: 14px; }
-
-    /* Botão parar */
-    .voice-stop-btn {
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
-      border: 1.5px solid rgba(248,81,73,0.5);
-      background: rgba(248,81,73,0.08);
-      color: #f87171;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      transition: background 0.2s, border-color 0.2s, transform 0.1s;
-    }
-    .voice-stop-btn:hover {
-      background: rgba(248,81,73,0.18);
-      border-color: #f87171;
-      transform: scale(1.06);
-    }
-    .voice-hint {
-      font-size: 11px;
-      color: #374151;
-      position: absolute;
-      bottom: 28px;
-      letter-spacing: 0.04em;
-    }
-
-    #alerts-bar {
-      display: none;
-      margin: 0 12px 8px;
-      padding: 10px 12px;
-      background: #1c2128;
-      border: 1px solid #30363d;
-      border-left: 3px solid #f85149;
-      border-radius: 8px;
-      font-size: 13px;
-      cursor: pointer;
-    }
-    #alerts-bar.visible { display: block; }
-    #alerts-bar strong { color: #f85149; }
-    #alerts-bar span { color: #8b949e; display: block; margin-top: 4px; font-size: 12px; }
-    .quick-chips {
-      display: flex; flex-wrap: wrap; gap: 8px;
-      padding: 0 16px 10px;
-    }
-    .quick-chips button {
-      font-size: 12px; padding: 6px 12px; border-radius: 999px;
-      border: 1px solid #30363d; background: #161b22; color: #8b949e;
-      cursor: pointer;
-    }
-    .quick-chips button:hover { border-color: #58a6ff; color: #e6edf3; }
+    .confirm-card { width: min(400px,100%); background: #fff; border: 0.5px solid var(--color-border-tertiary); border-radius: 16px; padding: 20px; box-shadow: 0 16px 48px rgba(0,0,0,.15); }
+    .confirm-card h3 { margin: 0 0 8px; font-size: 15px; color: var(--color-text-primary); font-weight: 500; }
+    .confirm-card p { margin: 0 0 16px; font-size: 13px; color: var(--color-text-secondary); line-height: 1.5; }
+    .confirm-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .confirm-actions button { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: 0.5px solid var(--color-border-secondary); font-family: 'DM Sans', sans-serif; }
+    .confirm-no { background: var(--color-background-secondary); color: var(--color-text-primary); }
+    .confirm-yes { background: #0a0a0a; color: #fff; border-color: #0a0a0a; }
   </style>
 </head>
 <body>
-  <div class="orbit-wrap">
-    <header>
-      <span class="orbit-brand">ORBIT</span>
-      <div class="header-actions">
-        <div class="orbit-status">
-          <span class="orbit-dot" id="statusDot"></span>
-          <span id="statusText">Online</span>
+
+<div class="shell" id="shell">
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <div class="live-dot" id="live-dot"></div>
+      <div>
+        <div class="top-bar-title">ORBIT</div>
+        <div class="top-bar-subtitle" id="top-subtitle">a iniciar…</div>
+      </div>
+    </div>
+    <div class="mode-tabs">
+      <button class="mode-tab active" id="tab-text" onclick="switchMode('text')">Text</button>
+      <button class="mode-tab" id="tab-voice" onclick="switchMode('voice')">Voice</button>
+    </div>
+    <div class="top-bar-right">
+      <button class="icon-btn" id="btn-settings" title="Configurações" aria-label="Configurações"><i class="ti ti-settings"></i></button>
+    </div>
+  </div>
+
+  <!-- Text mode -->
+  <div class="text-mode" id="text-mode">
+    <div id="alerts-bar" role="alert"></div>
+    <div id="voice-transcript-strip" aria-live="polite"></div>
+
+    <div class="messages" id="messages">
+      <div class="typing-row" id="typing-row" style="display:none">
+        <div class="avatar avatar-ai">AI</div>
+        <div class="typing-indicator">
+          <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
         </div>
-        <button type="button" id="btn-settings" title="Configuração" aria-label="Configuração"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
       </div>
-    </header>
-    <div id="alerts-bar" role="status" aria-live="polite"></div>
-    <div id="messages" role="log" aria-live="polite"></div>
-    <div class="quick-chips" id="quickChips" aria-label="Atalhos rápidos">
-      <button type="button" data-msg="Tens emails importantes não lidos?"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> Emails</button>
-      <button type="button" data-msg="O que tenho na agenda hoje e amanhã?"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Agenda</button>
-      <button type="button" data-msg="Estado da casa — luzes e dispositivos principais"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Casa</button>
-      <button type="button" data-msg="Resumo dos alertas pendentes"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg> Alertas</button>
-      <button type="button" data-msg="Briefing rápido do que preciso saber agora">⚡ Briefing</button>
     </div>
-    <footer>
-      <form id="form">
-        <textarea id="input" rows="1" placeholder="Mensagem para o ORBIT…" autocomplete="off"></textarea>
-        <button type="button" id="btn-mic" title="Ativar voz" aria-label="Microfone" aria-pressed="false">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M12 1a4 4 0 0 1 4 4v7a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm-2 17.93A8.001 8.001 0 0 1 4.07 13H6.1a6 6 0 0 0 11.8 0h2.03A8.001 8.001 0 0 1 14 18.93V21h3a1 1 0 1 1 0 2H7a1 1 0 1 1 0-2h3v-2.07z"/>
-          </svg>
-        </button>
-                <button type="submit" id="send" disabled aria-label="Enviar">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z"/>
-          </svg>
-        </button>
-      </form>
-    </footer>
-  </div>
 
-  <div class="config-overlay" id="configOverlay" aria-hidden="true"></div>
-  <aside class="config-panel" id="configPanel" aria-label="Configuração ORBIT">
-    <header>
-      <h2>Configuração ORBIT</h2>
-      <button type="button" id="btn-close-config" aria-label="Fechar">×</button>
-    </header>
-    <div class="config-body" id="configBody"></div>
-  </aside>
-
-  <div id="voice-overlay" aria-modal="true" role="dialog" aria-label="Modo de voz">
-    <div class="orb-wrap">
-      <div class="orb-ring"></div>
-      <div class="orb-ring"></div>
-      <div class="orb-ring"></div>
-      <div class="orb-blob" id="voiceOrb"></div>
+    <div class="quick-chips" id="quickChips">
+      <button data-msg="Briefing do dia">Briefing</button>
+      <button data-msg="Qual é o estado dos servidores?">Servidores</button>
+      <button data-msg="Últimas mensagens WhatsApp">WhatsApp</button>
+      <button data-msg="O que está pendente?">Pendências</button>
     </div>
-    <div class="voice-state-label" id="voiceStateLabel">A ouvir…</div>
-    <div class="voice-transcript" id="voiceTranscript">Pode falar</div>
-    <button class="voice-stop-btn" id="voiceStopBtn" title="Parar voz" aria-label="Parar modo de voz">&#9632;</button>
-    <span class="voice-hint">Diga "pode ir" para parar</span>
-  </div>
 
-  <div id="confirm-overlay" aria-hidden="true" role="dialog" aria-labelledby="confirmTitle">
-    <div class="confirm-card">
-      <h3 id="confirmTitle">Confirmar acção</h3>
-      <p id="confirmDescription"></p>
-      <div class="confirm-actions">
-        <button type="button" class="confirm-no" id="confirmNo">Não</button>
-        <button type="button" class="confirm-yes" id="confirmYes">Sim, executar</button>
+    <div class="input-area">
+      <div class="input-row">
+        <div class="input-tools">
+          <button class="tool-btn" id="btn-mic" title="Microfone" aria-label="Microfone" aria-pressed="false">
+            <i class="ti ti-microphone"></i>
+          </button>
+        </div>
+        <textarea class="text-input" id="text-input" rows="1" placeholder="Escreve uma mensagem…" autocomplete="off"></textarea>
+        <button class="send-btn" id="send-btn" aria-label="Enviar"><i class="ti ti-arrow-up"></i></button>
       </div>
     </div>
   </div>
-  <script>
-    (function () {
-      const STORAGE_KEY = 'orbit_chat_session_id'
-      const USER_ID = 'wanderson'
-      const DOMAIN = 'orbit.internal'
-      const WELCOME = 'ORBIT online. Como posso ajudar, Wanderson?'
 
-      let sessionId = null
-      let sending = false
-      let pendingConfirmId = null
+  <!-- Voice mode -->
+  <div class="voice-mode" id="voice-mode">
+    <div class="orb-container">
+      <div class="orb-ring" id="ring1"></div>
+      <div class="orb-ring" id="ring2"></div>
+      <div class="orb-ring" id="ring3"></div>
+      <div class="orb-core" id="orb" onclick="toggleVoiceMode()" aria-label="Ativar microfone">
+        <i class="ti ti-microphone" id="orb-icon"></i>
+      </div>
+    </div>
+    <div class="voice-status" id="voice-status">TOQUE PARA FALAR</div>
+    <div class="v-transcript" id="v-transcript">Toca no orb para começar uma conversa por voz.</div>
+    <div class="waveform-row" id="waveform-row" style="display:none">
+      <div class="waveform" id="waveform"></div>
+    </div>
+  </div>
 
-      const confirmOverlay = document.getElementById('confirm-overlay')
-      const confirmDescription = document.getElementById('confirmDescription')
-      const confirmYes = document.getElementById('confirmYes')
-      const confirmNo = document.getElementById('confirmNo')
+  <!-- Bottom HUD -->
+  <div class="bottom-hud">
+    <div class="hud-info">
+      <span id="msg-count">0 msgs</span>
+      <span id="session-time">00:00</span>
+      <span>
+        <span class="hud-dot off" id="dot-gm" title="Google"></span>
+        <span class="hud-dot off" id="dot-wa" title="WhatsApp" style="margin-left:3px"></span>
+        <span class="hud-dot off" id="dot-ha" title="Home Assistant" style="margin-left:3px"></span>
+      </span>
+    </div>
+    <div style="display:flex;gap:5px">
+      <span class="hud-tag" id="hud-provider">—</span>
+      <span class="hud-tag">PT-PT</span>
+    </div>
+  </div>
 
-      const messagesEl = document.getElementById('messages')
-      const inputEl = document.getElementById('input')
-      const sendBtn = document.getElementById('send')
-      const formEl = document.getElementById('form')
-      const statusDot = document.getElementById('statusDot')
-      const statusText = document.getElementById('statusText')
+</div><!-- .shell -->
 
-      function setStatus(mode) {
-        if (mode === 'thinking') {
-          statusDot.classList.add('thinking')
-          statusText.textContent = 'A pensar…'
-        } else {
-          statusDot.classList.remove('thinking')
-          statusText.textContent = 'Online'
-        }
-      }
+<!-- Config panel -->
+<div class="config-overlay" id="configOverlay" aria-hidden="true"></div>
+<aside class="config-panel" id="configPanel" role="dialog" aria-label="Configuração ORBIT">
+  <header>
+    <h2>Configuração ORBIT</h2>
+    <button type="button" id="btn-close-config" aria-label="Fechar">×</button>
+  </header>
+  <div class="config-body" id="configBody"></div>
+</aside>
 
-      function renderBotText(text) {
-        const esc = String(text)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-        const md = esc.replace(
-          /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
-          '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>',
-        )
-        const linked = md.replace(
-          /(?<!href=")(https?:\/\/[^\s<>"&]+)/g,
-          '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>',
-        )
-        return linked.replace(/\n/g, '<br>')
-      }
+<!-- Confirm overlay -->
+<div id="confirm-overlay" aria-hidden="true" role="dialog" aria-labelledby="confirmTitle">
+  <div class="confirm-card">
+    <h3 id="confirmTitle">Confirmar acção</h3>
+    <p id="confirmDescription"></p>
+    <div class="confirm-actions">
+      <button type="button" class="confirm-no" id="confirmNo">Não</button>
+      <button type="button" class="confirm-yes" id="confirmYes">Sim, executar</button>
+    </div>
+  </div>
+</div>
 
-      function scrollBottom() {
-        messagesEl.scrollTop = messagesEl.scrollHeight
-      }
+<script>
+(function () {
+  /* ─── Constants ──────────────────────────────────────────────── */
+  const STORAGE_KEY = 'orbit_chat_session_id'
+  const USER_ID     = 'wanderson'
+  const DOMAIN      = 'orbit.internal'
+  const WELCOME     = 'ORBIT online. Como posso ajudar, Wanderson?'
 
-      function addUser(text) {
-        const div = document.createElement('div')
-        div.className = 'msg user'
-        div.textContent = text
-        messagesEl.appendChild(div)
-        scrollBottom()
-      }
+  /* ─── State ──────────────────────────────────────────────────── */
+  let sessionId = null, sending = false, pendingConfirmId = null
+  let currentLocation = null, gpsWatchId = null, currentMode = 'text'
+  let msgCount = 0, sessionSecs = 0
 
-      function addBot(htmlOrText, asHtml) {
-        const div = document.createElement('div')
-        div.className = 'msg bot'
-        if (asHtml) div.innerHTML = htmlOrText
-        else div.innerHTML = renderBotText(htmlOrText)
-        messagesEl.appendChild(div)
-        scrollBottom()
-        return div
-      }
+  /* ─── DOM ────────────────────────────────────────────────────── */
+  const msgsEl    = document.getElementById('messages')
+  const inputEl   = document.getElementById('text-input')
+  const sendBtn   = document.getElementById('send-btn')
+  const typingRow = document.getElementById('typing-row')
+  const liveDot   = document.getElementById('live-dot')
+  const subtitle  = document.getElementById('top-subtitle')
+  const confirmOv = document.getElementById('confirm-overlay')
+  const confirmDes = document.getElementById('confirmDescription')
+  const confirmYes = document.getElementById('confirmYes')
+  const confirmNo  = document.getElementById('confirmNo')
 
-      function showTyping() {
-        const div = document.createElement('div')
-        div.className = 'msg bot typing'
-        div.innerHTML =
-          '<span class="typing-dots" aria-hidden="true"><span></span><span></span><span></span></span>'
-        messagesEl.appendChild(div)
-        scrollBottom()
-        return div
-      }
+  /* ─── Session timer ──────────────────────────────────────────── */
+  setInterval(() => {
+    sessionSecs++
+    const m = Math.floor(sessionSecs/60).toString().padStart(2,'0')
+    const s = (sessionSecs%60).toString().padStart(2,'0')
+    document.getElementById('session-time').textContent = m + ':' + s
+  }, 1000)
 
-      function chatHeaders() {
-        return {
-          'Content-Type': 'application/json',
-          'x-user-id': USER_ID,
-        }
-      }
+  /* ─── Mode switch ────────────────────────────────────────────── */
+  window.switchMode = function(mode) {
+    currentMode = mode
+    document.getElementById('text-mode').classList.toggle('hidden', mode !== 'text')
+    document.getElementById('voice-mode').classList.toggle('active', mode === 'voice')
+    document.getElementById('tab-text').classList.toggle('active', mode === 'text')
+    document.getElementById('tab-voice').classList.toggle('active', mode === 'voice')
+  }
 
-      function showConfirmModal(pending) {
-        pendingConfirmId = pending.id
-        confirmDescription.textContent = pending.description
-        confirmOverlay.classList.add('open')
-        confirmOverlay.setAttribute('aria-hidden', 'false')
-      }
+  /* ─── Status ─────────────────────────────────────────────────── */
+  function setThinking(on) {
+    liveDot.classList.toggle('thinking', on)
+    subtitle.textContent = on ? 'a pensar…' : (subtitle.dataset.provider || 'online')
+  }
 
-      function hideConfirmModal() {
-        pendingConfirmId = null
-        confirmOverlay.classList.remove('open')
-        confirmOverlay.setAttribute('aria-hidden', 'true')
-      }
+  /* ─── Render helpers ─────────────────────────────────────────── */
+  function renderBotText(text) {
+    const esc = String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+    const md = esc.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>')
+    const linked = md.replace(/(?<!href=")(https?:\/\/[^\s<>"&]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>')
+    return linked.replace(/\n/g,'<br>')
+  }
+  function scrollBottom() { msgsEl.scrollTop = msgsEl.scrollHeight }
+  function fmtTime() {
+    const d = new Date()
+    return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0')
+  }
 
-      async function submitConfirmation(approved) {
-        if (!pendingConfirmId || !sessionId) return
-        const id = pendingConfirmId
-        hideConfirmModal()
-        setStatus('thinking')
-        const typingEl = showTyping()
-        try {
-          const r = await fetch('/api/chat/confirm', {
-            method: 'POST',
-            headers: chatHeaders(),
-            credentials: 'same-origin',
-            body: JSON.stringify({ confirmationId: id, sessionId, approved }),
-          })
-          const data = await r.json()
-          typingEl.remove()
-          if (data.content) addBot(data.content)
-          else addBot(approved ? 'Feito.' : 'Cancelado.')
-        } catch (e) {
-          typingEl.remove()
-          addBot('Erro ao confirmar. Tente novamente.')
-        } finally {
-          setStatus('online')
-        }
-      }
+  function addUser(text) {
+    const row = document.createElement('div'); row.className = 'msg-row user'
+    const av = document.createElement('div'); av.className = 'avatar avatar-user'
+    av.innerHTML = '<i class="ti ti-user" style="font-size:13px"></i>'
+    const inner = document.createElement('div')
+    const bub = document.createElement('div'); bub.className = 'bubble bubble-user'; bub.textContent = text
+    const meta = document.createElement('div'); meta.className = 'bubble-meta'; meta.textContent = fmtTime()
+    inner.appendChild(bub); inner.appendChild(meta)
+    row.appendChild(av); row.appendChild(inner)
+    msgsEl.insertBefore(row, typingRow); scrollBottom()
+    msgCount++; document.getElementById('msg-count').textContent = msgCount + ' msgs'
+  }
 
-      confirmYes.addEventListener('click', () => submitConfirmation(true))
-      confirmNo.addEventListener('click', () => submitConfirmation(false))
+  function addBot(htmlOrText, asHtml, latencyMs) {
+    const row = document.createElement('div'); row.className = 'msg-row'
+    const av = document.createElement('div'); av.className = 'avatar avatar-ai'; av.textContent = 'AI'
+    const inner = document.createElement('div')
+    const bub = document.createElement('div'); bub.className = 'bubble bubble-ai'
+    if (asHtml) bub.innerHTML = htmlOrText; else bub.innerHTML = renderBotText(htmlOrText)
+    const meta = document.createElement('div'); meta.className = 'bubble-meta'
+    meta.textContent = fmtTime() + (latencyMs ? ' · ' + latencyMs + 'ms' : '')
+    inner.appendChild(bub); inner.appendChild(meta)
+    row.appendChild(av); row.appendChild(inner)
+    msgsEl.insertBefore(row, typingRow); scrollBottom()
+    attachFeedback(bub)
+    msgCount++; document.getElementById('msg-count').textContent = msgCount + ' msgs'
+    return bub
+  }
 
-      async function initSession() {
-        const saved = localStorage.getItem(STORAGE_KEY)
-        try {
-          const r = await fetch('/api/chat/session/domain', {
-            method: 'POST',
-            headers: chatHeaders(),
-            credentials: 'same-origin',
-            body: JSON.stringify({
-              domain: DOMAIN,
-              userId: USER_ID,
-              pageUrl: location.href,
-              sessionId: saved || undefined,
-            }),
-          })
-          const data = await r.json()
-          if (!r.ok || !data.sessionId) throw new Error(data.error || 'Sessão inválida')
-          sessionId = data.sessionId
-          localStorage.setItem(STORAGE_KEY, sessionId)
+  function showTyping() { typingRow.style.display = 'flex'; msgsEl.appendChild(typingRow); scrollBottom() }
+  function hideTyping() { typingRow.style.display = 'none' }
 
-          if (!data.isActive) {
-            addBot('ORBIT está temporariamente indisponível.')
-            inputEl.disabled = true
-            sendBtn.disabled = true
-            return
-          }
+  /* ─── Feedback ───────────────────────────────────────────────── */
+  function attachFeedback(bubDiv) {
+    if (!bubDiv || bubDiv.dataset.feedbackAttached === '1') return
+    bubDiv.dataset.feedbackAttached = '1'
+    const localId = 'msg-' + Math.random().toString(36).slice(2, 10)
+    const wrap = document.createElement('span'); wrap.className = 'msg-feedback'
+    const up = document.createElement('button'); up.type = 'button'; up.textContent = '👍'; up.title = 'Boa resposta'
+    const down = document.createElement('button'); down.type = 'button'; down.textContent = '👎'; down.title = 'Resposta fraca'
+    wrap.appendChild(up); wrap.appendChild(down); bubDiv.appendChild(wrap)
+    const send = async (outcome) => {
+      if (up.disabled) return; up.disabled = true; down.disabled = true
+      try { await fetch('/api/feedback', { method: 'POST', headers: {'Content-Type':'application/json'}, credentials: 'same-origin', body: JSON.stringify({ messageId: localId, sessionId, outcome, source: 'thumbs' }) }) } catch {}
+    }
+    up.addEventListener('click', () => send('correct'))
+    down.addEventListener('click', () => send('missed'))
+  }
 
-          if (!saved || saved !== sessionId) {
-            addBot(WELCOME)
-          } else if (data.reused) {
-            addBot('ORBIT online. Continuamos onde ficámos.')
-          }
-          const bankParam = new URLSearchParams(location.search).get('bank')
-          if (bankParam === 'connected') {
-            addBot('Revolut ligado com sucesso. Podes perguntar "qual é o meu saldo?" ou "quais foram as últimas compras?".')
-            history.replaceState(null, '', location.pathname)
-          } else if (bankParam === 'error') {
-            addBot('Não foi possível ligar o Revolut. Verifica o Client Secret e o Redirect URI no TrueLayer.')
-            history.replaceState(null, '', location.pathname)
-          }
-          sendBtn.disabled = false
-        } catch (e) {
-          addBot('Não foi possível iniciar a sessão. Confirme que está autenticado em /login.')
-          inputEl.disabled = true
-        }
-      }
+  /* ─── Confirm modal ──────────────────────────────────────────── */
+  function showConfirmModal(pending) {
+    pendingConfirmId = pending.id; confirmDes.textContent = pending.description
+    confirmOv.classList.add('open'); confirmOv.setAttribute('aria-hidden','false')
+  }
+  function hideConfirmModal() {
+    pendingConfirmId = null; confirmOv.classList.remove('open'); confirmOv.setAttribute('aria-hidden','true')
+  }
+  async function submitConfirmation(approved) {
+    if (!pendingConfirmId || !sessionId) return
+    const id = pendingConfirmId; hideConfirmModal(); setThinking(true); showTyping()
+    try {
+      const r = await fetch('/api/chat/confirm', { method: 'POST', headers: {'Content-Type':'application/json','x-user-id':USER_ID}, credentials: 'same-origin', body: JSON.stringify({ confirmationId: id, sessionId, approved }) })
+      const data = await r.json(); hideTyping()
+      addBot(data.content || (approved ? 'Feito.' : 'Cancelado.'))
+    } catch { hideTyping(); addBot('Erro ao confirmar.') }
+    finally { setThinking(false) }
+  }
+  confirmYes.addEventListener('click', () => submitConfirmation(true))
+  confirmNo.addEventListener('click',  () => submitConfirmation(false))
 
-      async function sendMessage() {
-        if (sending || !sessionId) return
-        const msg = inputEl.value.trim()
-        if (!msg) return
-
-        sending = true
-        sendBtn.disabled = true
-        inputEl.disabled = true
-        inputEl.value = ''
-        inputEl.style.height = 'auto'
-        addUser(msg)
-        setStatus('thinking')
-        const typingEl = showTyping()
-
-        try {
-          const r = await fetch('/api/chat/send', {
-            method: 'POST',
-            headers: chatHeaders(),
-            credentials: 'same-origin',
-            body: JSON.stringify({ sessionId, message: msg }),
-          })
-          const data = await r.json()
-          typingEl.remove()
-
-          if (data.offline) {
-            addBot(data.message || 'ORBIT temporariamente indisponível.')
-            inputEl.disabled = true
-          } else if (data.pendingConfirmation) {
-            if (data.content) addBot(data.content)
-            else addBot('Preciso da tua confirmação para continuar.')
-            showConfirmModal(data.pendingConfirmation)
-            inputEl.disabled = false
-            sendBtn.disabled = false
-          } else if (data.content) {
-            addBot(data.content)
-            inputEl.disabled = false
-            sendBtn.disabled = false
-          } else if (data.error) {
-            addBot('Ocorreu um erro. Tente novamente.')
-            inputEl.disabled = false
-            sendBtn.disabled = false
-          }
-        } catch (e) {
-          typingEl.remove()
-          addBot('Erro de ligação. Verifique a rede e tente de novo.')
-          inputEl.disabled = false
-          sendBtn.disabled = false
-        } finally {
-          sending = false
-          setStatus('online')
-          if (!inputEl.disabled) sendBtn.disabled = false
-          inputEl.focus()
-        }
-      }
-
-      formEl.addEventListener('submit', function (e) {
-        e.preventDefault()
-        sendMessage()
+  /* ─── Session ────────────────────────────────────────────────── */
+  async function initSession() {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    try {
+      const r = await fetch('/api/chat/session/domain', {
+        method: 'POST', headers: {'Content-Type':'application/json','x-user-id':USER_ID},
+        credentials: 'same-origin',
+        body: JSON.stringify({ domain: DOMAIN, userId: USER_ID, pageUrl: location.href, sessionId: saved || undefined }),
       })
+      const data = await r.json()
+      if (!r.ok || !data.sessionId) throw new Error(data.error || 'Sessão inválida')
+      sessionId = data.sessionId
+      localStorage.setItem(STORAGE_KEY, sessionId)
+      subtitle.textContent = 'online'; subtitle.dataset.provider = 'online'
+      startGps(); updateHudStatus(); updateHudTasks()
+      if (window.__orbitWakeWord) { window.__orbitWakeWord.init(); window.__orbitWakeWord.start() }
+      if (!data.isActive) { addBot('ORBIT temporariamente indisponível.'); inputEl.disabled = true; sendBtn.disabled = true; return }
+      if (!saved || saved !== sessionId) addBot(WELCOME)
+      else if (data.reused) addBot('ORBIT online. Continuamos onde ficámos.')
+      sendBtn.disabled = false
+      const up = new URLSearchParams(window.location.search)
+      if (up.get('google') === 'success') { alert('Google ligado.'); history.replaceState({},'','/orbit') }
+      else if (up.get('google') === 'error') { alert('Erro Google: ' + (up.get('msg')||'')); history.replaceState({},'','/orbit') }
+      else if (up.get('ha') === 'success') { alert('Home Assistant ligado.'); history.replaceState({},'','/orbit') }
+      else if (up.get('ha') === 'error') { alert('Erro HA: ' + (up.get('msg')||'')); history.replaceState({},'','/orbit') }
+      const bp = new URLSearchParams(location.search).get('bank')
+      if (bp === 'connected') { addBot('Revolut ligado.'); history.replaceState(null,'',location.pathname) }
+    } catch { addBot('Não foi possível iniciar sessão. Vai a /login.'); inputEl.disabled = true }
+  }
 
-      document.getElementById('quickChips')?.addEventListener('click', function (e) {
-        const btn = e.target.closest('button[data-msg]')
-        if (!btn || sending || !sessionId) return
-        inputEl.value = btn.dataset.msg
-        inputEl.dispatchEvent(new Event('input'))
-        sendMessage()
+  /* ─── GPS ────────────────────────────────────────────────────── */
+  function startGps() {
+    if (!navigator.geolocation) return
+    gpsWatchId = navigator.geolocation.watchPosition(
+      pos => { currentLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude, speed: typeof pos.coords.speed === 'number' ? pos.coords.speed : null } },
+      () => { currentLocation = null },
+      { enableHighAccuracy: true, maximumAge: 30000, timeout: 10000 }
+    )
+  }
+  async function getClientContext() {
+    const isMobile = /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent||'')
+    return { device: isMobile ? 'mobile' : 'desktop', speed: currentLocation?.speed ?? null }
+  }
+
+  /* ─── Send via SSE ───────────────────────────────────────────── */
+  async function sendMessage() {
+    if (sending || !sessionId) return
+    let msg = inputEl.value.trim(); if (!msg) return
+    const modeMatch = msg.match(/^\/modo\s+(\w+)/i)
+    if (modeMatch) msg = `Muda para o modo ${modeMatch[1]}`
+    sending = true; sendBtn.disabled = true; inputEl.disabled = true
+    inputEl.value = ''; inputEl.style.height = 'auto'
+    addUser(msg); setThinking(true); showTyping()
+    const t0 = Date.now()
+    try {
+      const ctx = await getClientContext()
+      const r = await fetch('/api/chat/stream', {
+        method: 'POST', headers: {'Content-Type':'application/json','x-user-id':USER_ID},
+        credentials: 'same-origin',
+        body: JSON.stringify({ sessionId, message: msg, clientContext: ctx, ...(currentLocation ? { location: { lat: currentLocation.lat, lng: currentLocation.lng } } : {}) }),
       })
-
-      inputEl.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault()
-          sendMessage()
-        }
-      })
-
-      inputEl.addEventListener('input', function () {
-        inputEl.style.height = 'auto'
-        inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + 'px'
-      })
-
-      window.addEventListener('load', function () {
-        initSession()
-        loadAlerts()
-        setInterval(loadAlerts, 120000)
-      })
-
-      async function loadAlerts() {
-        const bar = document.getElementById('alerts-bar')
-        if (!bar) return
-        try {
-          const r = await fetch('/api/orbit/alerts', { credentials: 'same-origin' })
-          if (!r.ok) return
-          const data = await r.json()
-          if (!data.unread || data.unread === 0) {
-            bar.classList.remove('visible')
-            return
-          }
-          const first = (data.alerts || []).find(a => !a.read)
-          bar.classList.add('visible')
-          bar.innerHTML = '<strong>' + (data.unread) + ' alerta(s)</strong><span>' + (first ? (first.title + ': ' + first.body.slice(0, 120)) : '') + '</span>'
-          bar.onclick = async function () {
-            if (first) addBot('📌 ' + first.title + '\\n' + first.body)
-            await fetch('/api/orbit/alerts/read-all', { method: 'POST', credentials: 'same-origin' })
-            bar.classList.remove('visible')
-          }
-        } catch { /* ignore */ }
-      }
-
-      // ── Configuração ORBIT ─────────────────────────────────────────────────
-      const CONFIG_GROUPS = [
-        {
-          id: 'voice',
-          title: 'Voz & Integrações',
-          fields: [
-            { key: 'orbit.api_key', label: 'API Key (Siri/externa)', type: 'password' },
-            { key: 'orbit.ifttt_key', label: 'IFTTT Webhook Key', type: 'password' },
-            { key: 'orbit.elevenlabs_key', label: 'ElevenLabs API Key (TTS natural)', type: 'password', hint: 'Cria em elevenlabs.io → Profile → API Key. Voz neural em português.' },
-            { key: 'orbit.elevenlabs_voice_id', label: 'ElevenLabs Voice ID (opcional)', type: 'text', plain: true, hint: 'Default: Charlotte (XB0fDUnXU5powFXDhCwa). Outros: Rachel (21m00Tcm4TlvDq8ikWAM), Daniel (onwK4e9ZLuTAKqWW03F9)' },
-            { key: 'orbit.google_project_id', label: 'Google Actions Project ID', type: 'text', plain: true },
-          ],
-        },
-        {
-          id: 'google',
-          title: 'Google (Gmail + Calendar + Drive)',
-          fields: [
-            { key: 'orbit.google_client_id', label: 'Client ID (OAuth)', type: 'text', plain: true, hint: 'Cria em Google Cloud (links abaixo) → OAuth → Aplicação Web.' },
-            { key: 'orbit.google_client_secret', label: 'Client Secret (OAuth)', type: 'password', hint: 'Redirect URI obrigatório: https://ia.orbithubos.pt/api/orbit/google/callback' },
-          ],
-        },
-        {
-          id: 'home',
-          title: 'Home Assistant',
-          fields: [
-            { key: 'orbit.home_assistant_url', label: 'URL', type: 'text', plain: true, hint: 'Recomendado: Nabu Casa (https://xxxx.ui.nabu.casa) — sem IP local. Também DuckDNS ou LAN.' },
-            { key: 'orbit.home_assistant_token', label: 'Token manual (opcional)', type: 'password', hint: 'Alternativa ao botão Ligar: HA → Perfil → Segurança → Long-Lived Token' },
-            { key: 'orbit.home_assistant_notify', label: 'Serviço notify (opcional)', type: 'text', plain: true, hint: 'Ex: notify.mobile_app_iphone — alertas proactivos no telemóvel' },
-          ],
-        },
-        {
-          id: 'orbit_mode',
-          title: 'Comportamento JARVIS',
-          fields: [
-            {
-              key: 'orbit.trust_level',
-              label: 'Modo confiança',
-              type: 'select',
-              plain: true,
-              options: [
-                { value: 'learning', label: 'learning — confirma; aprende hábitos (3× = automático)' },
-                { value: 'trusted', label: 'trusted — casa/calendário/WhatsApp directo; email confirma' },
-                { value: 'jarvis', label: 'jarvis — só email confirma; resto executa já' },
-              ],
-            },
-            { key: 'orbit.trusted_tools', label: 'Ferramentas sempre directas (learning)', type: 'text', plain: true, hint: 'Ex: controlSmartHome,createCalendarEvent — separadas por vírgula' },
-          ],
-        },
-        {
-          id: 'gmail',
-          title: 'Gmail IMAP (só leitura, alternativa)',
-          fields: [
-            { key: 'orbit.gmail_user', label: 'Gmail (email)', type: 'text', plain: true },
-            { key: 'orbit.gmail_app_password', label: 'App Password (16 caracteres)', type: 'password', hint: 'Não é a senha normal. Google → Segurança → Verificação em 2 passos → App Passwords. Copia os 16 caracteres (com ou sem espaços).' },
-          ],
-        },
-        {
-          id: 'whatsapp',
-          title: 'WhatsApp pessoal (só ORBIT / JARVIS)',
-          fields: [],
-        },
-        {
-          id: 'bank',
-          title: 'Banco',
-          fields: [
-            { key: 'orbit.truelayer_secret', label: 'TrueLayer Client Secret', type: 'password' },
-          ],
-        },
-      ]
-
-      const configOverlay = document.getElementById('configOverlay')
-      const configPanel = document.getElementById('configPanel')
-      const configBody = document.getElementById('configBody')
-      const btnSettings = document.getElementById('btn-settings')
-      const btnCloseConfig = document.getElementById('btn-close-config')
-      let configByKey = {}
-
-      function isMaskedPlaceholder(v) {
-        return !v || /^[•]+$/.test(v) || (v.startsWith('••••') && v.length <= 12)
-      }
-
-      function renderConfigPanel() {
-        // Status strip placeholder — filled by updateStatusStrip()
-        const stripHtml = '<div id="orbit-status-strip" class="orbit-status-strip">' +
-          ['Google','WhatsApp','Home Assistant','Banco','ElevenLabs','IFTTT'].map(s =>
-            `<div class="orbit-status-item"><span class="orbit-status-dot off"></span><span>${s}</span></div>`
-          ).join('') + '</div>'
-
-        configBody.innerHTML = stripHtml + CONFIG_GROUPS.map(g => `
-          <section class="config-group" data-group="${g.id}">
-            <h3>${g.title} <span class="cfg-status-badge off" id="status-badge-${g.id}"></span></h3>
-            ${g.fields.map(f => {
-              const meta = configByKey[f.key] || {}
-              const ph = meta.hasValue && f.type === 'password' ? '••••••••••••' : ''
-              const val = meta.hasValue && f.plain ? (meta.value || '') : ''
-              const inputHtml = f.type === 'select' && f.options
-                ? `<select data-key="${f.key}" data-plain="1">${f.options.map(o =>
-                    `<option value="${o.value}"${val === o.value ? ' selected' : ''}>${o.label}</option>`
-                  ).join('')}</select>`
-                : `<input type="${f.type}" data-key="${f.key}" data-plain="${f.plain ? '1' : '0'}"
-                    placeholder="${ph}" value="${f.plain && val && f.type !== 'select' ? val.replace(/"/g, '&quot;') : ''}"
-                    autocomplete="off" />`
-              return `
-              <div class="cfg-field" data-key="${f.key}">
-                <label>${f.label}</label>
-                ${f.hint ? `<p style="font-size:11px;color:#8b949e;margin-bottom:6px">${f.hint}</p>` : ''}
-                <div class="cfg-field-row">
-                  ${inputHtml}
-                  <button type="button" class="btn-del" data-key="${f.key}" title="Apagar">🗑</button>
-                </div>
-              </div>`
-            }).join('')}
-            ${g.id === 'bank' ? '<div class="bank-actions" id="bank-actions"></div>' : ''}
-            ${g.id === 'google' ? `
-            <div class="google-setup" style="font-size:12px;color:#8b949e;margin:8px 0 12px;line-height:1.6">
-              <strong style="color:#e6edf3">APIs necessárias (activar no Cloud):</strong><br>
-              <a href="https://console.cloud.google.com/apis/library/gmail.googleapis.com" target="_blank" rel="noopener">Gmail API</a> ·
-              <a href="https://console.cloud.google.com/apis/library/calendar-json.googleapis.com" target="_blank" rel="noopener">Calendar API</a><br>
-              <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" rel="noopener">Ecrã de consentimento OAuth</a> ·
-              <a href="https://console.cloud.google.com/apis/credentials/oauthclient" target="_blank" rel="noopener">Criar credenciais OAuth (Web)</a>
-            </div>
-            <div class="bank-actions" id="google-actions"></div>` : ''}
-            ${g.id === 'home' ? '<div class="bank-actions" id="ha-actions"></div>' : ''}
-            ${g.id === 'whatsapp' ? `
-            <div style="font-size:12px;color:#f85149;margin:8px 0;line-height:1.5;border:1px solid #30363d;padding:10px;border-radius:8px">
-              <strong>Exclusivo Wanderson</strong> — usa o teu WhatsApp <strong>pessoal</strong> no telemóvel.<br>
-              <span style="color:#8b949e">Não ligues o WhatsApp da OrbitHub, Autotrack ou Rinosat (sistema <code>autotrack-whatsapp</code> no servidor).</span>
-            </div>
-            <p style="font-size:12px;color:#8b949e;margin:8px 0">QR: WhatsApp → ⋮ → Dispositivos ligados → Ligar dispositivo</p>
-            <div class="bank-actions" id="wa-actions"></div>` : ''}
-            <button type="button" class="btn-save-group" data-group="${g.id}">Guardar</button>
-            <div class="cfg-feedback" data-feedback="${g.id}"></div>
-          </section>
-        `).join('')
-
-        configBody.querySelectorAll('.btn-save-group').forEach(btn => {
-          btn.addEventListener('click', () => saveConfigGroup(btn.dataset.group))
-        })
-        configBody.querySelectorAll('.btn-del').forEach(btn => {
-          btn.addEventListener('click', () => deleteConfigKey(btn.dataset.key))
-        })
-        updateBankActions()
-        updateGoogleActions()
-        updateHomeAssistantActions()
-        updateWhatsAppActions()
-        updateStatusStrip()
-      }
-
-      async function updateStatusStrip() {
-        const strip = document.getElementById('orbit-status-strip')
-        if (!strip) return
-
-        // Fetch all statuses in parallel
-        const [gRes, waRes, haRes, bankRes] = await Promise.allSettled([
-          fetch('/api/orbit/google/status',      { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null),
-          fetch('/api/orbit/whatsapp/status',     { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null),
-          fetch('/api/orbit/homeassistant/status',{ credentials: 'same-origin' }).then(r => r.ok ? r.json() : null),
-          fetch('/api/orbit/truelayer/status',    { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null),
-        ])
-
-        const google  = gRes.status    === 'fulfilled' && gRes.value?.connected
-        const wa      = waRes.status   === 'fulfilled' && waRes.value?.connected
-        const ha      = haRes.status   === 'fulfilled' && haRes.value?.connected
-        const bank    = bankRes.status === 'fulfilled' && bankRes.value?.connected
-        const el      = !!(configByKey['orbit.elevenlabs_key']?.hasValue)
-        const ifttt   = !!(configByKey['orbit.ifttt_key']?.hasValue)
-
-        const items = [
-          { label: 'Google',         state: google  ? 'ok' : 'off',  detail: google  ? 'Gmail + Calendar' : 'Não ligado' },
-          { label: 'WhatsApp',       state: wa      ? 'ok' : 'off',  detail: wa      ? 'Ligado' : 'Não ligado' },
-          { label: 'Home Assistant', state: ha      ? 'ok' : 'off',  detail: ha      ? 'Ligado' : 'Não ligado' },
-          { label: 'Banco',          state: bank    ? 'ok' : 'off',  detail: bank    ? 'Revolut ligado' : 'Não ligado' },
-          { label: 'ElevenLabs',     state: el      ? 'ok' : 'off',  detail: el      ? 'Chave configurada' : 'Sem chave' },
-          { label: 'IFTTT',          state: ifttt   ? 'ok' : 'off',  detail: ifttt   ? 'Chave configurada' : 'Sem chave' },
-        ]
-
-        strip.innerHTML = items.map(item => `
-          <div class="orbit-status-item" title="${item.detail}">
-            <span class="orbit-status-dot ${item.state}"></span>
-            <span style="color:${item.state === 'ok' ? '#e6edf3' : '#484f58'}">${item.label}</span>
-            ${item.state === 'ok' ? '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#3fb950" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
-          </div>`).join('')
-
-        // Update section badges
-        const badgeMap = {
-          google:    google  ? 'ok' : 'off',
-          whatsapp:  wa      ? 'ok' : 'off',
-          home:      ha      ? 'ok' : 'off',
-          bank:      bank    ? 'ok' : 'off',
-          voice:     el      ? 'ok' : 'warn',
-        }
-        const labelMap = {
-          google:   google  ? 'Ligado' : '',
-          whatsapp: wa      ? 'Ligado' : '',
-          home:     ha      ? 'Ligado' : '',
-          bank:     bank    ? 'Ligado' : '',
-          voice:    el      ? 'ElevenLabs ✓' : '',
-        }
-        Object.entries(badgeMap).forEach(([id, state]) => {
-          const badge = document.getElementById('status-badge-' + id)
-          if (!badge) return
-          const lbl = labelMap[id]
-          if (!lbl) { badge.style.display = 'none'; return }
-          badge.style.display = 'inline-flex'
-          badge.className = 'cfg-status-badge ' + state
-          badge.textContent = lbl
-        })
-      }
-
-      let waPollTimer = null
-      let waLastQr = null
-      let waLastState = null
-
-      function waStopPoll() {
-        if (waPollTimer) { clearInterval(waPollTimer); waPollTimer = null }
-      }
-
-      function waStartPoll(intervalMs) {
-        waStopPoll()
-        waPollTimer = setInterval(updateWhatsAppActions, intervalMs || 3000)
-      }
-
-      async function waForceRestart() {
-        const el = document.getElementById('wa-actions')
-        if (el) el.innerHTML = '<p style="color:#8b949e;font-size:13px">A forçar reinício… aguarda 5s</p>'
-        waStopPoll()
-        waLastState = null
-        waLastQr = null
-        try { await fetch('/api/orbit/whatsapp/restart', { method: 'POST', credentials: 'same-origin' }) } catch {}
-        await new Promise(r => setTimeout(r, 3000))
-        waStartPoll(2000)
-        updateWhatsAppActions()
-      }
-
-      async function updateWhatsAppActions() {
-        const el = document.getElementById('wa-actions')
-        if (!el) { waStopPoll(); return }
-
-        let data = { connected: false, state: 'idle', qrDataUrl: null, phone: null, error: null }
-        try {
-          const r = await fetch('/api/orbit/whatsapp/status', { credentials: 'same-origin' })
-          if (r.ok) data = await r.json()
-        } catch { /* ignore */ }
-
-        const stateChanged = data.state !== waLastState
-
-        if (data.connected) {
-          waStopPoll()
-          waLastQr = null
-          if (stateChanged) {
-            waLastState = data.state
-            el.innerHTML = `
-              <p style="color:#3fb950;font-size:13px;margin:8px 0">&#10003; WhatsApp pessoal ORBIT ligado${data.phone ? ' — +' + data.phone : ''}</p>
-              <button type="button" class="btn-save-group" id="btn-wa-restart">Reiniciar ligação</button>
-              <button type="button" class="btn-save-group" style="background:#21262d;margin-top:8px" id="btn-wa-disconnect">Desligar (apaga sessão)</button>`
-            document.getElementById('btn-wa-restart')?.addEventListener('click', async () => {
-              el.innerHTML = '<p style="color:#8b949e">A reiniciar…</p>'
-              try { await fetch('/api/orbit/whatsapp/restart', { method: 'POST', credentials: 'same-origin' }) } catch {}
-              waLastState = null; waLastQr = null
-              waStartPoll(2000)
-              updateWhatsAppActions()
-            })
-            document.getElementById('btn-wa-disconnect')?.addEventListener('click', async () => {
-              if (!confirm('Desligar e apagar sessão? Vais precisar de novo QR.')) return
-              waStopPoll()
-              await fetch('/api/orbit/whatsapp/disconnect', { method: 'POST', credentials: 'same-origin' })
-              waLastState = null; waLastQr = null
-              updateWhatsAppActions()
-            })
-          }
-
-        } else if (data.qrDataUrl) {
-          // QR activo — polling agressivo para nunca mostrar QR expirado
-          if (!waPollTimer) waStartPoll(3000)
-
-          if (data.qrDataUrl !== waLastQr || stateChanged) {
-            waLastQr = data.qrDataUrl
-            waLastState = data.state
-            // Primeira renderização ou QR mudou — recriar bloco
-            el.innerHTML = `
-              <p style="color:#8b949e;font-size:12px;margin:8px 0">
-                Abre WhatsApp → ⋮ → Dispositivos ligados → Ligar dispositivo
-              </p>
-              <div style="position:relative;display:inline-block">
-                <img id="wa-qr-img" src="${data.qrDataUrl}" alt="QR WhatsApp"
-                  style="max-width:220px;border-radius:8px;display:block;margin:8px 0;border:2px solid #238636" />
-                <div id="wa-qr-badge" style="position:absolute;top:6px;right:6px;background:#238636;color:#fff;
-                  font-size:10px;padding:2px 6px;border-radius:4px;font-weight:600">NOVO</div>
-              </div>
-              <p id="wa-qr-timer" style="font-size:12px;color:#d29922;margin:4px 0">
-                QR actualiza automaticamente &#8635;
-              </p>
-              <p style="font-size:11px;color:#8b949e;margin:2px 0">&#9888; Usa o teu WhatsApp PESSOAL — não o da empresa</p>
-              <button type="button" id="btn-wa-force-restart-qr" style="margin-top:10px;background:#21262d;border:1px solid #444;color:#8b949e;font-size:12px;padding:6px 14px;border-radius:6px;cursor:pointer">&#8635; Forçar reinício</button>`
-            // Remover badge "NOVO" após 2s
-            setTimeout(() => { const b = document.getElementById('wa-qr-badge'); if(b) b.remove() }, 2000)
-            document.getElementById('btn-wa-force-restart-qr')?.addEventListener('click', waForceRestart)
-          } else {
-            // QR não mudou — só animar o timer para mostrar que está vivo
-            const timer = document.getElementById('wa-qr-timer')
-            if (timer) {
-              timer.style.opacity = '0.5'
-              setTimeout(() => { if(timer) timer.style.opacity = '1' }, 150)
+      if (!r.ok || !r.body) throw new Error('stream_failed')
+      hideTyping()
+      let botBub = null, accumulated = '', latencyMs = null
+      const reader = r.body.getReader(), dec = new TextDecoder(); let buf = ''
+      while (true) {
+        const { done, value } = await reader.read(); if (done) break
+        buf += dec.decode(value, { stream: true })
+        const lines = buf.split('\n'); buf = lines.pop() || ''
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const raw = line.slice(6).trim(); if (!raw) continue
+          let ev; try { ev = JSON.parse(raw) } catch { continue }
+          if (ev.type === 'token') {
+            if (!botBub) {
+              const row = document.createElement('div'); row.className = 'msg-row'
+              const av = document.createElement('div'); av.className = 'avatar avatar-ai'; av.textContent = 'AI'
+              const inner = document.createElement('div')
+              botBub = document.createElement('div'); botBub.className = 'bubble bubble-ai'
+              const meta = document.createElement('div'); meta.className = 'bubble-meta'; meta.id = 'bot-meta-cur'; meta.textContent = fmtTime()
+              inner.appendChild(botBub); inner.appendChild(meta)
+              row.appendChild(av); row.appendChild(inner)
+              msgsEl.insertBefore(row, typingRow); msgCount++
+              document.getElementById('msg-count').textContent = msgCount + ' msgs'
             }
-          }
-
-        } else if (data.state === 'connecting') {
-          if (!waPollTimer) waStartPoll(2000)
-          if (stateChanged) {
-            waLastState = data.state
-            el.innerHTML = `<p style="color:#8b949e;font-size:13px">A ligar WhatsApp Web… <span id="wa-dots">.</span></p>
-              <button type="button" id="btn-wa-force-restart-conn" style="margin-top:10px;background:#21262d;border:1px solid #444;color:#8b949e;font-size:12px;padding:6px 14px;border-radius:6px;cursor:pointer">&#8635; Forçar reinício</button>`
-            let dots = 1
-            const dotsTimer = setInterval(() => {
-              const d = document.getElementById('wa-dots')
-              if (!d) { clearInterval(dotsTimer); return }
-              dots = (dots % 3) + 1
-              d.textContent = '.'.repeat(dots)
-            }, 500)
-            document.getElementById('btn-wa-force-restart-conn')?.addEventListener('click', waForceRestart)
-          }
-
-        } else {
-          // idle ou error — sem polling
-          waStopPoll()
-          waLastQr = null
-          if (stateChanged) {
-            waLastState = data.state
-            const err = data.error ? `<p style="color:#f85149;font-size:12px;margin:6px 0">${data.error}</p>` : ''
-            el.innerHTML = `
-              ${err}
-              <button type="button" class="btn-save-group" id="btn-wa-connect">Ligar WhatsApp Web</button>
-              <button type="button" id="btn-wa-force-restart-idle" style="margin-top:8px;background:#21262d;border:1px solid #444;color:#8b949e;font-size:12px;padding:6px 14px;border-radius:6px;cursor:pointer;display:block;width:100%">&#8635; Forçar reinício (se travado)</button>`
-            document.getElementById('btn-wa-connect')?.addEventListener('click', async () => {
-              el.innerHTML = '<p style="color:#8b949e;font-size:13px">A gerar QR…</p>'
-              waLastState = null; waLastQr = null
-              try { await fetch('/api/orbit/whatsapp/connect', { method: 'POST', credentials: 'same-origin' }) } catch {}
-              waStartPoll(2000)
-              updateWhatsAppActions()
-            })
-            document.getElementById('btn-wa-force-restart-idle')?.addEventListener('click', waForceRestart)
+            accumulated += ev.token; botBub.innerHTML = renderBotText(accumulated); scrollBottom()
+          } else if (ev.type === 'tool') {
+            if (!botBub) {
+              const row = document.createElement('div'); row.className = 'msg-row'
+              const av = document.createElement('div'); av.className = 'avatar avatar-ai'; av.textContent = 'AI'
+              const inner = document.createElement('div')
+              botBub = document.createElement('div'); botBub.className = 'bubble bubble-ai'
+              inner.appendChild(botBub); row.appendChild(av); row.appendChild(inner)
+              msgsEl.insertBefore(row, typingRow)
+            }
+            botBub.innerHTML = '<span class="bubble-tool"><i class="ti ti-settings" style="font-size:12px"></i>' + ev.name + '…</span>'
+            accumulated = ''; scrollBottom()
+          } else if (ev.type === 'done') {
+            latencyMs = Date.now() - t0
+            const metaEl = document.getElementById('bot-meta-cur')
+            if (metaEl) { metaEl.textContent = fmtTime() + ' · ' + latencyMs + 'ms'; metaEl.removeAttribute('id') }
+            if (botBub && accumulated) botBub.innerHTML = renderBotText(accumulated)
+            if (botBub && !ev.pendingConfirmation) attachFeedback(botBub)
+            if (ev.pendingConfirmation) { if (!accumulated) addBot('Preciso da tua confirmação.'); showConfirmModal(ev.pendingConfirmation) }
+            // Update provider tag
+            if (ev.provider) {
+              const tag = document.getElementById('hud-provider')
+              const prov = (ev.provider||'').replace('LOCAL_','').toLowerCase()
+              if (tag) tag.textContent = prov
+              subtitle.textContent = prov; subtitle.dataset.provider = prov
+            }
+            inputEl.disabled = false; sendBtn.disabled = false
+          } else if (ev.type === 'error') {
+            if (!botBub) addBot(ev.message || 'Erro.'); else botBub.innerHTML = renderBotText(ev.message || 'Erro.')
+            inputEl.disabled = false; sendBtn.disabled = false
+          } else if (ev.type === 'offline') {
+            if (!botBub) addBot(ev.message || 'ORBIT indisponível.'); inputEl.disabled = true
           }
         }
       }
+      if (!botBub) addBot('Sem resposta.')
+      inputEl.disabled = false; sendBtn.disabled = false
+    } catch { hideTyping(); addBot('Erro de ligação.'); inputEl.disabled = false; sendBtn.disabled = false }
+    finally { sending = false; setThinking(false); if (!inputEl.disabled) { inputEl.focus() } }
+  }
 
-      async function updateHomeAssistantActions() {
-        const el = document.getElementById('ha-actions')
-        if (!el) return
-        let connected = false
-        try {
-          const r = await fetch('/api/orbit/homeassistant/status', { credentials: 'same-origin' })
-          if (r.ok) {
-            const data = await r.json()
-            connected = !!data.connected
-          }
-        } catch { /* ignore */ }
+  /* ─── Input events ───────────────────────────────────────────── */
+  sendBtn.addEventListener('click', sendMessage)
+  inputEl.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } })
+  inputEl.addEventListener('input', () => { inputEl.style.height = 'auto'; inputEl.style.height = Math.min(inputEl.scrollHeight, 100) + 'px' })
+  document.getElementById('quickChips')?.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-msg]')
+    if (!btn || sending || !sessionId) return
+    inputEl.value = btn.dataset.msg; sendMessage()
+  })
 
-        if (connected) {
-          el.innerHTML = `
-            <p style="color:#3fb950;font-size:13px;margin:8px 0 12px">Home Assistant ✓ ligado</p>
-            <button type="button" class="btn-save-group" style="background:#21262d" id="btn-ha-disconnect">Desligar conta HA</button>`
-        } else {
-          el.innerHTML = `
-            <p style="color:#8b949e;font-size:13px;margin:8px 0 12px">Guarda a URL, depois liga a conta (OAuth — como Google).</p>
-            <button type="button" class="btn-save-group" id="btn-ha-connect">Ligar Home Assistant</button>`
-        }
+  /* ─── HUD ────────────────────────────────────────────────────── */
+  async function updateHudStatus() {
+    try {
+      const [g, w, h] = await Promise.all([
+        fetch('/api/orbit/google/status',        { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch('/api/orbit/whatsapp/status',       { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch('/api/orbit/homeassistant/status',  { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).catch(() => null),
+      ])
+      const gm = document.getElementById('dot-gm'); const wd = document.getElementById('dot-wa'); const hd = document.getElementById('dot-ha')
+      if (gm) gm.className = 'hud-dot ' + (g?.connected ? 'ok' : 'off')
+      if (wd) wd.className = 'hud-dot ' + (w?.connected ? 'ok' : 'off')
+      if (hd) hd.className = 'hud-dot ' + (h?.connected ? 'ok' : 'off')
+    } catch {}
+  }
+  setInterval(updateHudStatus, 120000)
 
-        document.getElementById('btn-ha-connect')?.addEventListener('click', () => {
-          window.location.href = '/api/orbit/homeassistant/connect'
+  async function updateHudTasks() {
+    try {
+      const r = await fetch('/api/orbit/tasks/count', { credentials: 'same-origin' }); if (!r.ok) return
+      const data = await r.json(); const count = data.urgent || 0
+      const dot = document.getElementById('dot-tasks'); if (dot) dot.className = 'hud-dot ' + (count > 0 ? 'warn' : 'ok')
+    } catch {}
+  }
+  setInterval(updateHudTasks, 300000)
+
+  /* ─── Alerts ─────────────────────────────────────────────────── */
+  async function loadAlerts() {
+    const bar = document.getElementById('alerts-bar'); if (!bar) return
+    try {
+      const r = await fetch('/api/orbit/alerts', { credentials: 'same-origin' }); if (!r.ok) return
+      const data = await r.json()
+      if (!data.unread || data.unread === 0) { bar.classList.remove('visible'); return }
+      const first = (data.alerts || []).find(a => !a.read)
+      bar.classList.add('visible')
+      bar.innerHTML = '<strong>' + data.unread + ' alerta(s)</strong><span>' + (first ? first.title + ': ' + first.body.slice(0,120) : '') + '</span>'
+      bar.onclick = async () => {
+        if (first) addBot('📌 ' + first.title + '\n' + first.body)
+        await fetch('/api/orbit/alerts/read-all', { method: 'POST', credentials: 'same-origin' })
+        bar.classList.remove('visible')
+      }
+    } catch {}
+  }
+  setInterval(loadAlerts, 120000)
+
+  /* ─── Wake word ──────────────────────────────────────────────── */
+  let wwRec = null, wwActive = false, wwMode = false, wwInit2 = false
+  function wwOverlayOpen() { return currentMode === 'voice' }
+
+  function wwInit() {
+    if (wwInit2) return; wwInit2 = true
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR) return
+    try { wwRec = new SR(); wwRec.lang = 'pt-PT'; wwRec.continuous = true; wwRec.interimResults = true } catch { wwRec = null; return }
+    wwRec.onresult = e => {
+      if (wwOverlayOpen()) return
+      let interim = '', final = ''
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript
+        if (e.results[i].isFinal) final += t; else interim += t
+      }
+      const tr = (interim || final).trim().toLowerCase()
+      if (!wwMode || wwActive) return
+      if (tr.includes('orbit') || tr.includes('orbite') || tr.includes('órbit')) {
+        wwActive = true; wwMode = false; try { wwRec.stop() } catch {}; setTimeout(wwStartCommand, 200)
+      }
+    }
+    wwRec.onerror = e => { if (e.error==='not-allowed'||e.error==='service-not-allowed') return; if (wwMode&&!wwActive&&!wwOverlayOpen()) setTimeout(wwStartListen,1500) }
+    wwRec.onend = () => { if (wwMode&&!wwActive&&!wwOverlayOpen()) setTimeout(wwStartListen,500) }
+  }
+  function wwStartListen() {
+    if (!wwRec || wwActive || wwOverlayOpen()) return; wwMode = true
+    const mic = document.getElementById('btn-mic'); if (mic) mic.classList.add('wakeword')
+    try { wwRec.start() } catch {}
+  }
+  function wwStopListen() {
+    wwMode = false; const mic = document.getElementById('btn-mic'); if (mic) mic.classList.remove('wakeword')
+    try { wwRec?.stop() } catch {}
+  }
+  function wwStartCommand() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SR || wwOverlayOpen()) { wwActive = false; wwMode = false; wwStartListen(); return }
+    const trEl = document.getElementById('voice-transcript-strip')
+    const mic = document.getElementById('btn-mic')
+    if (mic) { mic.classList.add('listening'); mic.classList.remove('wakeword') }
+    if (trEl) { trEl.style.display = 'block'; trEl.textContent = 'A ouvir…' }
+    const cmd = new SR(); cmd.lang = 'pt-PT'; cmd.continuous = false; cmd.interimResults = true
+    const cleanup = () => {
+      if (trEl) trEl.style.display = 'none'; if (mic) mic.classList.remove('listening')
+      wwActive = false; wwMode = true; setTimeout(wwStartListen, 300)
+    }
+    cmd.onresult = e => {
+      let txt = ''; for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript
+      if (trEl) trEl.textContent = txt
+      if (e.results[0].isFinal) { const message = txt.trim(); if (message.length > 2) { inputEl.value = message; sendMessage() }; cleanup() }
+    }
+    cmd.onerror = cleanup; cmd.onend = () => { if (wwActive) cleanup() }
+    try { cmd.start() } catch { cleanup() }
+  }
+  setInterval(() => {
+    if (!wwInit2 || !wwRec || wwActive) return
+    if (wwOverlayOpen()) { if (wwMode) wwStopListen(); return }
+    if (!wwMode && currentMode === 'text') wwStartListen()
+  }, 4000)
+  window.__orbitWakeWord = { start: wwStartListen, stop: wwStopListen, init: wwInit }
+
+  /* ─── Voice mode (orb) ───────────────────────────────────────── */
+  let vActive = false, vSpeaking = false, vLock = false, vRec = null, vAudio = null
+  const synth2 = window.speechSynthesis
+  const SR2 = window.SpeechRecognition || window.webkitSpeechRecognition
+
+  function buildWaveform() {
+    const wf = document.getElementById('waveform'); wf.innerHTML = ''
+    for (let i = 0; i < 32; i++) {
+      const b = document.createElement('div'); b.className = 'wave-bar'
+      b.style.height = (Math.random()*20+4) + 'px'
+      b.style.animationDelay = (i*0.04) + 's'
+      b.style.animationDuration = (0.6+Math.random()*0.6) + 's'
+      wf.appendChild(b)
+    }
+  }
+
+  function setOrbState(state) {
+    const orb = document.getElementById('orb')
+    const icon = document.getElementById('orb-icon')
+    const status = document.getElementById('voice-status')
+    const rings = [document.getElementById('ring1'), document.getElementById('ring2'), document.getElementById('ring3')]
+    rings.forEach(r => { if(r) r.classList.remove('active') })
+    orb.classList.remove('active', 'speaking')
+    if (state === 'listening') {
+      rings.forEach(r => { if(r) r.classList.add('active') })
+      orb.classList.add('active')
+      if (icon) icon.className = 'ti ti-ear'
+      if (status) status.textContent = 'A OUVIR…'
+    } else if (state === 'thinking') {
+      if (icon) icon.className = 'ti ti-loader'
+      if (status) status.textContent = 'A PROCESSAR…'
+    } else if (state === 'speaking') {
+      rings.forEach(r => { if(r) r.classList.add('active') })
+      orb.classList.add('speaking')
+      if (icon) icon.className = 'ti ti-volume'
+      if (status) status.textContent = 'A FALAR…'
+    } else {
+      if (icon) icon.className = 'ti ti-microphone'
+      if (status) status.textContent = 'TOQUE PARA FALAR'
+    }
+  }
+
+  function stripMd(t) { return t.replace(/<[^>]+>/g,'').replace(/\*\*/g,'').replace(/\*/g,'').replace(/#{1,6} /g,'').replace(/`/g,'') }
+
+  function speakBrowser(text) {
+    return new Promise(resolve => {
+      synth2.cancel()
+      const u = new SpeechSynthesisUtterance(stripMd(text)); u.lang = 'pt-PT'; u.rate = 1.05
+      const vs = synth2.getVoices()
+      const pv = vs.find(v => v.lang?.startsWith('pt') && v.name.includes('Google')) || vs.find(v => v.lang?.startsWith('pt')) || null
+      if (pv) u.voice = pv
+      const ka = setInterval(() => { if (!synth2.speaking) { clearInterval(ka); return }; if (synth2.paused) synth2.resume() }, 5000)
+      u.onend = () => { clearInterval(ka); resolve() }; u.onerror = () => { clearInterval(ka); resolve() }; synth2.speak(u)
+    })
+  }
+
+  function speakV(text) {
+    return new Promise(async resolve => {
+      if (vAudio) { vAudio.pause(); vAudio = null }
+      try {
+        const r = await fetch('/api/orbit/tts', { method: 'POST', headers: {'Content-Type':'application/json'}, credentials: 'same-origin', body: JSON.stringify({ text: stripMd(text) }) })
+        if (!r.ok) { const err = await r.json().catch(()=>({})); if (err.error==='no_key') { await speakBrowser(text); return resolve() }; throw new Error(r.status) }
+        const blob = await r.blob(); const url = URL.createObjectURL(blob)
+        const audio = new Audio(url); vAudio = audio
+        audio.onended = () => { URL.revokeObjectURL(url); vAudio = null; resolve() }
+        audio.onerror = () => { URL.revokeObjectURL(url); vAudio = null; resolve() }
+        audio.play().catch(() => resolve())
+      } catch { await speakBrowser(text); resolve() }
+    })
+  }
+
+  function vStartListening() {
+    if (!vActive || vSpeaking || vLock || !SR2) return
+    vLock = true
+    if (vRec) { try { vRec.onend = null; vRec.abort() } catch {} }
+    const rec = new SR2(); rec.lang = 'pt-PT'; rec.continuous = false; rec.interimResults = false; rec.maxAlternatives = 1
+    vRec = rec; setOrbState('listening')
+    rec.onresult = async e => {
+      const t = (e.results[0][0].transcript || '').trim(); vLock = false
+      if (!t) { if (vActive && !vSpeaking) vStartListening(); return }
+      if (t.toLowerCase().includes('pode ir') || t.toLowerCase().includes('parar')) { stopVoiceMode(); return }
+      const vtr = document.getElementById('v-transcript'); if (vtr) vtr.textContent = t
+      if (!sessionId) { if (vActive) setTimeout(vStartListening, 500); return }
+      vSpeaking = true; setOrbState('thinking')
+      addUser(t)
+      try {
+        const ctx = await getClientContext()
+        const r = await fetch('/api/chat/stream', {
+          method: 'POST', headers: {'Content-Type':'application/json','x-user-id':USER_ID},
+          credentials: 'same-origin', body: JSON.stringify({ sessionId, message: t, clientContext: ctx })
         })
-        document.getElementById('btn-ha-disconnect')?.addEventListener('click', async () => {
-          if (!confirm('Desligar OAuth do Home Assistant? O token manual mantém-se se existir.')) return
-          await fetch('/api/orbit/homeassistant/disconnect', { method: 'POST', credentials: 'same-origin' })
-          updateHomeAssistantActions()
-        })
-      }
-
-      async function updateGoogleActions() {
-        const el = document.getElementById('google-actions')
-        if (!el) return
-        let connected = false
-        try {
-          const r = await fetch('/api/orbit/google/status', { credentials: 'same-origin' })
-          if (r.ok) {
-            const data = await r.json()
-            connected = !!data.connected
-          }
-        } catch { /* ignore */ }
-
-        if (connected) {
-          el.innerHTML = `
-            <p style="color:#3fb950;font-size:13px;margin:8px 0 12px">Google ✓ ligado — Gmail, Calendar e Drive</p>
-            <button type="button" class="btn-save-group" style="background:#21262d" id="btn-google-disconnect">Desligar Google</button>`
-        } else {
-          el.innerHTML = `
-            <p style="color:#8b949e;font-size:13px;margin:8px 0 12px">Guarda Client ID e Secret, depois liga a conta.</p>
-            <button type="button" class="btn-save-group" id="btn-google-connect">Ligar Google</button>`
-        }
-
-        document.getElementById('btn-google-connect')?.addEventListener('click', () => {
-          window.location.href = '/api/orbit/google/connect'
-        })
-        document.getElementById('btn-google-disconnect')?.addEventListener('click', async () => {
-          if (!confirm('Desligar Google? ORBIT perde acesso a Gmail e Calendar.')) return
-          await fetch('/api/orbit/google/disconnect', { method: 'POST', credentials: 'same-origin' })
-          updateGoogleActions()
-        })
-      }
-
-      async function updateBankActions() {
-        const el = document.getElementById('bank-actions')
-        if (!el) return
-        let connected = false
-        try {
-          const r = await fetch('/api/orbit/truelayer/status', { credentials: 'same-origin' })
-          if (r.ok) {
-            const data = await r.json()
-            connected = !!data.connected
-          }
-        } catch { /* ignore */ }
-
-        if (connected) {
-          el.innerHTML = `
-            <p style="color:#3fb950;font-size:13px;margin:8px 0 12px">Revolut ✓ ligado</p>
-            <button type="button" class="btn-save-group" id="btn-bank-balance">Ver saldo</button>
-            <button type="button" class="btn-save-group" style="background:#21262d;margin-top:8px" id="btn-bank-disconnect">Desligar</button>
-            <div id="bank-balance-result" class="cfg-feedback"></div>`
-        } else {
-          el.innerHTML = `<button type="button" class="btn-save-group" id="btn-bank-connect">Ligar Revolut</button>`
-        }
-
-        document.getElementById('btn-bank-connect')?.addEventListener('click', () => {
-          window.location.href = '/api/orbit/truelayer/connect'
-        })
-        document.getElementById('btn-bank-balance')?.addEventListener('click', async () => {
-          const out = document.getElementById('bank-balance-result')
-          if (!out) return
-          out.textContent = 'A consultar…'
-          out.className = 'cfg-feedback'
-          try {
-            const r = await fetch('/api/orbit/truelayer/balance', { credentials: 'same-origin' })
-            const data = await r.json()
-            if (!r.ok) throw new Error(data.error || 'Erro')
-            out.textContent = `Saldo: ${data.available} ${data.currency} (disponível) · ${data.current} ${data.currency} (actual)`
-            out.className = 'cfg-feedback ok'
-          } catch (e) {
-            out.textContent = 'Erro ✗ ' + (e.message || '')
-            out.className = 'cfg-feedback err'
-          }
-        })
-        document.getElementById('btn-bank-disconnect')?.addEventListener('click', async () => {
-          if (!confirm('Desligar conta Revolut?')) return
-          await fetch('/api/orbit/truelayer/disconnect', { method: 'POST', credentials: 'same-origin' })
-          updateBankActions()
-        })
-      }
-
-      async function loadConfig() {
-        try {
-          const r = await fetch('/api/orbit/config', { credentials: 'same-origin' })
-          if (r.status === 401) {
-            configByKey = {}
-            return
-          }
-          const data = await r.json()
-          configByKey = {}
-          for (const item of data.items || []) {
-            configByKey[item.key] = item
-          }
-        } catch {
-          configByKey = {}
-        }
-      }
-
-      async function saveConfigGroup(groupId) {
-        const group = CONFIG_GROUPS.find(g => g.id === groupId)
-        const feedback = configBody.querySelector(`[data-feedback="${groupId}"]`)
-        if (!group || !feedback) return
-        feedback.textContent = ''
-        feedback.className = 'cfg-feedback'
-
-        const section = configBody.querySelector(`[data-group="${groupId}"]`)
-        const inputs = section.querySelectorAll('input[data-key], select[data-key]')
-        let saved = 0
-        let failed = false
-
-        for (const input of inputs) {
-          const key = input.dataset.key
-          const val = input.value.trim()
-          if (!val || isMaskedPlaceholder(val)) continue
-          try {
-            const r = await fetch('/api/orbit/config', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'same-origin',
-              body: JSON.stringify({ key, value: val }),
-            })
-            if (!r.ok) { failed = true; break }
-            saved++
-            input.value = ''
-            if (input.type === 'password') input.placeholder = '••••••••••••'
-          } catch {
-            failed = true
-            break
-          }
-        }
-
-        if (failed) {
-          feedback.textContent = 'Erro ✗'
-          feedback.className = 'cfg-feedback err'
-        } else if (saved > 0) {
-          feedback.textContent = 'Guardado ✓'
-          feedback.className = 'cfg-feedback ok'
-          await loadConfig()
-        } else {
-          feedback.textContent = 'Nada para guardar'
-          feedback.className = 'cfg-feedback'
-        }
-      }
-
-      async function deleteConfigKey(key) {
-        if (!confirm('Apagar esta chave?')) return
-        try {
-          const enc = encodeURIComponent(key.replace(/^orbit\./, ''))
-          const r = await fetch('/api/orbit/config/' + enc, {
-            method: 'DELETE',
-            credentials: 'same-origin',
-          })
-          if (r.ok) {
-            delete configByKey[key]
-            const input = configBody.querySelector(`input[data-key="${key}"]`)
-            if (input) { input.value = ''; input.placeholder = '' }
-          }
-        } catch { /* ignore */ }
-      }
-
-      function openConfigPanel() {
-        configOverlay.classList.add('open')
-        configPanel.classList.add('open')
-        configOverlay.setAttribute('aria-hidden', 'false')
-        loadConfig().then(renderConfigPanel)
-      }
-
-      function closeConfigPanel() {
-        configOverlay.classList.remove('open')
-        configPanel.classList.remove('open')
-        configOverlay.setAttribute('aria-hidden', 'true')
-      }
-
-
-      // ── Conversa de Voz em Tempo Real ────────────────────────────────────────
-      ;(function initVoice() {
-        var micBtn = document.getElementById('btn-mic')
-        var overlay = document.getElementById('voice-overlay')
-        var voiceOrb = document.getElementById('voiceOrb')
-        var voiceStateLabel = document.getElementById('voiceStateLabel')
-        var voiceTranscript = document.getElementById('voiceTranscript')
-        var voiceStopBtn = document.getElementById('voiceStopBtn')
-        var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition
-
-        if (!SpeechRec) {
-          micBtn.disabled = true
-          micBtn.title = 'Voz nao suportada (use Chrome)'
-          return
-        }
-
-        var synth = window.speechSynthesis
-        var voiceActive = false
-        var isSpeaking = false
-        var recognition = null
-        if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = function() {}
-
-        function setOrbState(s) {
-          overlay.classList.remove('listening', 'speaking', 'thinking')
-          micBtn.classList.remove('voice-listening', 'voice-speaking', 'voice-thinking')
-          if (s === 'listening') {
-            overlay.classList.add('listening')
-            micBtn.classList.add('voice-listening')
-            voiceStateLabel.textContent = 'A ouvir'
-            micBtn.title = 'A ouvir (diga pode ir para parar)'
-          } else if (s === 'speaking') {
-            overlay.classList.add('speaking')
-            micBtn.classList.add('voice-speaking')
-            voiceStateLabel.textContent = 'ORBIT a falar'
-            micBtn.title = 'ORBIT a falar'
-          } else if (s === 'thinking') {
-            overlay.classList.add('thinking')
-            micBtn.classList.add('voice-thinking')
-            voiceStateLabel.textContent = 'A pensar'
-            micBtn.title = 'A pensar'
-          } else {
-            voiceStateLabel.textContent = ''
-            micBtn.title = 'Ativar voz'
-          }
-        }
-
-        function showOverlay() {
-          overlay.classList.add('active')
-          voiceTranscript.textContent = 'Pode falar…'
-          voiceTranscript.classList.remove('faded')
-        }
-
-        function hideOverlay() {
-          overlay.classList.remove('active')
-        }
-
-        function setTranscript(text, faded) {
-          voiceTranscript.textContent = text
-          if (faded) voiceTranscript.classList.add('faded')
-          else voiceTranscript.classList.remove('faded')
-        }
-
-        function stripMd(t) {
-          return t
-            .replace(/<[^>]+>/g, '')
-            .replace(/\*\*/g, '').replace(/\*/g, '')
-            .replace(/#{1,6} /g, '')
-            .replace(/`/g, '')
-        }
-
-        var currentAudio = null
-
-        function speakBrowser(text) {
-          return new Promise(function(resolve) {
-            synth.cancel()
-            var u = new SpeechSynthesisUtterance(stripMd(text))
-            u.lang = 'pt-PT'
-            u.rate = 1.05
-            // Esperar por vozes (Chrome carrega de forma assíncrona)
-            var vs = synth.getVoices()
-            var pv = vs.find(function(v) { return v.lang && v.lang.startsWith('pt') && v.name.includes('Google') })
-              || vs.find(function(v) { return v.lang && v.lang.startsWith('pt') })
-              || vs.find(function(v) { return v.name && v.name.includes('Google') && v.lang.startsWith('en') })
-              || null
-            if (pv) u.voice = pv
-            // Anti-bug Chrome: keepAlive para síntese longa
-            var keepAlive = setInterval(function() {
-              if (!synth.speaking) { clearInterval(keepAlive); return }
-              if (synth.paused) synth.resume()
-            }, 5000)
-            u.onend = function() { clearInterval(keepAlive); resolve() }
-            u.onerror = function() { clearInterval(keepAlive); resolve() }
-            synth.speak(u)
-          })
-        }
-
-        function speakText(text) {
-          return new Promise(async function(resolve) {
-            if (currentAudio) { currentAudio.pause(); currentAudio = null }
-            var plain = stripMd(text)
-            try {
-              var r = await fetch('/api/orbit/tts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify({ text: plain })
-              })
-              if (!r.ok) {
-                var err = await r.json().catch(function() { return {} })
-                if (err.error === 'no_key') {
-                  // Sem chave ElevenLabs — usar browser TTS
-                  await speakBrowser(plain)
-                  return resolve()
-                }
-                throw new Error(r.status)
+        if (!r.ok || !r.body) throw new Error('stream_failed')
+        let accumulated = ''; const reader = r.body.getReader(); const dec = new TextDecoder(); let buf2 = ''
+        while (true) {
+          const { done, value } = await reader.read(); if (done) break
+          buf2 += dec.decode(value, { stream: true })
+          const lines = buf2.split('\n'); buf2 = lines.pop() || ''
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue
+            const raw = line.slice(6).trim(); if (!raw) continue
+            let ev; try { ev = JSON.parse(raw) } catch { continue }
+            if (ev.type === 'token') accumulated += ev.token
+            else if (ev.type === 'done') {
+              if (accumulated) {
+                const vtr2 = document.getElementById('v-transcript')
+                if (vtr2) vtr2.textContent = accumulated.slice(0,160) + (accumulated.length>160?'…':'')
+                addBot(accumulated)
+                setOrbState('speaking')
+                document.getElementById('waveform-row').style.display = 'flex'; buildWaveform()
+                await speakV(accumulated)
+                document.getElementById('waveform-row').style.display = 'none'
               }
-              var blob = await r.blob()
-              var url = URL.createObjectURL(blob)
-              var audio = new Audio(url)
-              currentAudio = audio
-              audio.onended = function() { URL.revokeObjectURL(url); currentAudio = null; resolve() }
-              audio.onerror = function() { URL.revokeObjectURL(url); currentAudio = null; resolve() }
-              audio.play().catch(function() { resolve() })
-            } catch(e) {
-              // Fallback para browser TTS em caso de erro de rede
-              await speakBrowser(plain)
-              resolve()
             }
-          })
-        }
-
-        var listenerLock = false
-
-        function startListening() {
-          if (!voiceActive || isSpeaking || listenerLock) return
-          listenerLock = true
-          var old = recognition
-          recognition = null
-          if (old) { try { old.onend = null; old.abort() } catch(ex) {} }
-
-          var rec = new SpeechRec()
-          rec.lang = 'pt-PT'
-          rec.continuous = false
-          rec.interimResults = false
-          rec.maxAlternatives = 1
-          recognition = rec
-
-          rec.onresult = async function(e) {
-            var t = (e.results[0][0].transcript || '').trim()
-            listenerLock = false
-            if (!t) { if (voiceActive && !isSpeaking) startListening(); return }
-
-            if (t.toLowerCase().includes('pode ir')) {
-              stopVoice(); addBot('Voz desativada. Ate logo!'); return
-            }
-
-            if (sending || !sessionId) {
-              if (voiceActive) setTimeout(startListening, 500)
-              return
-            }
-
-            setOrbState('thinking'); setStatus('thinking')
-            setTranscript(t, false)
-            sending = true; sendBtn.disabled = true; inputEl.disabled = true
-            addUser(t)
-            var typEl = showTyping()
-
-            try {
-              var r = await fetch('/api/chat/send', {
-                method: 'POST',
-                headers: chatHeaders(),
-                credentials: 'same-origin',
-                body: JSON.stringify({ sessionId: sessionId, message: t })
-              })
-              var data = await r.json()
-              typEl.remove()
-              if (data.pendingConfirmation) {
-                if (data.content) addBot(data.content)
-                showConfirmModal(data.pendingConfirmation)
-                isSpeaking = false
-                if (voiceActive) { setTranscript('Confirme no ecrã', false) }
-                return
-              }
-              var reply = data.content || 'Nao consegui processar.'
-              addBot(reply)
-              isSpeaking = true
-              setOrbState('speaking')
-              setTranscript(stripMd(reply).slice(0, 120) + (reply.length > 120 ? '…' : ''), true)
-              await speakText(reply)
-              isSpeaking = false
-            } catch(err) {
-              typEl.remove(); addBot('Erro de ligacao.'); isSpeaking = false
-            } finally {
-              sending = false; setStatus('online')
-              inputEl.disabled = false; sendBtn.disabled = false
-            }
-
-            if (voiceActive) { setTranscript('Pode falar…', false); startListening() }
-          }
-
-          rec.onerror = function(e) {
-            if (rec !== recognition) return
-            listenerLock = false
-            if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-              addBot('Microfone bloqueado. Permite o acesso nas definicoes do browser.')
-              stopVoice(); return
-            }
-            if (e.error === 'no-speech') { if (voiceActive && !isSpeaking) startListening(); return }
-            if (voiceActive && !isSpeaking) setTimeout(startListening, 500)
-          }
-
-          rec.onend = function() {
-            if (rec !== recognition) return
-            listenerLock = false
-            if (voiceActive && !isSpeaking) {
-              setTimeout(function() {
-                if (voiceActive && !isSpeaking) startListening()
-              }, 200)
-            }
-          }
-
-          try {
-            setOrbState('listening')
-            rec.start()
-          } catch(ex) {
-            listenerLock = false
-            recognition = null
-            setTimeout(function() { if (voiceActive && !isSpeaking) startListening() }, 300)
           }
         }
-        function stopVoice() {
-          voiceActive = false; isSpeaking = false; listenerLock = false; synth.cancel()
-          if (currentAudio) { currentAudio.pause(); currentAudio = null }
-          if (recognition) { try { recognition.abort() } catch(ex) {} recognition = null }
-          setOrbState('idle')
-          hideOverlay()
-          micBtn.setAttribute('aria-pressed', 'false')
-        }
-
-        micBtn.addEventListener('click', function() {
-          if (voiceActive) { stopVoice() }
-          else {
-            voiceActive = true
-            micBtn.setAttribute('aria-pressed', 'true')
-            showOverlay()
-            startListening()
-          }
-        })
-
-        voiceStopBtn.addEventListener('click', function() { stopVoice() })
-      })()
-
-      btnSettings.addEventListener('click', openConfigPanel)
-      btnCloseConfig.addEventListener('click', closeConfigPanel)
-      configOverlay.addEventListener('click', closeConfigPanel)
-
-      const urlParams = new URLSearchParams(window.location.search)
-      if (urlParams.get('google') === 'success') {
-        alert('Google ligado com sucesso. ORBIT tem acesso a Gmail e Calendar.')
-        history.replaceState({}, '', '/orbit')
-      } else if (urlParams.get('google') === 'error') {
-        alert('Erro ao ligar Google: ' + (urlParams.get('msg') || 'Tenta novamente'))
-        history.replaceState({}, '', '/orbit')
-      } else if (urlParams.get('ha') === 'success') {
-        alert('Home Assistant ligado com sucesso.')
-        history.replaceState({}, '', '/orbit')
-      } else if (urlParams.get('ha') === 'error') {
-        alert('Erro ao ligar Home Assistant: ' + (urlParams.get('msg') || 'Guarda a URL Nabu Casa e tenta de novo'))
-        history.replaceState({}, '', '/orbit')
+      } catch { const vtr3 = document.getElementById('v-transcript'); if (vtr3) vtr3.textContent = 'Erro de ligação.' }
+      finally {
+        vSpeaking = false
+        if (vActive) { setOrbState('listening'); const vtr4 = document.getElementById('v-transcript'); if (vtr4) vtr4.textContent = 'Pode falar…'; setTimeout(vStartListening, 400) }
       }
-    })()
-  </script>
+    }
+    rec.onerror = e => {
+      vLock = false
+      if (e.error === 'not-allowed') { addBot('Microfone bloqueado.'); stopVoiceMode(); return }
+      if (e.error === 'no-speech') { if (vActive && !vSpeaking) vStartListening(); return }
+      if (vActive && !vSpeaking) setTimeout(vStartListening, 500)
+    }
+    rec.onend = () => { vLock = false; if (vActive && !vSpeaking) setTimeout(() => { if (vActive && !vSpeaking) vStartListening() }, 200) }
+    try { rec.start() } catch { vLock = false; vRec = null; setTimeout(() => { if (vActive && !vSpeaking) vStartListening() }, 300) }
+  }
 
+  function stopVoiceMode() {
+    vActive = false; vSpeaking = false; vLock = false
+    if (vAudio) { vAudio.pause(); vAudio = null }; synth2?.cancel()
+    if (vRec) { try { vRec.abort() } catch {}; vRec = null }
+    setOrbState('idle')
+    document.getElementById('waveform-row').style.display = 'none'
+    const vtr = document.getElementById('v-transcript'); if (vtr) vtr.textContent = 'Toca no orb para começar uma conversa por voz.'
+  }
+
+  window.toggleVoiceMode = function() {
+    if (!SR2) { addBot('Voz não suportada neste browser. Usa Chrome.'); return }
+    if (vActive) { stopVoiceMode(); return }
+    vActive = true
+    const vtr = document.getElementById('v-transcript'); if (vtr) vtr.textContent = 'Pode falar…'
+    vStartListening()
+  }
+
+  /* ─── Config panel ───────────────────────────────────────────── */
+  const configOverlay = document.getElementById('configOverlay')
+  const configPanel   = document.getElementById('configPanel')
+  const configBody    = document.getElementById('configBody')
+  let configByKey = {}
+
+  const CONFIG_GROUPS = [
+    { id: 'voice', title: 'Voz & Integrações', fields: [
+      { key: 'orbit.api_key', label: 'API Key (Siri/externa)', type: 'password' },
+      { key: 'orbit.ifttt_key', label: 'IFTTT Webhook Key', type: 'password' },
+      { key: 'orbit.elevenlabs_key', label: 'ElevenLabs API Key (TTS neural)', type: 'password', hint: 'elevenlabs.io → Profile → API Key' },
+      { key: 'orbit.elevenlabs_voice_id', label: 'ElevenLabs Voice ID (opcional)', type: 'text', plain: true },
+    ]},
+    { id: 'google', title: 'Google (Gmail + Calendar)', fields: [
+      { key: 'orbit.google_client_id', label: 'Client ID (OAuth)', type: 'text', plain: true },
+      { key: 'orbit.google_client_secret', label: 'Client Secret', type: 'password', hint: 'Redirect: https://ia.orbithubos.pt/api/orbit/google/callback' },
+    ]},
+    { id: 'home', title: 'Home Assistant', fields: [
+      { key: 'orbit.home_assistant_url', label: 'URL', type: 'text', plain: true },
+      { key: 'orbit.home_assistant_token', label: 'Token manual (opcional)', type: 'password' },
+    ]},
+    { id: 'orbit_mode', title: 'Comportamento ORBIT', fields: [
+      { key: 'orbit.trust_level', label: 'Modo confiança', type: 'select', plain: true, options: [
+        { value: 'learning', label: 'learning — confirma; aprende hábitos' },
+        { value: 'trusted', label: 'trusted — casa/calendário directo' },
+        { value: 'jarvis', label: 'jarvis — executa tudo directamente' },
+      ]},
+      { key: 'orbit.telegram_bot_token', label: 'Telegram Bot Token', type: 'password' },
+      { key: 'orbit.telegram_chat_id', label: 'Telegram Chat ID', type: 'text', plain: true },
+      { key: 'orbit.owner_whatsapp', label: 'Teu WhatsApp (alertas)', type: 'text', plain: true },
+    ]},
+    { id: 'gmail', title: 'Gmail IMAP', fields: [
+      { key: 'orbit.gmail_user', label: 'Gmail', type: 'text', plain: true },
+      { key: 'orbit.gmail_app_password', label: 'App Password', type: 'password' },
+    ]},
+    { id: 'whatsapp', title: 'WhatsApp pessoal', fields: [] },
+    { id: 'bank', title: 'Banco', fields: [
+      { key: 'orbit.truelayer_secret', label: 'TrueLayer Client Secret', type: 'password' },
+    ]},
+  ]
+
+  function isMasked(v) { return !v || /^[•]+$/.test(v) || (v.startsWith('••••') && v.length <= 12) }
+
+  function renderConfigPanel() {
+    const stripHtml = '<div id="orbit-status-strip" class="orbit-status-strip">' +
+      ['Google','WhatsApp','Home Assistant','Banco','ElevenLabs','IFTTT'].map(s =>
+        `<div class="orbit-status-item"><span class="orbit-status-dot off"></span><span>${s}</span></div>`
+      ).join('') + '</div>'
+    configBody.innerHTML = stripHtml + CONFIG_GROUPS.map(g => `
+      <section class="config-group" data-group="${g.id}">
+        <h3>${g.title} <span class="cfg-status-badge off" id="status-badge-${g.id}"></span></h3>
+        ${g.fields.map(f => {
+          const meta = configByKey[f.key] || {}
+          const ph = meta.hasValue && f.type === 'password' ? '••••••••••••' : ''
+          const val = meta.hasValue && f.plain ? (meta.value || '') : ''
+          const inputHtml = f.type === 'select' && f.options
+            ? `<select data-key="${f.key}" data-plain="1">${f.options.map(o=>`<option value="${o.value}"${val===o.value?' selected':''}>${o.label}</option>`).join('')}</select>`
+            : `<input type="${f.type}" data-key="${f.key}" data-plain="${f.plain?'1':'0'}" placeholder="${ph}" value="${f.plain&&val&&f.type!=='select'?val.replace(/"/g,'&quot;'):''}" autocomplete="off" />`
+          return `<div class="cfg-field"><label>${f.label}</label>
+            ${f.hint?`<p style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:5px">${f.hint}</p>`:''}
+            <div class="cfg-field-row">${inputHtml}<button type="button" class="btn-del" data-key="${f.key}" title="Apagar">🗑</button></div></div>`
+        }).join('')}
+        ${g.id==='bank'?'<div class="bank-actions" id="bank-actions"></div>':''}
+        ${g.id==='google'?'<div class="bank-actions" id="google-actions"></div>':''}
+        ${g.id==='home'?'<div class="bank-actions" id="ha-actions"></div>':''}
+        ${g.id==='whatsapp'?`<p style="font-size:12px;color:var(--color-text-secondary);margin:8px 0;line-height:1.5">WhatsApp pessoal do Wanderson. QR: WhatsApp → ⋮ → Dispositivos ligados.</p><div class="bank-actions" id="wa-actions"></div>`:''}
+        ${g.fields.length>0?`<button type="button" class="btn-save-group" data-group="${g.id}">Guardar</button><div class="cfg-feedback" data-feedback="${g.id}"></div>`:''}
+      </section>`).join('')
+    configBody.querySelectorAll('.btn-save-group').forEach(btn => btn.addEventListener('click', () => saveConfigGroup(btn.dataset.group)))
+    configBody.querySelectorAll('.btn-del').forEach(btn => btn.addEventListener('click', () => deleteConfigKey(btn.dataset.key)))
+    updateBankActions(); updateGoogleActions(); updateHAActions(); updateWAActions(); updateStatusStrip()
+  }
+
+  async function updateStatusStrip() {
+    const strip = document.getElementById('orbit-status-strip'); if (!strip) return
+    const [gRes, waRes, haRes, bankRes] = await Promise.allSettled([
+      fetch('/api/orbit/google/status',       { credentials:'same-origin' }).then(r=>r.ok?r.json():null),
+      fetch('/api/orbit/whatsapp/status',      { credentials:'same-origin' }).then(r=>r.ok?r.json():null),
+      fetch('/api/orbit/homeassistant/status', { credentials:'same-origin' }).then(r=>r.ok?r.json():null),
+      fetch('/api/orbit/truelayer/status',     { credentials:'same-origin' }).then(r=>r.ok?r.json():null),
+    ])
+    const google = gRes.status==='fulfilled'&&gRes.value?.connected
+    const wa=waRes.status==='fulfilled'&&waRes.value?.connected
+    const ha=haRes.status==='fulfilled'&&haRes.value?.connected
+    const bank=bankRes.status==='fulfilled'&&bankRes.value?.connected
+    const el=!!(configByKey['orbit.elevenlabs_key']?.hasValue)
+    const ifttt=!!(configByKey['orbit.ifttt_key']?.hasValue)
+    strip.innerHTML = [
+      {label:'Google',state:google?'ok':'off'},{label:'WhatsApp',state:wa?'ok':'off'},
+      {label:'Home Assistant',state:ha?'ok':'off'},{label:'Banco',state:bank?'ok':'off'},
+      {label:'ElevenLabs',state:el?'ok':'off'},{label:'IFTTT',state:ifttt?'ok':'off'},
+    ].map(item=>`<div class="orbit-status-item"><span class="orbit-status-dot ${item.state}"></span><span style="color:${item.state==='ok'?'var(--color-text-primary)':'var(--color-text-tertiary)'}">${item.label}</span></div>`).join('')
+  }
+
+  async function updateBankActions() {
+    const el = document.getElementById('bank-actions'); if (!el) return
+    let c=false; try{const r=await fetch('/api/orbit/truelayer/status',{credentials:'same-origin'});if(r.ok){const d=await r.json();c=!!d.connected}}catch{}
+    el.innerHTML = c
+      ? `<p style="color:#16a34a;font-size:13px;margin:8px 0 10px">Revolut ✓</p><button type="button" class="btn-save-group" id="btn-bank-balance">Ver saldo</button><button type="button" class="btn-save-group" style="background:#f4f4f5;color:#0a0a0a;margin-top:6px" id="btn-bank-disconnect">Desligar</button><div id="bank-balance-result" class="cfg-feedback"></div>`
+      : `<button type="button" class="btn-save-group" id="btn-bank-connect">Ligar Revolut</button>`
+    document.getElementById('btn-bank-connect')?.addEventListener('click',()=>{window.location.href='/api/orbit/truelayer/connect'})
+    document.getElementById('btn-bank-disconnect')?.addEventListener('click',async()=>{if(!confirm('Desligar Revolut?'))return;await fetch('/api/orbit/truelayer/disconnect',{method:'POST',credentials:'same-origin'});updateBankActions()})
+    document.getElementById('btn-bank-balance')?.addEventListener('click',async()=>{
+      const out=document.getElementById('bank-balance-result');if(!out)return;out.textContent='A consultar…';out.className='cfg-feedback'
+      try{const r=await fetch('/api/orbit/truelayer/balance',{credentials:'same-origin'});const d=await r.json();if(!r.ok)throw new Error(d.error||'Erro');out.textContent=`Saldo: ${d.available} ${d.currency}`;out.className='cfg-feedback ok'}
+      catch(e){out.textContent='Erro ✗ '+(e.message||'');out.className='cfg-feedback err'}
+    })
+  }
+  async function updateGoogleActions() {
+    const el=document.getElementById('google-actions');if(!el)return
+    let c=false;try{const r=await fetch('/api/orbit/google/status',{credentials:'same-origin'});if(r.ok){const d=await r.json();c=!!d.connected}}catch{}
+    el.innerHTML=c?`<p style="color:#16a34a;font-size:13px;margin:8px 0 10px">Google ✓</p><button type="button" class="btn-save-group" style="background:#f4f4f5;color:#0a0a0a" id="btn-google-disconnect">Desligar Google</button>`:`<button type="button" class="btn-save-group" id="btn-google-connect">Ligar Google</button>`
+    document.getElementById('btn-google-connect')?.addEventListener('click',()=>{window.location.href='/api/orbit/google/connect'})
+    document.getElementById('btn-google-disconnect')?.addEventListener('click',async()=>{if(!confirm('Desligar Google?'))return;await fetch('/api/orbit/google/disconnect',{method:'POST',credentials:'same-origin'});updateGoogleActions()})
+  }
+  async function updateHAActions() {
+    const el=document.getElementById('ha-actions');if(!el)return
+    let c=false;try{const r=await fetch('/api/orbit/homeassistant/status',{credentials:'same-origin'});if(r.ok){const d=await r.json();c=!!d.connected}}catch{}
+    el.innerHTML=c?`<p style="color:#16a34a;font-size:13px;margin:8px 0 10px">Home Assistant ✓</p><button type="button" class="btn-save-group" style="background:#f4f4f5;color:#0a0a0a" id="btn-ha-disconnect">Desligar HA</button>`:`<button type="button" class="btn-save-group" id="btn-ha-connect">Ligar Home Assistant</button>`
+    document.getElementById('btn-ha-connect')?.addEventListener('click',()=>{window.location.href='/api/orbit/homeassistant/connect'})
+    document.getElementById('btn-ha-disconnect')?.addEventListener('click',async()=>{if(!confirm('Desligar HA?'))return;await fetch('/api/orbit/homeassistant/disconnect',{method:'POST',credentials:'same-origin'});updateHAActions()})
+  }
+  let waPollTimer=null
+  async function updateWAActions() {
+    const el=document.getElementById('wa-actions');if(!el){if(waPollTimer){clearInterval(waPollTimer);waPollTimer=null}return}
+    let data={connected:false,state:'idle',qrDataUrl:null,phone:null};
+    try{const r=await fetch('/api/orbit/whatsapp/status',{credentials:'same-origin'});if(r.ok)data=await r.json()}catch{}
+    if(data.connected){
+      if(waPollTimer){clearInterval(waPollTimer);waPollTimer=null}
+      el.innerHTML=`<p style="color:#16a34a;font-size:13px;margin:8px 0 10px">WhatsApp ✓ ${data.phone||''}</p><button type="button" class="btn-save-group" style="background:#f4f4f5;color:#0a0a0a" id="btn-wa-disconnect">Desligar</button><button type="button" class="btn-save-group" style="background:#f4f4f5;color:#0a0a0a;margin-top:6px" id="btn-wa-restart">Reiniciar</button>`
+      document.getElementById('btn-wa-disconnect')?.addEventListener('click',async()=>{if(!confirm('Desligar WhatsApp?'))return;await fetch('/api/orbit/whatsapp/disconnect',{method:'POST',credentials:'same-origin'});updateWAActions()})
+      document.getElementById('btn-wa-restart')?.addEventListener('click',async()=>{el.innerHTML='<p style="color:var(--color-text-tertiary);font-size:13px">A reiniciar…</p>';if(waPollTimer)clearInterval(waPollTimer);try{await fetch('/api/orbit/whatsapp/restart',{method:'POST',credentials:'same-origin'})}catch{};await new Promise(r=>setTimeout(r,3000));waPollTimer=setInterval(updateWAActions,2000);updateWAActions()})
+    } else if(data.qrDataUrl){
+      el.innerHTML=`<p style="font-size:12px;color:var(--color-text-secondary);margin:8px 0">Aponta o telemóvel:</p><img src="${data.qrDataUrl}" style="width:160px;height:160px;border-radius:8px" alt="QR" />`
+      if(!waPollTimer)waPollTimer=setInterval(updateWAActions,3000)
+    } else {
+      el.innerHTML=`<button type="button" class="btn-save-group" id="btn-wa-connect">Ligar WhatsApp</button>`
+      document.getElementById('btn-wa-connect')?.addEventListener('click',async()=>{el.innerHTML='<p style="color:var(--color-text-tertiary);font-size:13px">A gerar QR…</p>';await fetch('/api/orbit/whatsapp/connect',{method:'POST',credentials:'same-origin'});if(!waPollTimer)waPollTimer=setInterval(updateWAActions,2000);updateWAActions()})
+    }
+  }
+  async function loadConfig() {
+    try{const r=await fetch('/api/orbit/config',{credentials:'same-origin'});if(r.status===401){configByKey={};return};const data=await r.json();configByKey={};for(const item of data.items||[])configByKey[item.key]=item}catch{configByKey={}}
+  }
+  async function saveConfigGroup(groupId) {
+    const group=CONFIG_GROUPS.find(g=>g.id===groupId);const feedback=configBody.querySelector(`[data-feedback="${groupId}"]`);if(!group||!feedback)return
+    feedback.textContent='';feedback.className='cfg-feedback'
+    const section=configBody.querySelector(`[data-group="${groupId}"]`);const inputs=section.querySelectorAll('input[data-key],select[data-key]')
+    let saved=0,failed=false
+    for(const input of inputs){const key=input.dataset.key,val=input.value.trim();if(!val||isMasked(val))continue;try{const r=await fetch('/api/orbit/config',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({key,value:val})});if(!r.ok){failed=true;break};saved++;input.value='';if(input.type==='password')input.placeholder='••••••••••••'}catch{failed=true;break}}
+    if(failed){feedback.textContent='Erro ✗';feedback.className='cfg-feedback err'}
+    else if(saved>0){feedback.textContent='Guardado ✓';feedback.className='cfg-feedback ok';await loadConfig()}
+    else{feedback.textContent='Nada para guardar'}
+  }
+  async function deleteConfigKey(key) {
+    if(!confirm('Apagar esta chave?'))return
+    try{const enc=encodeURIComponent(key.replace(/^orbit\./,''));const r=await fetch('/api/orbit/config/'+enc,{method:'DELETE',credentials:'same-origin'});if(r.ok){delete configByKey[key];const inp=configBody.querySelector(`input[data-key="${key}"]`);if(inp){inp.value='';inp.placeholder=''}}}catch{}
+  }
+  function openConfig() { configOverlay.classList.add('open'); configPanel.classList.add('open'); configOverlay.setAttribute('aria-hidden','false'); loadConfig().then(renderConfigPanel) }
+  function closeConfig() { configOverlay.classList.remove('open'); configPanel.classList.remove('open'); configOverlay.setAttribute('aria-hidden','true') }
+  document.getElementById('btn-settings').addEventListener('click', openConfig)
+  document.getElementById('btn-close-config').addEventListener('click', closeConfig)
+  configOverlay.addEventListener('click', closeConfig)
+
+  /* ─── Boot ───────────────────────────────────────────────────── */
+  window.addEventListener('load', () => { initSession(); loadAlerts() })
+})()
+</script>
 </body>
 </html>

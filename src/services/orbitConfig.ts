@@ -12,6 +12,8 @@ const PLAIN_TEXT_KEYS = new Set([
   'orbit.trust_level',
   'orbit.trusted_tools',
   'orbit.whatsapp_instance',
+  'orbit.telegram_chat_id',
+  'orbit.owner_whatsapp',
 ])
 
 export function normalizeOrbitKey(key: string): string {

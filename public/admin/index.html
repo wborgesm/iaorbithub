@@ -329,6 +329,14 @@ input:checked ~ .toggle-label{color:#22c55e}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
       Utilizadores
     </button>
+    <button class="nav-item" data-section="capabilities" onclick="show('capabilities')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
+      Capacidades
+    </button>
+    <button class="nav-item" data-section="autoimprove" onclick="show('autoimprove')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      Auto-Melhoria
+    </button>
   </nav>
   <div class="sidebar-footer">
     <button class="btn-logout" onclick="logout()">
@@ -446,7 +454,7 @@ input:checked ~ .toggle-label{color:#22c55e}
     <div class="section" id="section-autotrain">
       <div class="table-container">
         <div class="table-header">
-          <h2>Auto-Treino IA vs IA</h2>
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px"><h2 style="margin:0">Auto-Treino IA vs IA</h2><div style="display:flex;align-items:center;gap:10px"><span id="at-toggle-label" style="font-size:13px;color:#3fb950;font-weight:600">Activo</span><div id="at-toggle" onclick="toggleAutoTrain()" style="width:44px;height:24px;border-radius:12px;background:#238636;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0"><div id="at-toggle-knob" style="position:absolute;top:3px;left:22px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s"></div></div></div></div>
           <p style="font-size:13px;color:#8b949e;margin:4px 0 0 0">A IA do lado do cliente e a IA do agente conversam automaticamente. No final, um coach de IA avalia e sugere melhorias detalhadas.</p>
         </div>
 
@@ -652,6 +660,7 @@ input:checked ~ .toggle-label{color:#22c55e}
                 <option value="CANCELAMENTO">Retenção</option>
               </select>
               <button class="btn" onclick="loadAtSessions()" style="padding:5px 12px;font-size:12px">↺ Atualizar</button>
+              <button class="btn" onclick="deleteAllAtSessions()" style="padding:5px 12px;font-size:12px;background:#6e1919;border-color:#f85149;color:#f85149"> Apagar Todas</button>
             </div>
           </div>
           <div id="at-sessions-list" style="display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto"></div>
@@ -2437,6 +2446,26 @@ document.querySelectorAll('.modal-bg').forEach(bg => bg.addEventListener('click'
 loadStats()
 checkProviderAlerts()
 //  Auto-Treino IA vs IA 
+let atEnabled = localStorage.getItem('at_enabled') !== 'false'
+
+function toggleAutoTrain() {
+  atEnabled = !atEnabled
+  localStorage.setItem('at_enabled', String(atEnabled))
+  const t = document.getElementById('at-toggle'), k = document.getElementById('at-toggle-knob'), l = document.getElementById('at-toggle-label')
+  const s = document.getElementById('at-start-btn'), b = document.getElementById('batch-start-btn')
+  if (atEnabled) {
+    if (t) { t.style.background='#238636'; k.style.left='22px' }
+    if (l) { l.textContent='Activo'; l.style.color='#3fb950' }
+    if (s) s.disabled=false; if (b) b.disabled=false
+  } else {
+    if (t) { t.style.background='#30363d'; k.style.left='3px' }
+    if (l) { l.textContent='Pausado'; l.style.color='#8b949e' }
+    if (s) s.disabled=true; if (b) b.disabled=true
+  }
+}
+
+function applyAtToggleState() { if (!atEnabled) { atEnabled=true; toggleAutoTrain() } }
+
 let atType = 'VENDAS', atRunning = false, atAbortController = null, atCurrentSessionId = null
 
 
@@ -2469,6 +2498,7 @@ async function loadAtSessions() {
       </div>
       <div style="font-size:22px;font-weight:700;color:${scoreColor};min-width:48px;text-align:right">${score}</div>
       ${score >= 95 ? '<span style="font-size:10px;color:#3fb950;background:#238636;padding:2px 8px;border-radius:99px;white-space:nowrap">Aplicado</span>' : `<button onclick="event.stopPropagation();applySessionDirect('${s.id}')" style="font-size:10px;color:#58a6ff;background:transparent;border:1px solid #30363d;padding:3px 8px;border-radius:6px;cursor:pointer;white-space:nowrap">Aplicar</button>`}
+      <button onclick="event.stopPropagation();deleteAtSession('${s.id}')" style="font-size:10px;color:#f85149;background:transparent;border:1px solid #30363d;padding:3px 8px;border-radius:6px;cursor:pointer;white-space:nowrap"> Apagar</button>
     </div>`
   }).join('')
 
@@ -2567,7 +2597,31 @@ function atSelectType(type, btn) {
   btn.classList.add('active')
 }
 
+async function deleteAtSession(id) {
+  if (!confirm('Apagar esta sessão de treino?')) return
+  const resp = await fetch('/api/simulation/auto-train/sessions/' + id, { method: 'DELETE' })
+  if (resp.ok) { showToast('Sessão apagada', 'success'); loadAtSessions() }
+  else showToast('Erro ao apagar', 'error')
+}
+
+async function deleteAllAtSessions() {
+  const siteId = document.getElementById('at-hist-site')?.value || ''
+  const simType = document.getElementById('at-hist-type')?.value || ''
+  const label = (siteId || simType) ? 'as sessões filtradas' : 'TODAS as sessões de auto-treino'
+  if (!confirm('Apagar ' + label + '? Esta acção não pode ser desfeita.')) return
+  let url = '/api/simulation/auto-train/sessions'
+  const params = []
+  if (siteId) params.push('siteId=' + siteId)
+  if (simType) params.push('simType=' + simType)
+  if (params.length) url += '?' + params.join('&')
+  const resp = await fetch(url, { method: 'DELETE' })
+  const data = await resp.json().catch(() => ({}))
+  if (resp.ok) { showToast(data.deleted + ' sessão(ões) apagada(s)', 'success'); loadAtSessions() }
+  else showToast('Erro ao apagar sessões', 'error')
+}
+
 async function loadAutoTrainSites() {
+  applyAtToggleState()
   loadAtSessions()
   const data = await api('/sites')
   const sel = document.getElementById('at-site-select')
@@ -2632,6 +2686,7 @@ function stopAutoTrain() {
 }
 
 async function startAutoTrain() {
+  if (!atEnabled) { showToast('Auto-treino pausado. Ativa primeiro.', 'warning'); return }
   const siteId = document.getElementById('at-site-select').value
   const rounds = parseInt(document.getElementById('at-rounds').value)
   if (!siteId) { showToast('Selecione um site', 'warning'); return }
@@ -2811,6 +2866,7 @@ function resetBatchTrain() {
 }
 
 async function startBatchTrain() {
+  if (!atEnabled) { showToast('Auto-treino pausado. Ativa primeiro.', 'warning'); return }
   const siteId = document.getElementById('at-site-select').value
   const simulationType = atType
   const totalRuns = parseInt(document.getElementById('batch-runs').value) || 20
@@ -2972,5 +3028,118 @@ function batchRenderResults(evt) {
     </div>
   </div>
 </div>
+
+<!-- Capacidades -->
+<div class="section" id="sec-capabilities">
+  <div style="margin-bottom:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <input id="cap-search" type="text" placeholder="Pesquisar ferramenta ou exemplo..." style="flex:1;min-width:200px;padding:8px 12px;background:#161b22;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:13px" oninput="filterCaps(this.value)">
+    <select id="cap-cat" onchange="filterCaps(document.getElementById('cap-search').value)" style="padding:8px 12px;background:#161b22;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:13px">
+      <option value="">Todas as categorias</option>
+    </select>
+    <span id="cap-count" style="font-size:12px;color:#8b949e"></span>
+  </div>
+  <div id="cap-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px"></div>
+</div>
+
+<!-- Auto-Melhoria -->
+<div class="section" id="sec-autoimprove">
+  <div class="stats-grid" style="margin-bottom:20px">
+    <div class="stat-card"><div class="label">Correctas (30d)</div><div class="value" id="ref-correct">-</div><div class="sub">feedback positivo</div></div>
+    <div class="stat-card"><div class="label">Perdidas (30d)</div><div class="value" id="ref-missed" style="color:#f85149">-</div><div class="sub">sem deteccao</div></div>
+    <div class="stat-card"><div class="label">Falsos positivos (30d)</div><div class="value" id="ref-fp" style="color:#f0883e">-</div><div class="sub">accao desnecessaria</div></div>
+    <div class="stat-card"><div class="label">Precisao</div><div class="value" id="ref-accuracy">-</div><div class="sub">ultimos 30 dias</div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+    <div style="flex:1;font-size:13px;color:#8b949e">Ultima reflexao: <span id="ref-last-at" style="color:#e6edf3">-</span></div>
+    <button class="btn btn-primary" id="btn-reflect" onclick="triggerReflection()">&#8635; Forcar Reflexao Agora</button>
+  </div>
+  <div class="table-container" style="margin-bottom:20px">
+    <div class="table-header"><h2>Ultima Saida da Reflexao (IA)</h2></div>
+    <div id="ref-output" style="padding:16px 20px;font-size:13px;color:#c9d1d9;white-space:pre-wrap;line-height:1.6;max-height:300px;overflow-y:auto">-</div>
+  </div>
+  <div class="table-container">
+    <div class="table-header"><h2>Log de Feedback Recente (7 dias)</h2></div>
+    <table><thead><tr><th>Data</th><th>Accao</th><th>Resultado</th><th>Fonte</th></tr></thead>
+    <tbody id="ref-logs"><tr><td colspan="4" class="empty">A carregar...</td></tr></tbody></table>
+  </div>
+</div>
+
+<script>
+var _allCaps=[], _capGroups={};
+async function loadCapabilities(){
+  try{
+    var r=await api('/capabilities');
+    _allCaps=Object.values(r.groups).flat();
+    _capGroups=r.groups;
+    var sel=document.getElementById('cap-cat');
+    Object.keys(r.groups).forEach(function(cat){
+      var o=document.createElement('option');o.value=cat;o.textContent=cat;sel.appendChild(o);
+    });
+    document.getElementById('cap-count').textContent=r.total+' ferramentas';
+    renderCaps(_allCaps);
+  }catch(e){document.getElementById('cap-grid').innerHTML='<p style="color:#f85149;padding:16px">Erro: '+e.message+'</p>';}
+}
+function renderCaps(caps){
+  var cc={'GPS & Segurança':'#3b82f6','Negócio & Receita':'#22c55e','Marketing & Publicidade':'#f59e0b','Memória & Contexto':'#a78bfa','Pessoal & Motos':'#ec4899','Sistema & Auto-melhoria':'#f97316','Integrações':'#06b6d4'};
+  document.getElementById('cap-grid').innerHTML=caps.map(function(c){
+    var col=cc[c.category]||'#8b949e';
+    var ex=c.example.replace(/"/g,'&quot;');
+    return '<div style="background:#161b22;border:1px solid #21262d;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:8px">'+
+      '<span style="background:'+col+'22;color:'+col+';padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase">'+c.category+'</span>'+
+      '<div style="font-size:14px;font-weight:600;color:#e6edf3">'+c.label+'</div>'+
+      '<div style="font-size:12px;color:#8b949e">'+c.description+'</div>'+
+      '<div style="background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:8px 10px;font-size:12px;color:#58a6ff;font-family:monospace;cursor:pointer" onclick="navigator.clipboard&&navigator.clipboard.writeText(this.dataset.ex).then(function(){showToast('Copiado!')})" data-ex="'+ex+'">&ldquo;'+c.example+'&rdquo;</div>'+
+    '</div>';
+  }).join('');
+  document.getElementById('cap-count').textContent=caps.length+' ferramentas';
+}
+function filterCaps(q){
+  var cat=document.getElementById('cap-cat').value;
+  var qlo=(q||'').toLowerCase();
+  var caps=_allCaps;
+  if(cat) caps=caps.filter(function(c){return c.category===cat;});
+  if(qlo) caps=caps.filter(function(c){return c.label.toLowerCase().includes(qlo)||c.description.toLowerCase().includes(qlo)||c.example.toLowerCase().includes(qlo);});
+  renderCaps(caps);
+}
+
+async function loadReflection(){
+  try{
+    var r=await api('/reflection');
+    document.getElementById('ref-correct').textContent=r.stats.correct;
+    document.getElementById('ref-missed').textContent=r.stats.missed;
+    document.getElementById('ref-fp').textContent=r.stats.false_positive;
+    var acc=r.stats.total?Math.round((r.stats.correct/r.stats.total)*100):0;
+    document.getElementById('ref-accuracy').textContent=acc+'%';
+    document.getElementById('ref-last-at').textContent=r.lastReflectionAt?new Date(r.lastReflectionAt).toLocaleString('pt-PT'):'Nunca';
+    document.getElementById('ref-output').textContent=r.lastReflectionOutput||'(sem reflexao guardada — clica em Forcar Reflexao)';
+    var oc={correct:'#4ade80',missed:'#f85149',false_positive:'#f0883e',ignored:'#8b949e'};
+    document.getElementById('ref-logs').innerHTML=r.recentLogs.length
+      ?r.recentLogs.map(function(l){return '<tr><td>'+new Date(l.createdAt).toLocaleString('pt-PT')+'</td><td>'+l.action+'</td><td><span class="badge-status" style="background:'+(oc[l.outcome]||'#8b949e')+'22;color:'+(oc[l.outcome]||'#8b949e')+'">'+l.outcome+'</span></td><td>'+(l.source||'-')+'</td></tr>';}).join('')
+      :'<tr><td colspan="4" class="empty">Sem logs de feedback esta semana</td></tr>';
+  }catch(e){console.error('reflection error',e);}
+}
+async function triggerReflection(){
+  var btn=document.getElementById('btn-reflect');
+  btn.disabled=true;btn.textContent='A executar...';
+  try{
+    var r=await api('/reflection/trigger',{method:'POST'});
+    showToast(r.message||'Reflexao iniciada');
+    setTimeout(loadReflection,3000);
+  }catch(e){showToast('Erro: '+e.message,true);}
+  finally{btn.disabled=false;btn.innerHTML='&#8635; Forcar Reflexao Agora';}
+}
+
+var _origShow2=window.show;
+window.show=function(s){
+  _origShow2(s);
+  var caps=document.getElementById('sec-capabilities');
+  var auto=document.getElementById('sec-autoimprove');
+  if(caps) caps.style.display=(s==='capabilities')?'block':'none';
+  if(auto) auto.style.display=(s==='autoimprove')?'block':'none';
+  if(s==='capabilities') loadCapabilities();
+  if(s==='autoimprove') loadReflection();
+};
+</script>
+
 </body>
 </html>

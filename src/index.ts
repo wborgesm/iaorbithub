@@ -4,6 +4,9 @@ import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import path from 'path'
 import { PrismaClient } from '@prisma/client'
+import { createServer } from 'http'
+import { WebSocketServer, WebSocket } from 'ws'
+import { transcribeAudio, runLivePipeline } from './services/liveMode'
 import chatRouter from './routes/chat'
 import simulationRouter from './routes/simulation'
 import autoTrainRouter from './routes/autoTrain'
@@ -15,15 +18,44 @@ import orbitBankingRouter from './routes/orbitBanking'
 import orbitGoogleRouter from './routes/orbitGoogle'
 import orbitHomeAssistantRouter from './routes/orbitHomeAssistant'
 import orbitWhatsAppRouter from './routes/orbitWhatsApp'
+import orbitVpsRouter from './routes/orbitVps'
+import orbitIntegrationsRouter from './routes/orbitIntegrations'
+import orbitJarvisRouter from './routes/orbitJarvis'
+import { settingsRouter } from './routes/settings'
 import { resumeWhatsAppWebIfPossible } from './services/whatsappWeb'
+import { startWhatsAppWeb as startWhatsAppBusiness } from './services/whatsappBusiness'
+import { startWhatsAppIntelligence } from './workers/whatsappIntelligence'
 import { startEvaluationWorker } from './workers/evaluationWorker'
 import { startMorningBriefingScheduler } from './workers/morningBriefing'
 import { startProactiveMonitor } from './workers/proactiveMonitor'
+import { startGarbageCollector } from './workers/garbageCollector'
+import { startWhatsAppHealthMonitor } from './workers/whatsappHealthMonitor'
+import { startInitiativeEngine } from './workers/initiativeEngine'
+import { startSystemHealthMonitor } from './workers/systemHealthMonitor'
+import { startMaintenanceMonitor } from './workers/maintenanceMonitor'
+import { startCriticalAlertMonitor } from './workers/criticalAlertMonitor'
+import { startHaIdleMonitor } from './workers/haIdleMonitor'
+import { startMorningAlarmExtreme } from './workers/morningAlarmExtreme'
+import { startChurnAnalysisWorker } from './workers/churnWorker'
+import { startMediaWorker } from './workers/mediaWorker'
+import { startExternalEventRadar } from './workers/externalEventRadar'
+import { startReflectionWorker } from './workers/reflectionWorker'
+import { startBehaviorProfiler } from './workers/behaviorProfiler'
+import { startShadowObserver } from './workers/shadowObserver'
+import { startSilenceDetector } from './workers/silenceDetector'
+import { startNightBriefingScheduler, startWeeklyAutoTrainScheduler } from './workers/morningBriefing'
+import { screenRouter } from './routes/screen'
+import { droneRouter } from './routes/drone'
+import { feedbackRouter } from './routes/feedback'
+import { opsRouter } from './routes/ops'
+import { adminIpWhitelist } from './modules/adminAccessAudit'
+import { attachPrismaSlowQueryMonitor } from './services/prismaSlowQueryMonitor'
+import { isProtocoloZeroActive, deactivateProtocoloZero } from './modules/protocoloZero'
 import { generateToken, verifyToken, requireAdminAuth } from './middleware/adminAuth'
 
 const app = express()
 app.set("trust proxy", 1)
-const prisma = new PrismaClient()
+const prisma = attachPrismaSlowQueryMonitor(new PrismaClient())
 const PORT = parseInt(process.env.PORT || '3002', 10)
 
 const ALLOWED_ORIGINS = [
@@ -105,8 +137,19 @@ app.get('/api/auth/check', (req: Request, res: Response) => {
 })
 
 
+// ─── Protocolo Zero — bloqueia serviços públicos ─────────────────────────────
+function protocoloZeroGate(req: Request, res: Response, next: () => void): void {
+  if (!isProtocoloZeroActive()) return next()
+  res.status(503).json({ error: 'Protocolo Zero activo. Serviço público suspenso.' })
+}
+
+app.post('/api/admin/protocolo-zero/off', requireAdminAuth, (_req: Request, res: Response) => {
+  deactivateProtocoloZero()
+  res.json({ ok: true, active: false })
+})
+
 // Widget script — publicly accessible with permissive CORS for embedding
-app.get('/widget.js', (_req: Request, res: Response) => {
+app.get('/widget.js', protocoloZeroGate, (_req: Request, res: Response) => {
   res.setHeader('Content-Type', 'application/javascript')
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Cache-Control', 'public, max-age=300')
@@ -114,19 +157,34 @@ app.get('/widget.js', (_req: Request, res: Response) => {
 })
 
 // ─── Chat API (public — protected by session context) ────────────────────────
-app.use('/api/chat', chatRouter)
-app.use('/api/orbit', orbitVoiceRouter)
+app.use('/api/chat', protocoloZeroGate, chatRouter)
+app.use('/api/orbit', protocoloZeroGate, orbitVoiceRouter)
+app.use('/api/simulation', protocoloZeroGate, simulationRouter)
+app.use('/api/simulation', protocoloZeroGate, autoTrainRouter)
+app.use('/api/simulation', protocoloZeroGate, evaluationRouter)
 app.use('/api/orbit/truelayer', orbitBankingRouter)
 app.use('/api/orbit/google', orbitGoogleRouter)
 app.use('/api/orbit/homeassistant', orbitHomeAssistantRouter)
 app.use('/api/orbit/whatsapp', orbitWhatsAppRouter)
-app.use('/api/simulation', simulationRouter)
-app.use('/api/simulation', autoTrainRouter)
-app.use('/api/simulation', evaluationRouter)
+app.use('/api/orbit/vps', orbitVpsRouter)
+app.use('/api/orbit/integrations', protocoloZeroGate, orbitIntegrationsRouter)
+app.use('/api/settings', requireAdminAuth, settingsRouter)
+app.use('/api/orbit', protocoloZeroGate, orbitJarvisRouter)
+app.use('/api/screen', screenRouter)
+app.use('/api/drone', droneRouter)
+app.use('/api/feedback', feedbackRouter)
+app.use('/api/ops', opsRouter)
+app.get('/orbit/ops', (_req: Request, res: Response) => {
+  res.sendFile('ops.html', { root: '/opt/ai-command-center/public/orbit' })
+})
+app.get('/orbit/settings', requireAdminAuth, (_req: Request, res: Response) => {
+  res.sendFile('settings.html', { root: '/opt/ai-command-center/public/orbit' })
+})
+app.use('/tmp', express.static('/opt/ai-command-center/public/tmp'))
 
 // ─── Admin panel (requires auth) ─────────────────────────────────────────────
-app.use('/api/admin', requireAdminAuth, adminApiRouter)
-app.use('/orbit', requireAdminAuth, orbitRouter)
+app.use('/api/admin', adminIpWhitelist, requireAdminAuth, adminApiRouter)
+app.use('/orbit', adminIpWhitelist, requireAdminAuth, orbitRouter)
 
 // Serve admin static files
 app.use('/admin', requireAdminAuth, express.static(path.join(__dirname, '../public/admin')))
@@ -140,9 +198,101 @@ app.get('/', (_req: Request, res: Response) => {
 startEvaluationWorker()
 startMorningBriefingScheduler()
 startProactiveMonitor()
+startGarbageCollector()
+startWhatsAppHealthMonitor()
+startSystemHealthMonitor()
+startInitiativeEngine()
+startMaintenanceMonitor()
+startCriticalAlertMonitor()
+startHaIdleMonitor()
+startMorningAlarmExtreme()
+startChurnAnalysisWorker()
+startMediaWorker()
 void resumeWhatsAppWebIfPossible()
+if (process.env.WHATSAPP_BUSINESS_ENABLED === 'true') {
+  void startWhatsAppBusiness()
+}
+startWhatsAppIntelligence()
+startExternalEventRadar()
+startReflectionWorker()
+startBehaviorProfiler()
+startShadowObserver()
+startSilenceDetector()
+startNightBriefingScheduler()
+startWeeklyAutoTrainScheduler()
 
-app.listen(PORT, '0.0.0.0', () => {
+const shutdown = async (signal: string) => {
+  console.log(`[index] ${signal} recebido — a encerrar…`)
+  try {
+    const { shutdownWhatsAppWeb } = await import('./services/whatsappWeb')
+    await Promise.race([shutdownWhatsAppWeb(), new Promise(r => setTimeout(r, 10000))])
+  } catch { /* ignore */ }
+  process.exit(0)
+}
+process.once('SIGTERM', () => { void shutdown('SIGTERM') })
+process.once('SIGINT', () => { void shutdown('SIGINT') })
+
+const httpServer = createServer(app)
+
+// ── WebSocket — Modo Live ────────────────────────────────────────────
+const wss = new WebSocketServer({ server: httpServer, path: '/ws/live' })
+
+interface LiveClient extends WebSocket {
+  sessionHistory?: Array<{ role: string; content: string }>
+  currentSession?: { abort: () => void }
+}
+
+wss.on('connection', (ws: LiveClient, req) => {
+  const cookies = req.headers.cookie || ''
+  const hasSession = cookies.includes('orbit_session=') || cookies.includes('adminToken=')
+  if (!hasSession) { ws.close(4001, 'Unauthorized'); return }
+
+  ws.sessionHistory = []
+  console.log('[liveMode] Cliente WebSocket ligado')
+
+  ws.on('message', async (data: Buffer, isBinary: boolean) => {
+    try {
+      if (isBinary) {
+        const text = await transcribeAudio(data)
+        if (!text) return
+        ws.send(JSON.stringify({ type: 'transcript', text }))
+
+        if (ws.currentSession) ws.currentSession.abort()
+
+        ws.currentSession = await runLivePipeline(
+          text,
+          ws.sessionHistory ?? [],
+          (textChunk) => ws.send(JSON.stringify({ type: 'text_chunk', text: textChunk })),
+          (wavBuffer) => {
+            if (ws.readyState === WebSocket.OPEN) ws.send(wavBuffer)
+          },
+          (fullReply) => {
+            ws.sessionHistory?.push({ role: 'user', content: text })
+            ws.sessionHistory?.push({ role: 'assistant', content: fullReply })
+            if ((ws.sessionHistory?.length ?? 0) > 20) ws.sessionHistory = ws.sessionHistory?.slice(-20)
+            ws.send(JSON.stringify({ type: 'done', text: fullReply }))
+          },
+          (err) => ws.send(JSON.stringify({ type: 'error', text: err })),
+        )
+      } else {
+        const msg = JSON.parse(data.toString()) as { type: string }
+        if (msg.type === 'abort') ws.currentSession?.abort()
+        if (msg.type === 'clear') ws.sessionHistory = []
+        if (msg.type === 'ping') ws.send(JSON.stringify({ type: 'pong' }))
+      }
+    } catch (e) {
+      ws.send(JSON.stringify({ type: 'error', text: (e as Error).message }))
+    }
+  })
+
+  ws.on('close', () => {
+    ws.currentSession?.abort()
+    console.log('[liveMode] Cliente WebSocket desligado')
+  })
+})
+// ── fim WebSocket ─────────────────────────────────────────────────────
+
+httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`[ai-command-center] Running on port ${PORT}`)
 })
 
