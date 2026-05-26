@@ -145,7 +145,7 @@ export async function selfEditFile(
     }
   }
 
-  // Auto git commit + push — registo automático de cada auto-edição
+  // Auto git commit local — registo de cada auto-edição (sem push automático)
   let gitNote = ''
   try {
     const safeReason = reason.replace(/'/g, '').replace(/"/g, '').slice(0, 120)
@@ -153,14 +153,9 @@ export async function selfEditFile(
       `cd ${ROOT} && git add -A && git commit -m "auto: ${relPath} — ${safeReason}" 2>&1`,
       { encoding: 'utf-8', timeout: 30000 }
     )
-    try {
-      execSync(`cd ${ROOT} && git push origin main 2>&1`, { encoding: 'utf-8', timeout: 30000 })
-      gitNote = '\nGit: commit + push OK'
-    } catch {
-      gitNote = '\nGit: commit OK, push falhou (tenta manualmente)'
-    }
+    gitNote = '\nGit: commit local OK (sem push automático)'
   } catch {
-    gitNote = ''  // sem alterações para commit ou git não disponível
+    gitNote = ''  // sem alterações para commit
   }
 
   const sqlNote = sqlLogs.length > 0 ? `\nSQL: ${sqlLogs.join('; ')}` : ''
