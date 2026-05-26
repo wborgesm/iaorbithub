@@ -145,10 +145,28 @@ export async function selfEditFile(
     }
   }
 
+  // Auto git commit + push — registo automático de cada auto-edição
+  let gitNote = ''
+  try {
+    const safeReason = reason.replace(/'/g, '').replace(/"/g, '').slice(0, 120)
+    execSync(
+      `cd ${ROOT} && git add -A && git commit -m "auto: ${relPath} — ${safeReason}" 2>&1`,
+      { encoding: 'utf-8', timeout: 30000 }
+    )
+    try {
+      execSync(`cd ${ROOT} && git push origin main 2>&1`, { encoding: 'utf-8', timeout: 30000 })
+      gitNote = '\nGit: commit + push OK'
+    } catch {
+      gitNote = '\nGit: commit OK, push falhou (tenta manualmente)'
+    }
+  } catch {
+    gitNote = ''  // sem alterações para commit ou git não disponível
+  }
+
   const sqlNote = sqlLogs.length > 0 ? `\nSQL: ${sqlLogs.join('; ')}` : ''
   return {
     success: true, compiled: true, restarted: true,
     prismaGenerated: isPrisma,
-    message: `✅ ${relPath} corrigido. Motivo: ${reason}. Compilado e reiniciado.${sqlNote}`,
+    message: `✅ ${relPath} corrigido. Motivo: ${reason}. Compilado e reiniciado.${sqlNote}${gitNote}`,
   }
 }

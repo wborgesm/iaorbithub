@@ -1,0 +1,29 @@
+{
+  "version": "1.1",
+  "description": "Ficheiros que o ORBIT nunca pode modificar ou apagar",
+  "protected_files": [
+    "src/services/llm.ts",
+    "src/services/providerConfig.ts",
+    "orbit-protected.json",
+    ".env",
+    ".env.local",
+    "package.json",
+    "package-lock.json"
+  ],
+  "protected_patterns": [
+    "**/.git/**",
+    "**/node_modules/**",
+    "data/vps-keys/**",
+    "**/*.key",
+    "**/*.pem",
+    "**/*.p12"
+  ],
+  "forbidden_commands": [
+    "npm publish",
+    "yarn publish",
+    "rm -rf /",
+    "dd if=",
+    "mkfs"
+  ],
+  "note": "prisma/schema.prisma pode ser editado. selfEdit faz git commit+push automatico apos cada edicao bem sucedida."
+}
